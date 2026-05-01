@@ -230,11 +230,28 @@ export default function GanttChart({ phases, targetDate }: { phases: any[]; targ
               const plannedLeft = pctFromDate(phase.plannedStart);
               const plannedWidth = widthFromRange(phase.plannedStart, phase.plannedEnd);
 
-              const hasActual = phase.actualStart != null;
-              const actualStart = hasActual ? new Date(phase.actualStart) : null;
-              const actualEndForDisplay = phase.actualEnd ? new Date(phase.actualEnd) : (status === "DONE" ? new Date(phase.plannedEnd) : now);
+              // Derive actual bar:
+              //  - COMPLETED: full plannedStart -> plannedEnd (with 100% fill)
+              //  - IN_PROGRESS / has progress > 0: plannedStart -> today (with progress fill)
+              //  - explicit actualStart wins over derivation
+              const showActualBar =
+                phase.actualStart != null ||
+                phase.status === "COMPLETED" ||
+                phase.status === "IN_PROGRESS" ||
+                progress > 0;
+              const actualStart = phase.actualStart
+                ? new Date(phase.actualStart)
+                : showActualBar ? new Date(phase.plannedStart) : null;
+              const actualEndForDisplay = phase.actualEnd
+                ? new Date(phase.actualEnd)
+                : phase.status === "COMPLETED" ? new Date(phase.plannedEnd)
+                : showActualBar
+                  ? (now.getTime() < new Date(phase.plannedEnd).getTime() ? now : new Date(phase.plannedEnd))
+                  : null;
               const actualLeft = actualStart ? pctFromDate(actualStart) : 0;
-              const actualWidth = actualStart ? widthFromRange(actualStart, actualEndForDisplay) : 0;
+              const actualWidth = actualStart && actualEndForDisplay
+                ? widthFromRange(actualStart, actualEndForDisplay) : 0;
+              const hasActual = showActualBar && actualWidth > 0;
 
               return (
                 <div key={phase.id} style={{ display: "flex", alignItems: "center", height: ROW_HEIGHT, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
@@ -264,52 +281,40 @@ export default function GanttChart({ phases, targetDate }: { phases: any[]; targ
                       }} />
                     ))}
 
-                    {/* Planned bar (lower / dashed / muted) */}
-                    <div title={`Kế hoạch: ${fmtDate(phase.plannedStart)} → ${fmtDate(phase.plannedEnd)}`} style={{
+                    {/* Main bar (planned area, with progress fill inside) */}
+                    <div title={`Kế hoạch: ${fmtDate(phase.plannedStart)} → ${fmtDate(phase.plannedEnd)}${hasActual ? `\nThực tế: ${fmtDate(actualStart!)} → ${phase.actualEnd ? fmtDate(phase.actualEnd) : "Hôm nay"}` : ""}\nTiến độ: ${progress}%`} style={{
                       position: "absolute",
                       left: `${plannedLeft}%`,
                       width: `${plannedWidth}%`,
-                      top: hasActual ? 22 : 8,
-                      height: hasActual ? 10 : 20,
-                      background: phase._fallback ? "rgba(255,255,255,0.04)" : `${theme.color}1f`,
-                      border: `1px ${phase._fallback ? "dashed" : "solid"} ${theme.color}55`,
+                      top: hasActual ? 4 : 8,
+                      height: hasActual ? 20 : 22,
+                      background: phase._fallback ? "rgba(255,255,255,0.04)" : `${theme.color}22`,
+                      border: `1px ${phase._fallback ? "dashed" : "solid"} ${theme.color}66`,
                       borderRadius: 4,
+                      overflow: "hidden",
                       transition: "all 0.2s ease",
-                    }} />
-
-                    {/* Actual bar (upper / solid / progress filled) */}
-                    {hasActual && (
-                      <div title={`Thực tế: ${fmtDate(actualStart!)} → ${phase.actualEnd ? fmtDate(phase.actualEnd) : "Hôm nay"}`} style={{
-                        position: "absolute",
-                        left: `${actualLeft}%`,
-                        width: `${actualWidth}%`,
-                        top: 4,
-                        height: 14,
-                        background: `${theme.color}55`,
-                        border: `1px solid ${theme.color}`,
-                        borderRadius: 4,
-                        overflow: "hidden",
-                        boxShadow: status === "OVERDUE" ? `0 0 12px ${theme.color}80` : undefined,
-                      }}>
-                        {/* Progress fill */}
+                      boxShadow: status === "OVERDUE" ? `0 0 12px ${theme.color}55` : undefined,
+                    }}>
+                      {/* Progress fill from left */}
+                      {progress > 0 && (
                         <div style={{
                           width: `${progress}%`, height: "100%",
                           background: theme.color,
                           transition: "width 0.3s ease",
                         }} />
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {/* If no actual, show progress within planned bar */}
-                    {!hasActual && progress > 0 && !phase._fallback && (
-                      <div style={{
+                    {/* Planned reference strip below (only when there's an actual override) */}
+                    {phase.actualStart && (
+                      <div title={`Kế hoạch ban đầu: ${fmtDate(phase.plannedStart)} → ${fmtDate(phase.plannedEnd)}`} style={{
                         position: "absolute",
                         left: `${plannedLeft}%`,
-                        width: `${plannedWidth * progress / 100}%`,
-                        top: 8, height: 20,
-                        background: `${theme.color}80`,
-                        borderRadius: "4px 0 0 4px",
-                        transition: "width 0.3s ease",
+                        width: `${plannedWidth}%`,
+                        top: 28, height: 4,
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px dashed rgba(255,255,255,0.15)",
+                        borderRadius: 2,
                       }} />
                     )}
 
@@ -318,30 +323,19 @@ export default function GanttChart({ phases, targetDate }: { phases: any[]; targ
                       position: "absolute",
                       left: `${plannedLeft}%`,
                       width: `${plannedWidth}%`,
-                      top: hasActual ? 22 : 8,
-                      height: hasActual ? 10 : 20,
+                      top: hasActual ? 4 : 8,
+                      height: hasActual ? 20 : 22,
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       paddingLeft: 8, paddingRight: 8,
                       fontSize: 10, color: "#fff", fontWeight: 600,
                       pointerEvents: "none", overflow: "hidden", whiteSpace: "nowrap",
-                      textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                      textShadow: "0 1px 3px rgba(0,0,0,0.7)",
                     }}>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{phase.name}</span>
-                      {progress > 0 && plannedWidth > 8 && (
+                      {progress > 0 && plannedWidth > 6 && (
                         <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, opacity: 0.95, flexShrink: 0 }}>{progress}%</span>
                       )}
                     </div>
-
-                    {/* Overdue glow effect */}
-                    {status === "OVERDUE" && (
-                      <div style={{
-                        position: "absolute",
-                        left: `${plannedLeft}%`, width: `${plannedWidth}%`,
-                        top: 0, bottom: 0,
-                        background: `radial-gradient(ellipse at center, ${theme.color}25, transparent 70%)`,
-                        pointerEvents: "none",
-                      }} />
-                    )}
                   </div>
 
                   {/* Right status badge */}
