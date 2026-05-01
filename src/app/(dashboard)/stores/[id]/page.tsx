@@ -24,10 +24,21 @@ export default function StoreDetailPage() {
   const fetchStore = () => {
     fetch(`/api/stores/${id}`)
       .then((r) => r.json())
-      .then((d) => { setStore(d); setLoading(false); if (!selectedPhase && d.phases) setSelectedPhase(d.phases[0]); });
+      .then((d) => {
+        setStore(d);
+        setLoading(false);
+        setSelectedPhase((prev: any) => {
+          if (!prev) return d.phases?.[0] ?? null;
+          return d.phases?.find((p: any) => p.id === prev.id) ?? prev;
+        });
+      });
   };
 
-  useEffect(() => { fetchStore(); const iv = setInterval(fetchStore, 30000); return () => clearInterval(iv); }, [id]);
+  useEffect(() => {
+    fetchStore();
+    const iv = setInterval(fetchStore, 30000);
+    return () => clearInterval(iv);
+  }, [id]);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>

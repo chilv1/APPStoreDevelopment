@@ -52,9 +52,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   );
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
+  // Auto-update store status from progress (don't override ON_HOLD/CANCELLED)
+  const currentStatus = task.phase.store.status;
+  let newStatus = currentStatus;
+  if (!["ON_HOLD", "CANCELLED"].includes(currentStatus)) {
+    if (progress === 100) newStatus = "COMPLETED";
+    else if (progress > 0) newStatus = "IN_PROGRESS";
+    else newStatus = "PLANNING";
+  }
+
   await prisma.storeProject.update({
     where: { id: task.phase.storeId },
-    data: { progress },
+    data: { progress, ...(newStatus !== currentStatus && { status: newStatus }) },
   });
 
   return NextResponse.json({ ...task, storeProgress: progress });
