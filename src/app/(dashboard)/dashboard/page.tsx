@@ -79,10 +79,11 @@ export default function DashboardPage() {
       )}
 
       {/* Summary Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 28 }}>
         <StatCard icon="🏪" label="Tổng cửa hàng" value={data.totalStores} color="#3b82f6" />
         <StatCard icon="🔄" label="Đang thực hiện" value={data.statusCounts["IN_PROGRESS"] || 0} color="#8b5cf6" />
         <StatCard icon="✅" label="Đã khai trương" value={data.statusCounts["COMPLETED"] || 0} color="#10b981" />
+        <StatCard icon="⏸️" label="Tạm dừng" value={data.statusCounts["ON_HOLD"] || 0} color="#f59e0b" />
         <StatCard icon="📈" label="Tiến độ TB" value={`${data.avgProgress}%`} color="#f59e0b" />
       </div>
 
