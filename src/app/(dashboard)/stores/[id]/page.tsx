@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import TaskModal from "@/components/stores/TaskModal";
 import IssueModal from "@/components/stores/IssueModal";
 import EditStoreModal from "@/components/stores/EditStoreModal";
+import GanttChart from "@/components/stores/GanttChart";
 
 type Tab = "phases" | "gantt" | "issues" | "activity";
 
@@ -658,103 +659,3 @@ function EditIssueModal({ issue, onClose, onSave, onDelete, loading }: any) {
   );
 }
 
-function GanttChart({ phases, targetDate }: { phases: any[]; targetDate?: string }) {
-  if (!phases.length) return null;
-
-  const PHASE_DURATIONS = [30, 14, 21, 14, 21, 60, 21, 21, 14, 14, 30];
-
-  // Fill in fallback dates for phases that have none
-  const phasesWithDates = phases.map((p, idx) => {
-    if (p.plannedStart && p.plannedEnd) return p;
-    // Generate fallback: sum of previous durations from today
-    const offset = PHASE_DURATIONS.slice(0, idx).reduce((a, b) => a + b, 0);
-    const dur    = PHASE_DURATIONS[idx] ?? 14;
-    const base   = new Date(); base.setHours(0, 0, 0, 0);
-    const s = new Date(base); s.setDate(s.getDate() + offset);
-    const e = new Date(s);    e.setDate(e.getDate() + dur);
-    return { ...p, plannedStart: s.toISOString(), plannedEnd: e.toISOString(), _fallback: true };
-  });
-
-  const now = new Date();
-  const start = new Date(Math.min(...phasesWithDates.map((p: any) => new Date(p.plannedStart).getTime())));
-  const end   = new Date(Math.max(...phasesWithDates.map((p: any) => new Date(p.plannedEnd).getTime())));
-  const totalDays = Math.max((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24), 1);
-
-  const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#6366f1", "#84cc16", "#f97316"];
-
-  const getLeft = (date: string) => ((new Date(date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) / totalDays * 100;
-  const getWidth = (s: string, e: string) => Math.max(((new Date(e).getTime() - new Date(s).getTime()) / (1000 * 60 * 60 * 24)) / totalDays * 100, 1);
-
-  const todayLeft = ((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) / totalDays * 100;
-
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>📅 Gantt Chart — Tiến Độ 11 Giai Đoạn</h2>
-        {phasesWithDates.some((p: any) => p._fallback) && (
-          <span style={{ fontSize: 11, color: "#f59e0b", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 6, padding: "3px 8px" }}>
-            ⚠️ Một số giai đoạn chưa có ngày kế hoạch — đang hiển thị ước tính
-          </span>
-        )}
-      </div>
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, overflowX: "auto" }}>
-        {/* Timeline header */}
-        <div style={{ display: "flex", marginBottom: 16, paddingLeft: 180 }}>
-          {[0, 25, 50, 75, 100].map((pct) => (
-            <div key={pct} style={{ position: "absolute", left: `calc(180px + ${pct}% * ((100% - 180px - 40px) / 100))`, fontSize: 10, color: "var(--text-muted)", transform: "translateX(-50%)" }}>
-              {new Date(start.getTime() + (totalDays * pct / 100) * 86400000).toLocaleDateString("vi-VN", { month: "short", day: "numeric" })}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ position: "relative", minWidth: 600 }}>
-          {/* Today line */}
-          {todayLeft >= 0 && todayLeft <= 100 && (
-            <div style={{
-              position: "absolute", left: `calc(180px + ${todayLeft}% * ((100% - 180px) / 100))`,
-              top: 0, bottom: 0, width: 2, background: "#ef4444",
-              zIndex: 10, opacity: 0.8,
-            }}>
-              <div style={{ position: "absolute", top: -16, left: -12, fontSize: 9, color: "#ef4444", whiteSpace: "nowrap", background: "rgba(239,68,68,0.15)", padding: "2px 6px", borderRadius: 4 }}>
-                Hôm nay
-              </div>
-            </div>
-          )}
-
-          {phasesWithDates.map((phase: any, i: number) => (
-            <div key={phase.id} style={{ display: "flex", alignItems: "center", marginBottom: 10, height: 40 }}>
-              <div style={{ width: 180, flexShrink: 0, fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", paddingRight: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {PHASE_ICONS[phase.phaseNumber]} GĐ {phase.phaseNumber}
-              </div>
-              <div style={{ flex: 1, position: "relative", height: 28 }}>
-                <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.02)", borderRadius: 4 }} />
-                <div className="gantt-bar" style={{
-                  left: `${getLeft(phase.plannedStart)}%`,
-                  width: `${getWidth(phase.plannedStart, phase.plannedEnd)}%`,
-                  background: phase.status === "COMPLETED"
-                    ? `${COLORS[i % COLORS.length]}cc`
-                    : phase.status === "IN_PROGRESS"
-                    ? `${COLORS[i % COLORS.length]}99`
-                    : phase._fallback
-                    ? `${COLORS[i % COLORS.length]}28`
-                    : `${COLORS[i % COLORS.length]}40`,
-                  border: `1px solid ${COLORS[i % COLORS.length]}${phase._fallback ? "30" : "60"}`,
-                  color: "#fff",
-                  fontSize: 10,
-                  opacity: phase._fallback ? 0.6 : 1,
-                }}>
-                  {phase.name}
-                </div>
-              </div>
-              <div style={{ width: 90, paddingLeft: 12, flexShrink: 0 }}>
-                <span className={`badge ${STATUS_COLORS[phase.status]}`} style={{ fontSize: 9 }}>
-                  {STATUS_LABELS[phase.status]}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
