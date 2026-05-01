@@ -13,6 +13,8 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [totalProjectDays, setTotalProjectDays] = useState<number | null>(null);
+  const [targetAutoFilled, setTargetAutoFilled] = useState(false);
 
   useEffect(() => {
     fetch("/api/branches").then(r => r.json()).then(d => {
@@ -23,6 +25,21 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
         if (list[0].businessCenters?.length > 0) setForm(f => ({ ...f, businessCenterId: list[0].businessCenters[0].id }));
       }
     });
+
+    // Fetch phase templates → auto-compute target opening date = today + total durationDays
+    fetch("/api/phase-templates").then(r => r.json()).then(d => {
+      if (!Array.isArray(d) || d.length === 0) return;
+      const totalDays = d.reduce((sum: number, t: any) => sum + (Number(t.durationDays) || 0), 0);
+      setTotalProjectDays(totalDays);
+      const target = new Date();
+      target.setHours(0, 0, 0, 0);
+      target.setDate(target.getDate() + totalDays);
+      const yyyy = target.getFullYear();
+      const mm = String(target.getMonth() + 1).padStart(2, "0");
+      const dd = String(target.getDate()).padStart(2, "0");
+      setForm(f => f.targetOpenDate ? f : { ...f, targetOpenDate: `${yyyy}-${mm}-${dd}` });
+      setTargetAutoFilled(true);
+    }).catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,6 +135,11 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
               </label>
               <input className="input" type="date"
                 value={form.targetOpenDate} onChange={(e) => setForm({ ...form, targetOpenDate: e.target.value })} />
+              {targetAutoFilled && totalProjectDays != null && (
+                <div style={{ fontSize: 11, color: "#93c5fd", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>⚡ Tự động tính: hôm nay + <strong>{totalProjectDays} ngày</strong> ({Math.round(totalProjectDays / 30 * 10) / 10} tháng) theo cấu hình mẫu giai đoạn — bạn có thể đổi lại nếu cần</span>
+                </div>
+              )}
             </div>
 
             <div>
