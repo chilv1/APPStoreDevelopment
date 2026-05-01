@@ -108,7 +108,7 @@ export default function EditStoreModal({
           🔖 Mã dự án: <strong style={{ color: "#f0f4ff" }}>{store.code}</strong>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
             {/* Tên cửa hàng */}
