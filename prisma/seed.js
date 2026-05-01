@@ -236,6 +236,24 @@ async function main() {
     });
   }
 
+  // Recalculate phase and store statuses from actual task data
+  const allPhases = await prisma.phase.findMany({ include: { tasks: true } });
+  for (const phase of allPhases) {
+    if (phase.status === "BLOCKED") continue;
+    const allDone = phase.tasks.length > 0 && phase.tasks.every(t => t.status === "DONE");
+    const anyStarted = phase.tasks.some(t => t.status === "DONE" || t.status === "IN_PROGRESS");
+    const newStatus = allDone ? "COMPLETED" : anyStarted ? "IN_PROGRESS" : "NOT_STARTED";
+    if (newStatus !== phase.status) await prisma.phase.update({ where: { id: phase.id }, data: { status: newStatus } });
+  }
+  const allStores = await prisma.storeProject.findMany({ include: { phases: { include: { tasks: true } } } });
+  for (const store of allStores) {
+    const total = store.phases.reduce((s, p) => s + p.tasks.length, 0);
+    const done  = store.phases.reduce((s, p) => s + p.tasks.filter(t => t.status === "DONE").length, 0);
+    const progress  = total > 0 ? Math.round(done / total * 100) : 0;
+    const newStatus = progress === 100 ? "COMPLETED" : progress > 0 ? "IN_PROGRESS" : "PLANNING";
+    await prisma.storeProject.update({ where: { id: store.id }, data: { status: newStatus, progress } });
+  }
+
   console.log("✅ Tạo xong 3 cửa hàng với đầy đủ dữ liệu");
   console.log("\n📋 THÔNG TIN ĐĂNG NHẬP:");
   console.log("Admin:        admin@telecom.vn    / 123456");
