@@ -167,15 +167,17 @@ export default function EditStoreModal({
             </div>
 
             {/* Toạ độ */}
-            <div>
-              <Label>Vĩ độ (Latitude)</Label>
-              <input className="input" type="number" step="any" placeholder="VD: 10.7769"
-                value={form.latitude} onChange={(e) => set("latitude", e.target.value)} />
-            </div>
-            <div>
-              <Label>Kinh độ (Longitude)</Label>
-              <input className="input" type="number" step="any" placeholder="VD: 106.7009"
-                value={form.longitude} onChange={(e) => set("longitude", e.target.value)} />
+            <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <Label>Vĩ độ (Latitude)</Label>
+                <input className="input" type="number" step="any" placeholder="VD: 10.7769"
+                  value={form.latitude} onChange={(e) => set("latitude", e.target.value)} />
+              </div>
+              <div>
+                <Label>Kinh độ (Longitude)</Label>
+                <input className="input" type="number" step="any" placeholder="VD: 106.7009"
+                  value={form.longitude} onChange={(e) => set("longitude", e.target.value)} />
+              </div>
             </div>
 
             {/* Preview bản đồ nếu có toạ độ */}
