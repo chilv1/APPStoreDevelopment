@@ -77,6 +77,10 @@ export default function StoreDetailPage() {
             <div style={{ display: "flex", gap: 20, fontSize: 13, color: "var(--text-secondary)", flexWrap: "wrap", marginTop: 8 }}>
               <span>🔖 {store.code}</span>
               <span>🌏 {store.region}</span>
+              {store.bc && (
+                <span>🏢 <strong style={{ color: "#f0f4ff" }}>{store.bc.branch?.code}</strong> · <strong style={{ color: "#60a5fa" }}>{store.bc.code}</strong> {store.bc.name}</span>
+              )}
+              {!store.bc && store.region && <span>🌏 {store.region}</span>}
               {store.pm && <span>👤 PM: <strong style={{ color: "#f0f4ff" }}>{store.pm.name}</strong></span>}
               {store.budget && <span>💰 {formatCurrency(store.budget)}</span>}
               {store.targetOpenDate && <span>🎯 KH khai trương: <strong style={{ color: "#f0f4ff" }}>{formatDate(store.targetOpenDate)}</strong></span>}

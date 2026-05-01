@@ -6,6 +6,32 @@ datasource db {
   provider = "sqlite"
 }
 
+model Branch {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  businessCenters BusinessCenter[]
+  users           User[]
+}
+
+model BusinessCenter {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branchId String
+  branch   Branch         @relation(fields: [branchId], references: [id])
+  stores   StoreProject[]
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -16,6 +42,9 @@ model User {
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   assignedStores StoreProject[] @relation("PMStores")
   assignedTasks  Task[]         @relation("TaskAssignee")
@@ -28,7 +57,7 @@ model StoreProject {
   name           String
   code           String    @unique
   address        String
-  region         String
+  region         String?
   targetOpenDate DateTime?
   actualOpenDate DateTime?
   status         String    @default("PLANNING")
@@ -40,11 +69,13 @@ model StoreProject {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  pmId    String?
-  pm      User?    @relation("PMStores", fields: [pmId], references: [id])
-  phases  Phase[]
-  issues  Issue[]
-  activities Activity[]
+  pmId             String?
+  pm               User?           @relation("PMStores", fields: [pmId], references: [id])
+  businessCenterId String?
+  bc               BusinessCenter? @relation(fields: [businessCenterId], references: [id])
+  phases           Phase[]
+  issues           Issue[]
+  activities       Activity[]
 }
 
 model Phase {

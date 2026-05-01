@@ -24,11 +24,12 @@ export default function StoresPage() {
 
   useEffect(() => { fetchStores(); }, []);
 
-  const regions = [...new Set(stores.map((s) => s.region))];
+  const getBranchLabel = (s: any) => s.bc?.branch?.name || s.region || "—";
+  const regions = [...new Set(stores.map(getBranchLabel))];
   const filtered = stores.filter((s) => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.code.toLowerCase().includes(search.toLowerCase());
-    const matchRegion = filterRegion === "all" || s.region === filterRegion;
+    const matchRegion = filterRegion === "all" || getBranchLabel(s) === filterRegion;
     const matchStatus = filterStatus === "all" || s.status === filterStatus;
     return matchSearch && matchRegion && matchStatus;
   });
@@ -164,7 +165,10 @@ function StoreCard({ store }: { store: any }) {
         {/* Footer */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-            📍 {store.region}
+            {store.bc
+              ? <span>🏢 <strong>{store.bc.branch?.code}</strong> · {store.bc.code}</span>
+              : <span>📍 {store.region || "—"}</span>
+            }
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {issueCount > 0 && (

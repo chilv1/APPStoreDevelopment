@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 
-const REGIONS = ["Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Biên Hòa", "Bình Dương"];
 const STATUS_OPTIONS = [
   { value: "PLANNING",    label: "Lên kế hoạch" },
   { value: "IN_PROGRESS", label: "Đang thực hiện" },
@@ -26,19 +25,21 @@ export default function EditStoreModal({
   onUpdated: () => void;
 }) {
   const [form, setForm] = useState({
-    name:           store.name ?? "",
-    address:        store.address ?? "",
-    region:         store.region ?? "Hồ Chí Minh",
-    status:         store.status ?? "PLANNING",
-    targetOpenDate: toDateInput(store.targetOpenDate),
-    actualOpenDate: toDateInput(store.actualOpenDate),
-    budget:         store.budget != null ? String(store.budget) : "",
-    latitude:       store.latitude  != null ? String(store.latitude)  : "",
-    longitude:      store.longitude != null ? String(store.longitude) : "",
-    pmId:           store.pmId ?? "",
-    notes:          store.notes ?? "",
+    name:             store.name ?? "",
+    address:          store.address ?? "",
+    status:           store.status ?? "PLANNING",
+    targetOpenDate:   toDateInput(store.targetOpenDate),
+    actualOpenDate:   toDateInput(store.actualOpenDate),
+    budget:           store.budget != null ? String(store.budget) : "",
+    latitude:         store.latitude  != null ? String(store.latitude)  : "",
+    longitude:        store.longitude != null ? String(store.longitude) : "",
+    pmId:             store.pmId ?? "",
+    businessCenterId: store.businessCenterId ?? "",
+    notes:            store.notes ?? "",
   });
   const [pmList, setPmList] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState(store.bc?.branchId ?? store.bc?.branch?.id ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState("");
 
@@ -46,6 +47,10 @@ export default function EditStoreModal({
     fetch("/api/users")
       .then((r) => r.json())
       .then((users) => setPmList(users.filter((u: any) => ["ADMIN", "AREA_MANAGER", "PM"].includes(u.role))))
+      .catch(() => {});
+    fetch("/api/branches")
+      .then(r => r.json())
+      .then(d => setBranches(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, []);
 
@@ -60,17 +65,17 @@ export default function EditStoreModal({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:           form.name,
-          address:        form.address,
-          region:         form.region,
-          status:         form.status,
-          budget:         form.budget !== "" ? Number(form.budget) : null,
-          targetOpenDate: form.targetOpenDate || null,
-          actualOpenDate: form.actualOpenDate || null,
-          latitude:       form.latitude  !== "" ? Number(form.latitude)  : null,
-          longitude:      form.longitude !== "" ? Number(form.longitude) : null,
-          pmId:           form.pmId || null,
-          notes:          form.notes,
+          name:             form.name,
+          address:          form.address,
+          status:           form.status,
+          budget:           form.budget !== "" ? Number(form.budget) : null,
+          targetOpenDate:   form.targetOpenDate || null,
+          actualOpenDate:   form.actualOpenDate || null,
+          latitude:         form.latitude  !== "" ? Number(form.latitude)  : null,
+          longitude:        form.longitude !== "" ? Number(form.longitude) : null,
+          pmId:             form.pmId || null,
+          businessCenterId: form.businessCenterId || null,
+          notes:            form.notes,
         }),
       });
       if (!res.ok) {
@@ -118,11 +123,28 @@ export default function EditStoreModal({
               <input className="input" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
             </div>
 
-            {/* Vùng */}
+            {/* Chi nhánh */}
             <div>
-              <Label>Vùng / Tỉnh thành</Label>
-              <select className="input" value={form.region} onChange={(e) => set("region", e.target.value)}>
-                {REGIONS.map((r) => <option key={r}>{r}</option>)}
+              <Label>Chi nhánh</Label>
+              <select className="input" value={selectedBranchId}
+                onChange={e => {
+                  setSelectedBranchId(e.target.value);
+                  const br = branches.find(b => b.id === e.target.value);
+                  set("businessCenterId", br?.businessCenters?.[0]?.id || "");
+                }}>
+                <option value="">— Chọn chi nhánh —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.code} — {b.name}</option>)}
+              </select>
+            </div>
+
+            {/* Business Center */}
+            <div>
+              <Label>Business Center</Label>
+              <select className="input" value={form.businessCenterId} onChange={e => set("businessCenterId", e.target.value)}>
+                <option value="">— Chọn BC —</option>
+                {(branches.find(b => b.id === selectedBranchId)?.businessCenters || []).map((bc: any) => (
+                  <option key={bc.id} value={bc.id}>{bc.code} — {bc.name}</option>
+                ))}
               </select>
             </div>
 

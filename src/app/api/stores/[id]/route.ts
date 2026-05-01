@@ -12,6 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       pm: { select: { id: true, name: true, email: true, role: true, region: true } },
+      bc: { include: { branch: { select: { id: true, name: true, code: true } } } },
       phases: {
         orderBy: { phaseNumber: "asc" },
         include: {
@@ -55,8 +56,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     where: { id },
     data: {
       ...(body.name          && { name: body.name }),
-      ...(body.address       && { address: body.address }),
-      ...(body.region        && { region: body.region }),
+      ...(body.address          && { address: body.address }),
+      ...(body.region           !== undefined && { region: body.region }),
+      ...(body.businessCenterId !== undefined && { businessCenterId: body.businessCenterId || null }),
       ...(body.status        && { status: body.status }),
       ...(body.progress      !== undefined && { progress: body.progress }),
       ...(body.budget        !== undefined && { budget: body.budget !== null ? Number(body.budget) : null }),
@@ -67,7 +69,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(body.latitude      !== undefined && { latitude: body.latitude !== null && body.latitude !== "" ? Number(body.latitude) : null }),
       ...(body.longitude     !== undefined && { longitude: body.longitude !== null && body.longitude !== "" ? Number(body.longitude) : null }),
     },
-    include: { pm: { select: { id: true, name: true, email: true, role: true } }, phases: true },
+    include: {
+      pm: { select: { id: true, name: true, email: true, role: true } },
+      bc: { include: { branch: { select: { id: true, name: true, code: true } } } },
+      phases: true,
+    },
   });
 
   return NextResponse.json(store);

@@ -8,16 +8,19 @@ export async function GET() {
 
   const user = session.user as any;
   
-  const where = user.role === "PM" 
+  const where = user.role === "PM"
     ? { pm: { email: user.email } }
     : user.role === "AREA_MANAGER"
-    ? { region: user.region }
+    ? user.branchId
+      ? { bc: { branchId: user.branchId } }
+      : { region: user.region }
     : {};
 
   const stores = await prisma.storeProject.findMany({
     where,
     include: {
       pm: { select: { id: true, name: true, email: true, role: true } },
+      bc: { include: { branch: { select: { id: true, name: true, code: true } } } },
       phases: { orderBy: { phaseNumber: "asc" } },
       _count: { select: { issues: true } },
     },
@@ -53,14 +56,15 @@ export async function POST(request: Request) {
 
   const store = await prisma.storeProject.create({
     data: {
-      name: body.name,
-      code: body.code,
-      address: body.address,
-      region: body.region,
-      targetOpenDate: body.targetOpenDate ? new Date(body.targetOpenDate) : null,
-      budget: body.budget ? Number(body.budget) : null,
-      notes: body.notes,
-      pmId: body.pmId || null,
+      name:            body.name,
+      code:            body.code,
+      address:         body.address,
+      region:          body.region || null,
+      businessCenterId: body.businessCenterId || null,
+      targetOpenDate:  body.targetOpenDate ? new Date(body.targetOpenDate) : null,
+      budget:          body.budget ? Number(body.budget) : null,
+      notes:           body.notes,
+      pmId:            body.pmId || null,
       status: "PLANNING",
       progress: 0,
       phases: {

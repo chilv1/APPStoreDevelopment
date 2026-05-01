@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-
-const REGIONS = ["Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Biên Hòa", "Bình Dương"];
 
 export default function CreateStoreModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { data: session } = useSession();
   const [form, setForm] = useState({
-    name: "", code: "", address: "", region: "Hồ Chí Minh",
+    name: "", code: "", address: "", businessCenterId: "",
     targetOpenDate: "", budget: "", notes: "",
   });
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/branches").then(r => r.json()).then(d => {
+      const list = Array.isArray(d) ? d : [];
+      setBranches(list);
+      if (list.length > 0) {
+        setSelectedBranchId(list[0].id);
+        if (list[0].businessCenters?.length > 0) setForm(f => ({ ...f, businessCenterId: list[0].businessCenters[0].id }));
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +37,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
         body: JSON.stringify({
           ...form,
           budget: form.budget ? Number(form.budget) : null,
+          businessCenterId: form.businessCenterId || null,
         }),
       });
 
@@ -68,11 +80,24 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Vùng / Tỉnh thành *
-              </label>
-              <select className="input" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
-                {REGIONS.map((r) => <option key={r}>{r}</option>)}
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Chi nhánh</label>
+              <select className="input" value={selectedBranchId}
+                onChange={e => {
+                  setSelectedBranchId(e.target.value);
+                  const branch = branches.find(b => b.id === e.target.value);
+                  setForm(f => ({ ...f, businessCenterId: branch?.businessCenters?.[0]?.id || "" }));
+                }}>
+                <option value="">— Chọn chi nhánh —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.code} — {b.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Business Center</label>
+              <select className="input" value={form.businessCenterId} onChange={e => setForm(f => ({ ...f, businessCenterId: e.target.value }))}>
+                <option value="">— Chọn BC —</option>
+                {(branches.find(b => b.id === selectedBranchId)?.businessCenters || []).map((bc: any) => (
+                  <option key={bc.id} value={bc.id}>{bc.code} — {bc.name}</option>
+                ))}
               </select>
             </div>
 

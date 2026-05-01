@@ -10,7 +10,7 @@ export async function GET() {
   const storeWhere = user.role === "PM"
     ? { pm: { email: user.email } }
     : user.role === "AREA_MANAGER"
-    ? { region: user.region }
+    ? user.branchId ? { bc: { branchId: user.branchId } } : { region: user.region }
     : {};
 
   const [stores, totalStores] = await Promise.all([
@@ -18,6 +18,7 @@ export async function GET() {
       where: storeWhere,
       include: {
         phases: { include: { tasks: true } },
+        bc: { include: { branch: { select: { id: true, name: true, code: true } } } },
         _count: { select: { issues: true } },
       },
     }),
@@ -30,9 +31,10 @@ export async function GET() {
   }, {} as Record<string, number>);
 
   const regionProgress = stores.reduce((acc, s) => {
-    if (!acc[s.region]) acc[s.region] = { total: 0, progress: 0 };
-    acc[s.region].total += 1;
-    acc[s.region].progress += s.progress;
+    const key = (s as any).bc?.branch?.name || s.region || "Chưa phân công";
+    if (!acc[key]) acc[key] = { total: 0, progress: 0 };
+    acc[key].total += 1;
+    acc[key].progress += s.progress;
     return acc;
   }, {} as Record<string, { total: number; progress: number }>);
 
@@ -68,7 +70,8 @@ export async function GET() {
       id: s.id,
       name: s.name,
       code: s.code,
-      region: s.region,
+      region: (s as any).bc?.branch?.name || s.region || "—",
+      bc: (s as any).bc ? { id: (s as any).bc.id, name: (s as any).bc.name, code: (s as any).bc.code, branch: (s as any).bc.branch } : null,
       status: s.status,
       progress: s.progress,
       targetOpenDate: s.targetOpenDate,
