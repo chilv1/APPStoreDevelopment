@@ -266,7 +266,7 @@ export default function StoreDetailPage() {
         </div>
       )}
 
-      {activeTab === "gantt" && <GanttChart phases={store.phases || []} targetDate={store.targetOpenDate} />}
+      {activeTab === "gantt" && <GanttChart phases={store.phases || []} targetDate={store.targetOpenDate} onUpdated={fetchStore} />}
 
       {activeTab === "issues" && (
         <div>
