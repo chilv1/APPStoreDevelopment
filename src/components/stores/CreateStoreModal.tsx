@@ -7,7 +7,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
   const { data: session } = useSession();
   const [form, setForm] = useState({
     name: "", code: "", address: "", businessCenterId: "",
-    targetOpenDate: "", budget: "", notes: "",
+    targetOpenDate: "", budget: "", latitude: "", longitude: "", notes: "",
   });
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
@@ -36,7 +36,9 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          budget: form.budget ? Number(form.budget) : null,
+          budget:    form.budget    ? Number(form.budget)    : null,
+          latitude:  form.latitude  ? Number(form.latitude)  : null,
+          longitude: form.longitude ? Number(form.longitude) : null,
           businessCenterId: form.businessCenterId || null,
         }),
       });
@@ -124,6 +126,32 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
               <input className="input" type="number" placeholder="VD: 800000000"
                 value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
             </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
+                Vĩ độ (Latitude)
+              </label>
+              <input className="input" type="number" step="any" placeholder="VD: 10.7769"
+                value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
+                Kinh độ (Longitude)
+              </label>
+              <input className="input" type="number" step="any" placeholder="VD: 106.7009"
+                value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
+            </div>
+
+            {form.latitude && form.longitude && !isNaN(Number(form.latitude)) && !isNaN(Number(form.longitude)) && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <a href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}>
+                  📍 {form.latitude}, {form.longitude} — Mở Google Maps ↗
+                </a>
+              </div>
+            )}
 
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>

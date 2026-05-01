@@ -56,15 +56,17 @@ export async function POST(request: Request) {
 
   const store = await prisma.storeProject.create({
     data: {
-      name:            body.name,
-      code:            body.code,
-      address:         body.address,
-      region:          body.region || null,
+      name:             body.name,
+      code:             body.code,
+      address:          body.address,
+      region:           body.region || null,
       businessCenterId: body.businessCenterId || null,
-      targetOpenDate:  body.targetOpenDate ? new Date(body.targetOpenDate) : null,
-      budget:          body.budget ? Number(body.budget) : null,
-      notes:           body.notes,
-      pmId:            body.pmId || null,
+      targetOpenDate:   body.targetOpenDate ? new Date(body.targetOpenDate) : null,
+      budget:           body.budget != null ? Number(body.budget) : null,
+      latitude:         body.latitude  != null && body.latitude  !== "" ? Number(body.latitude)  : null,
+      longitude:        body.longitude != null && body.longitude !== "" ? Number(body.longitude) : null,
+      notes:            body.notes,
+      pmId:             body.pmId || null,
       status: "PLANNING",
       progress: 0,
       phases: {
