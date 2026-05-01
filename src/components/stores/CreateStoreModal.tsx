@@ -22,10 +22,12 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
   const [totalProjectDays, setTotalProjectDays] = useState<number | null>(null);
 
   // Compute targetOpenDate from projectStartDate + totalProjectDays (read-only, derived)
+  // Parse YYYY-MM-DD as LOCAL date (not UTC) to avoid timezone-shift off-by-one bugs.
   const targetOpenDate = (() => {
     if (!form.projectStartDate || totalProjectDays == null) return "";
-    const d = new Date(form.projectStartDate);
-    d.setHours(0, 0, 0, 0);
+    const [yy, mo, dd] = form.projectStartDate.split("-").map(Number);
+    if (!yy || !mo || !dd) return "";
+    const d = new Date(yy, mo - 1, dd);
     d.setDate(d.getDate() + totalProjectDays);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();

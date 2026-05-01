@@ -60,7 +60,13 @@ export async function POST(request: Request) {
   const tplByNumber = new Map(templates.map(t => [t.phaseNumber, t]));
 
   // Compute planned dates: start from body.projectStartDate (or today), accumulate durationDays
-  const projectStart = body.projectStartDate ? new Date(body.projectStartDate) : new Date();
+  // Parse YYYY-MM-DD as LOCAL (not UTC) to avoid timezone shifts that desync FE preview from BE storage.
+  const parseLocalDate = (s: string): Date | null => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  };
+  const projectStart = (body.projectStartDate && parseLocalDate(body.projectStartDate)) || new Date();
   projectStart.setHours(0, 0, 0, 0);
   let cursor = new Date(projectStart);
   const plannedDates = templates.map((t) => {
