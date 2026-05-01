@@ -59,8 +59,8 @@ export async function POST(request: Request) {
   const templates = await getOrInitPhaseTemplates(); // 11 records, sorted by phaseNumber
   const tplByNumber = new Map(templates.map(t => [t.phaseNumber, t]));
 
-  // Compute planned dates: start today, accumulate durationDays
-  const projectStart = new Date();
+  // Compute planned dates: start from body.projectStartDate (or today), accumulate durationDays
+  const projectStart = body.projectStartDate ? new Date(body.projectStartDate) : new Date();
   projectStart.setHours(0, 0, 0, 0);
   let cursor = new Date(projectStart);
   const plannedDates = templates.map((t) => {
@@ -71,6 +71,11 @@ export async function POST(request: Request) {
     return { plannedStart, plannedEnd };
   });
 
+  // Server-authoritative targetOpenDate: end of last phase (= projectStart + total durations)
+  const computedTargetOpenDate = plannedDates.length > 0
+    ? plannedDates[plannedDates.length - 1].plannedEnd
+    : null;
+
   try { const store = await prisma.storeProject.create({
     data: {
       name:             body.name,
@@ -78,7 +83,7 @@ export async function POST(request: Request) {
       address:          body.address,
       region:           region || "—",
       businessCenterId: body.businessCenterId || null,
-      targetOpenDate:   body.targetOpenDate ? new Date(body.targetOpenDate) : null,
+      targetOpenDate:   computedTargetOpenDate ?? (body.targetOpenDate ? new Date(body.targetOpenDate) : null),
       budget:           body.budget != null ? Number(body.budget) : null,
       latitude:         body.latitude  != null && body.latitude  !== "" ? Number(body.latitude)  : null,
       longitude:        body.longitude != null && body.longitude !== "" ? Number(body.longitude) : null,

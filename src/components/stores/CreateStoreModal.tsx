@@ -5,16 +5,30 @@ import { useSession } from "next-auth/react";
 
 export default function CreateStoreModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { data: session } = useSession();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
   const [form, setForm] = useState({
     name: "", code: "", address: "", businessCenterId: "",
-    targetOpenDate: "", budget: "", latitude: "", longitude: "", notes: "",
+    projectStartDate: todayStr,
+    budget: "", latitude: "", longitude: "", notes: "",
   });
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [totalProjectDays, setTotalProjectDays] = useState<number | null>(null);
-  const [targetAutoFilled, setTargetAutoFilled] = useState(false);
+
+  // Compute targetOpenDate from projectStartDate + totalProjectDays (read-only, derived)
+  const targetOpenDate = (() => {
+    if (!form.projectStartDate || totalProjectDays == null) return "";
+    const d = new Date(form.projectStartDate);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + totalProjectDays);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
 
   useEffect(() => {
     fetch("/api/branches").then(r => r.json()).then(d => {
@@ -26,19 +40,11 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
       }
     });
 
-    // Fetch phase templates → auto-compute target opening date = today + total durationDays
+    // Fetch phase templates to compute total project days
     fetch("/api/phase-templates").then(r => r.json()).then(d => {
       if (!Array.isArray(d) || d.length === 0) return;
       const totalDays = d.reduce((sum: number, t: any) => sum + (Number(t.durationDays) || 0), 0);
       setTotalProjectDays(totalDays);
-      const target = new Date();
-      target.setHours(0, 0, 0, 0);
-      target.setDate(target.getDate() + totalDays);
-      const yyyy = target.getFullYear();
-      const mm = String(target.getMonth() + 1).padStart(2, "0");
-      const dd = String(target.getDate()).padStart(2, "0");
-      setForm(f => f.targetOpenDate ? f : { ...f, targetOpenDate: `${yyyy}-${mm}-${dd}` });
-      setTargetAutoFilled(true);
     }).catch(() => {});
   }, []);
 
@@ -53,6 +59,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          targetOpenDate,                     // computed from projectStartDate + totalDays
           budget:    form.budget    ? Number(form.budget)    : null,
           latitude:  form.latitude  ? Number(form.latitude)  : null,
           longitude: form.longitude ? Number(form.longitude) : null,
@@ -129,15 +136,39 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
                 value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
 
+            {/* Project start date — admin chooses */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Ngày khai trương dự kiến
+                Ngày bắt đầu dự án *
               </label>
-              <input className="input" type="date"
-                value={form.targetOpenDate} onChange={(e) => setForm({ ...form, targetOpenDate: e.target.value })} />
-              {targetAutoFilled && totalProjectDays != null && (
-                <div style={{ fontSize: 11, color: "#93c5fd", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span>⚡ Tự động tính: hôm nay + <strong>{totalProjectDays} ngày</strong> ({Math.round(totalProjectDays / 30 * 10) / 10} tháng) theo cấu hình mẫu giai đoạn — bạn có thể đổi lại nếu cần</span>
+              <input className="input" type="date" required
+                value={form.projectStartDate}
+                onChange={(e) => setForm({ ...form, projectStartDate: e.target.value })} />
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                Hệ thống sẽ tính ngày khai trương từ ngày này
+              </div>
+            </div>
+
+            {/* Target opening date — auto-computed, READ ONLY */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
+                🔒 Ngày khai trương dự kiến (tự động)
+              </label>
+              <input className="input" type="date" disabled readOnly tabIndex={-1}
+                value={targetOpenDate}
+                style={{
+                  cursor: "not-allowed",
+                  background: "rgba(59,130,246,0.06)",
+                  borderColor: "rgba(59,130,246,0.25)",
+                  color: "#93c5fd", fontWeight: 600,
+                }} />
+              {totalProjectDays != null ? (
+                <div style={{ fontSize: 11, color: "#93c5fd", marginTop: 4 }}>
+                  ⚡ = Ngày bắt đầu + <strong>{totalProjectDays} ngày</strong> ({Math.round(totalProjectDays / 30 * 10) / 10} tháng) theo cấu hình mẫu giai đoạn
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  Đang tải cấu hình mẫu giai đoạn...
                 </div>
               )}
             </div>
