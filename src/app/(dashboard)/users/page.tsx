@@ -5,20 +5,28 @@ import { useSession } from "next-auth/react";
 import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils";
 
 const ROLES = ["ADMIN", "AREA_MANAGER", "PM", "SURVEY_STAFF"];
-const REGIONS = ["Toàn quốc", "Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Biên Hòa", "Bình Dương"];
 
 export default function UsersPage() {
   const { data: session } = useSession();
   const user = session?.user as any;
   const [users, setUsers] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "123456", role: "SURVEY_STAFF", region: "Hồ Chí Minh" });
+  const [form, setForm] = useState({ name: "", email: "", password: "123456", role: "SURVEY_STAFF", branchId: "" });
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (user?.role === "ADMIN") {
-      fetch("/api/users").then((r) => r.json()).then((d) => { setUsers(Array.isArray(d) ? d : []); setLoading(false); });
+      Promise.all([
+        fetch("/api/users").then((r) => r.json()),
+        fetch("/api/branches").then((r) => r.json()),
+      ]).then(([usersData, branchesData]) => {
+        setUsers(Array.isArray(usersData) ? usersData : []);
+        setBranches(Array.isArray(branchesData) ? branchesData : []);
+        setLoading(false);
+      });
     }
   }, [user]);
 
@@ -32,17 +40,27 @@ export default function UsersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
+    setError("");
     const res = await fetch("/api/users", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, branchId: form.branchId || null }),
     });
     if (res.ok) {
       const newUser = await res.json();
       setUsers((prev) => [...prev, newUser]);
       setShowCreate(false);
-      setForm({ name: "", email: "", password: "123456", role: "SURVEY_STAFF", region: "Hồ Chí Minh" });
+      setForm({ name: "", email: "", password: "123456", role: "SURVEY_STAFF", branchId: "" });
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setError(err.error || "Lỗi tạo tài khoản");
     }
     setCreating(false);
+  };
+
+  const getBranchLabel = (u: any) => {
+    if (u.branch) return `${u.branch.code} — ${u.branch.name}`;
+    if (u.role === "ADMIN") return "Toàn hệ thống";
+    return "—";
   };
 
   return (
@@ -89,7 +107,9 @@ export default function UsersPage() {
                   </td>
                   <td style={{ fontSize: 13 }}>{u.email}</td>
                   <td><span className={`badge ${ROLE_COLORS[u.role]}`}>{ROLE_LABELS[u.role]}</span></td>
-                  <td style={{ fontSize: 13 }}>{u.region || "—"}</td>
+                  <td style={{ fontSize: 13, color: u.branch ? "#f0f4ff" : "var(--text-secondary)" }}>
+                    {getBranchLabel(u)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -104,7 +124,7 @@ export default function UsersPage() {
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>➕ Thêm User Mới</h2>
               <button onClick={() => setShowCreate(false)} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
-            <form onSubmit={handleCreate}>
+            <form onSubmit={handleCreate} noValidate>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Họ tên *</label>
@@ -112,7 +132,7 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Email *</label>
-                  <input className="input" required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@telecom.vn" />
+                  <input className="input" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@telecom.vn" />
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Vai trò</label>
@@ -122,8 +142,11 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Chi nhánh phụ trách</label>
-                  <select className="input" value={form.region || ""} onChange={(e) => setForm({ ...form, region: e.target.value })}>
-                    {REGIONS.map((r) => <option key={r}>{r}</option>)}
+                  <select className="input" value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
+                    <option value="">— Không thuộc chi nhánh —</option>
+                    {branches.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.code} — {b.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
@@ -131,6 +154,15 @@ export default function UsersPage() {
                   <input className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="123456" />
                 </div>
               </div>
+
+              {error && (
+                <div style={{
+                  background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                  borderRadius: 8, padding: "10px 14px", marginTop: 12,
+                  color: "#fca5a5", fontSize: 13,
+                }}>⚠️ {error}</div>
+              )}
+
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                 <button type="button" onClick={() => setShowCreate(false)} style={{
                   flex: 1, padding: "10px", borderRadius: 8,

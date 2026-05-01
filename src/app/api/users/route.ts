@@ -15,7 +15,11 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     where,
-    select: { id: true, name: true, email: true, role: true, region: true },
+    select: {
+      id: true, name: true, email: true, role: true, region: true,
+      branchId: true,
+      branch: { select: { id: true, name: true, code: true } },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -38,9 +42,13 @@ export async function POST(request: Request) {
       email: body.email,
       password: hashed,
       role: body.role || "SURVEY_STAFF",
-      region: body.region,
+      branchId: body.branchId || null,
     },
-    select: { id: true, name: true, email: true, role: true, region: true },
+    select: {
+      id: true, name: true, email: true, role: true, region: true,
+      branchId: true,
+      branch: { select: { id: true, name: true, code: true } },
+    },
   });
 
   return NextResponse.json(newUser, { status: 201 });

@@ -23,7 +23,7 @@ export function formatCurrency(amount: number | null | undefined): string {
 
 export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
-  AREA_MANAGER: "Quản lý vùng",
+  AREA_MANAGER: "Quản lý chi nhánh",
   PM: "PM dự án",
   SURVEY_STAFF: "NV Khảo sát",
 };
