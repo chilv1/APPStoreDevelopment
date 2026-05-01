@@ -22,6 +22,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
             },
             orderBy: { createdAt: "asc" },
           },
+          notes: {
+            include: { author: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "desc" },
+          },
         },
       },
       issues: {

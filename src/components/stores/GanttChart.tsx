@@ -196,6 +196,9 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
           </div>
         </div>
 
+        {/* Phase Notes section */}
+        <PhaseNotesSection phase={phase} />
+
         {/* Auto-cascade option — appears when planned end date changed */}
         {canCascade && (
           <label style={{
@@ -240,6 +243,148 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---- Phase Notes Section (inside Edit Modal) ----
+function PhaseNotesSection({ phase }: { phase: any }) {
+  // Initialize from phase.notes if included by store detail API; otherwise lazy-fetch
+  const [notes, setNotes] = useState<any[]>(Array.isArray(phase.notes) ? phase.notes : []);
+  const [loading, setLoading] = useState(!Array.isArray(phase.notes));
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+
+  useEffect(() => {
+    if (Array.isArray(phase.notes)) return;
+    fetch(`/api/phases/${phase.id}/notes`)
+      .then(r => r.json())
+      .then(d => { setNotes(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [phase.id]);
+
+  const addNote = async () => {
+    const content = draft.trim();
+    if (!content || saving) return;
+    setSaving(true);
+    const res = await fetch(`/api/phases/${phase.id}/notes`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    if (res.ok) {
+      const note = await res.json();
+      setNotes(prev => [note, ...prev]);
+      setDraft("");
+    }
+    setSaving(false);
+  };
+
+  const saveEdit = async (id: string) => {
+    const content = editDraft.trim();
+    if (!content) return;
+    const res = await fetch(`/api/phase-notes/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setNotes(prev => prev.map(n => n.id === id ? updated : n));
+      setEditingId(null);
+    }
+  };
+
+  const deleteNote = async (id: string) => {
+    if (!confirm("Xóa ghi chú này?")) return;
+    const res = await fetch(`/api/phase-notes/${id}`, { method: "DELETE" });
+    if (res.ok) setNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  return (
+    <div style={{ marginBottom: 14, background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>
+          💬 Ghi chú {notes.length > 0 && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>({notes.length})</span>}
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Đang tải ghi chú...</div>
+      ) : (
+        <>
+          {notes.length === 0 && (
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontStyle: "italic" }}>
+              Chưa có ghi chú. Thêm ghi chú đầu tiên ↓
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10, maxHeight: 240, overflowY: "auto" }}>
+            {notes.map(n => (
+              <div key={n.id} style={{
+                background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)",
+                borderRadius: 6, padding: "8px 10px",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: "#93c5fd", fontWeight: 600 }}>
+                    {n.author?.name || "Hệ thống"} · {new Date(n.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {editingId === n.id ? (
+                      <>
+                        <button onClick={() => saveEdit(n.id)} style={{ fontSize: 10, color: "#6ee7b7", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}>Lưu</button>
+                        <button onClick={() => setEditingId(null)} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>Hủy</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditingId(n.id); setEditDraft(n.content); }} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>Sửa</button>
+                        <button onClick={() => deleteNote(n.id)} style={{ fontSize: 10, color: "#fca5a5", background: "transparent", border: "none", cursor: "pointer" }}>Xóa</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {editingId === n.id ? (
+                  <textarea className="input" value={editDraft} onChange={(e) => setEditDraft(e.target.value)}
+                    rows={2} maxLength={1000}
+                    style={{ resize: "vertical", fontSize: 12, padding: "4px 8px" }} />
+                ) : (
+                  <div style={{ fontSize: 12, color: "#f0f4ff", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{n.content}</div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Thêm ghi chú nhanh... (vd: Trời mưa 3 ngày, vendor giao chậm)"
+              rows={2}
+              maxLength={1000}
+              className="input"
+              style={{ resize: "vertical", fontSize: 12, padding: "6px 10px", flex: 1 }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote();
+              }}
+            />
+            <button onClick={addNote} disabled={!draft.trim() || saving} style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+              background: draft.trim() ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : "rgba(255,255,255,0.05)",
+              border: "none", color: "#fff",
+              cursor: draft.trim() && !saving ? "pointer" : "not-allowed",
+              opacity: draft.trim() && !saving ? 1 : 0.5,
+              alignSelf: "flex-start", whiteSpace: "nowrap",
+            }}>
+              {saving ? "..." : "Thêm"}
+            </button>
+          </div>
+          {draft.length > 0 && (
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, textAlign: "right" }}>
+              {draft.length}/1000 · Ctrl/⌘+Enter để lưu nhanh
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -357,8 +502,29 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
         <span>Tiến độ</span><span>{progress}%</span>
       </div>
 
+      {/* Latest note preview */}
+      {Array.isArray(phase.notes) && phase.notes.length > 0 && (
+        <div style={{
+          marginTop: 8, paddingTop: 8,
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+        }}>
+          <div style={{ fontSize: 10, color: "#facc15", fontWeight: 600, marginBottom: 3 }}>
+            💬 {phase.notes.length} ghi chú · gần nhất:
+          </div>
+          <div style={{
+            fontSize: 11, color: "#f0f4ff", lineHeight: 1.4,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+            overflow: "hidden", textOverflow: "ellipsis",
+            background: "rgba(250, 204, 21, 0.06)", border: "1px solid rgba(250, 204, 21, 0.15)",
+            borderRadius: 4, padding: "4px 8px",
+          }}>
+            {phase.notes[0].content}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-muted)", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
-        💡 Bấm vào thanh để chỉnh sửa
+        💡 Bấm vào thanh để chỉnh sửa hoặc thêm ghi chú
       </div>
     </div>
   );
@@ -937,6 +1103,22 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
                         </div>
                       );
                     })()}
+
+                    {/* Notes badge — small chip above the bar when phase has notes */}
+                    {Array.isArray(phase.notes) && phase.notes.length > 0 && visWidth > 0 && (
+                      <div title={`${phase.notes.length} ghi chú`} style={{
+                        position: "absolute",
+                        left: `${visLeft}%`, top: -4,
+                        background: "#1e293b", color: "#facc15",
+                        border: "1px solid rgba(250, 204, 21, 0.5)",
+                        borderRadius: 99, padding: "1px 5px",
+                        fontSize: 9, fontWeight: 700,
+                        zIndex: 5, pointerEvents: "none",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                      }}>
+                        💬 {phase.notes.length}
+                      </div>
+                    )}
                   </div>
 
                   {/* Right status badge with quick-toggle */}
