@@ -82,3 +82,41 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json(store);
 }
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = session.user as any;
+  if (!["ADMIN", "AREA_MANAGER"].includes(user.role)) {
+    return NextResponse.json({ error: "Chỉ Admin hoặc Quản lý chi nhánh được xóa cửa hàng" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  // Get store info before delete (for response message)
+  const existing = await prisma.storeProject.findUnique({
+    where: { id },
+    select: {
+      id: true, name: true, code: true,
+      _count: { select: { phases: true, issues: true, baselines: true, activities: true } },
+    },
+  });
+  if (!existing) return NextResponse.json({ error: "Không tìm thấy cửa hàng" }, { status: 404 });
+
+  // Cascade delete: phases (→ tasks, notes), issues, baselines (→ snapshots), activities
+  // are all configured with onDelete: Cascade in schema, so a single delete handles everything.
+  await prisma.storeProject.delete({ where: { id } });
+
+  return NextResponse.json({
+    ok: true,
+    deleted: {
+      name: existing.name,
+      code: existing.code,
+      phasesDeleted: existing._count.phases,
+      issuesDeleted: existing._count.issues,
+      baselinesDeleted: existing._count.baselines,
+      activitiesDeleted: existing._count.activities,
+    },
+  });
+}

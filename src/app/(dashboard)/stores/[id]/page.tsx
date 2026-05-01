@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDate, formatCurrency, STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -14,6 +14,7 @@ type Tab = "phases" | "gantt" | "issues" | "activity";
 
 export default function StoreDetailPage() {
   const { id } = useParams() as { id: string };
+  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user as any;
   const [store, setStore] = useState<any>(null);
@@ -23,6 +24,7 @@ export default function StoreDetailPage() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showIssue, setShowIssue] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [issueFilter, setIssueFilter] = useState("ALL");
   const [resolveTarget, setResolveTarget] = useState<any>(null);
   const [editIssueTarget, setEditIssueTarget] = useState<any>(null);
@@ -97,19 +99,32 @@ export default function StoreDetailPage() {
             </div>
           </div>
 
-          {/* Edit button */}
+          {/* Edit + Delete buttons */}
           {["ADMIN", "AREA_MANAGER"].includes(user?.role) && (
-            <button onClick={() => setShowEdit(true)} style={{
-              padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)",
-              background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)",
-              fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
-              transition: "all 0.15s ease",
-            }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
-            >
-              ✏️ Chỉnh sửa
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setShowEdit(true)} style={{
+                padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)",
+                background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+                transition: "all 0.15s ease",
+              }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
+              >
+                ✏️ Chỉnh sửa
+              </button>
+              <button onClick={() => setShowDelete(true)} style={{
+                padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)",
+                background: "rgba(239,68,68,0.08)", color: "#fca5a5",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+                transition: "all 0.15s ease",
+              }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.16)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.5)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; }}
+              >
+                🗑️ Xóa
+              </button>
+            </div>
           )}
 
           {/* Overall Progress */}
@@ -450,6 +465,15 @@ export default function StoreDetailPage() {
         <EditStoreModal store={store} onClose={() => setShowEdit(false)} onUpdated={() => { fetchStore(); setShowEdit(false); }} />
       )}
 
+      {/* Delete Store Modal */}
+      {showDelete && (
+        <DeleteStoreModal
+          store={store}
+          onClose={() => setShowDelete(false)}
+          onDeleted={() => { router.push("/stores"); }}
+        />
+      )}
+
       {/* Resolve Issue Modal */}
       {resolveTarget && (
         <ResolveIssueModal
@@ -494,6 +518,119 @@ export default function StoreDetailPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Delete Store Modal — type-to-confirm to prevent accidents
+// ============================================================================
+function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: () => void; onDeleted: () => void }) {
+  const [typed, setTyped] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const phaseCount   = store.phases?.length ?? 0;
+  const taskCount    = (store.phases || []).reduce((sum: number, p: any) => sum + (p.tasks?.length ?? 0), 0);
+  const issueCount   = store.issues?.length ?? 0;
+  const noteCount    = (store.phases || []).reduce((sum: number, p: any) => sum + (p.notes?.length ?? 0), 0);
+  const activityCount = store.activities?.length ?? 0;
+
+  const confirmText = store.code;
+  const isMatch = typed.trim() === confirmText;
+
+  const handleDelete = async () => {
+    if (!isMatch) return;
+    setLoading(true);
+    setError("");
+    const res = await fetch(`/api/stores/${store.id}`, { method: "DELETE" });
+    if (res.ok) {
+      onDeleted();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setError(err.error || "Lỗi xóa cửa hàng");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && !loading && onClose()}>
+      <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#fca5a5", margin: 0 }}>
+            🗑️ Xóa cửa hàng
+          </h2>
+          <button onClick={onClose} disabled={loading} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+
+        {/* Warning box */}
+        <div style={{
+          background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)",
+          borderRadius: 8, padding: "12px 14px", marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#fca5a5", marginBottom: 8 }}>
+            ⚠️ Hành động này KHÔNG THỂ HOÀN TÁC
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+            Bạn sắp xóa cửa hàng <strong style={{ color: "#f0f4ff" }}>{store.name}</strong> ({store.code}).
+            Cùng với cửa hàng, các dữ liệu sau sẽ bị xóa vĩnh viễn:
+          </div>
+          <ul style={{ margin: "8px 0 0 16px", padding: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.8 }}>
+            <li><strong style={{ color: "#fca5a5" }}>{phaseCount}</strong> giai đoạn + <strong style={{ color: "#fca5a5" }}>{taskCount}</strong> task</li>
+            <li><strong style={{ color: "#fca5a5" }}>{issueCount}</strong> vướng mắc / rủi ro</li>
+            <li><strong style={{ color: "#fca5a5" }}>{noteCount}</strong> ghi chú giai đoạn</li>
+            <li><strong style={{ color: "#fca5a5" }}>{activityCount}</strong> bản ghi lịch sử hoạt động</li>
+            <li>Tất cả mốc kế hoạch (baselines) đã lưu</li>
+          </ul>
+        </div>
+
+        {/* Type-to-confirm */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+            Để xác nhận, gõ <strong style={{ color: "#f0f4ff", fontFamily: "monospace", background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>{confirmText}</strong> vào ô dưới:
+          </label>
+          <input
+            className="input"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder={confirmText}
+            disabled={loading}
+            autoFocus
+            style={{
+              fontFamily: "monospace",
+              borderColor: typed && !isMatch ? "rgba(239,68,68,0.5)"
+                : isMatch ? "rgba(16,185,129,0.5)" : undefined,
+            }}
+          />
+        </div>
+
+        {error && (
+          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, padding: "8px 12px", color: "#fca5a5", fontSize: 12, marginBottom: 12 }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} disabled={loading} style={{
+            flex: 1, padding: "10px", borderRadius: 8,
+            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            color: "var(--text-secondary)", fontSize: 13, cursor: loading ? "not-allowed" : "pointer",
+          }}>Hủy</button>
+          <button
+            disabled={!isMatch || loading}
+            onClick={handleDelete}
+            style={{
+              flex: 2, padding: "10px", borderRadius: 8, border: "none",
+              background: isMatch ? "linear-gradient(135deg, #ef4444, #dc2626)" : "rgba(239,68,68,0.2)",
+              color: isMatch ? "#fff" : "rgba(252,165,165,0.5)",
+              fontSize: 13, fontWeight: 600,
+              cursor: !isMatch || loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang xóa...</> : "🗑️ Xóa vĩnh viễn"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
