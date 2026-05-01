@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/context";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +26,7 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError("Email hoặc mật khẩu không đúng");
+      setError(t.login.error);
       setLoading(false);
     } else {
       router.push("/dashboard");
@@ -32,10 +35,10 @@ export default function LoginPage() {
   };
 
   const demoAccounts = [
-    { role: "Admin", email: "admin@telecom.vn", color: "#ef4444" },
-    { role: "Quản lý vùng", email: "manager@telecom.vn", color: "#8b5cf6" },
-    { role: "PM dự án", email: "pm@telecom.vn", color: "#3b82f6" },
-    { role: "NV Khảo sát", email: "survey@telecom.vn", color: "#10b981" },
+    { role: t.role.admin,       email: "admin@telecom.vn",   color: "#ef4444" },
+    { role: t.role.areaManager, email: "manager@telecom.vn", color: "#8b5cf6" },
+    { role: t.role.pm,          email: "pm@telecom.vn",      color: "#3b82f6" },
+    { role: t.role.surveyStaff, email: "survey@telecom.vn",  color: "#10b981" },
   ];
 
   return (
@@ -75,11 +78,14 @@ export default function LoginPage() {
             <span style={{ fontSize: 28 }}>📡</span>
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
-            Telecom Store Manager
+            {t.login.appTitle}
           </h1>
           <p style={{ fontSize: 14, color: "#8b9ab5" }}>
-            Quản lý tiến độ mở cửa hàng viễn thông
+            {t.login.tagline}
           </p>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <LanguageSwitcher />
+          </div>
         </div>
 
         {/* Login Card */}
@@ -91,13 +97,13 @@ export default function LoginPage() {
           backdropFilter: "blur(12px)",
         }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 24 }}>
-            Đăng nhập hệ thống
+            {t.login.title}
           </h2>
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#8b9ab5", marginBottom: 8 }}>
-                Email
+                {t.login.email}
               </label>
               <input
                 className="input"
@@ -112,7 +118,7 @@ export default function LoginPage() {
 
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#8b9ab5", marginBottom: 8 }}>
-                Mật khẩu
+                {t.login.password}
               </label>
               <input
                 className="input"
@@ -150,16 +156,16 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                  Đang đăng nhập...
+                  {t.login.submitting}
                 </>
-              ) : "Đăng nhập →"}
+              ) : t.login.submit}
             </button>
           </form>
 
           {/* Demo accounts */}
           <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <p style={{ fontSize: 12, color: "#4a5568", marginBottom: 12, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Tài khoản demo (mật khẩu: 123456)
+              {t.login.demoTitle}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {demoAccounts.map((acc) => (

@@ -1,5 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import dictEs from "@/lib/i18n/dict-es";
+import dictVi from "@/lib/i18n/dict-vi";
+import type { Locale } from "@/lib/i18n/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -34,6 +37,57 @@ export function formatCurrencyShort(amount: number | null | undefined): string {
   return `S/ ${amount}`;
 }
 
+// ===========================
+// Locale-aware label helpers
+// ===========================
+// Use these in components where possible: they read from i18n dicts.
+// Legacy ROLE_LABELS / STATUS_LABELS / PRIORITY_LABELS constants below remain
+// as Vietnamese fallback for files not yet refactored.
+
+const _dict = { es: dictEs, vi: dictVi } as const;
+
+export function getRoleLabel(role: string, locale: Locale = "es"): string {
+  const d = _dict[locale]?.role;
+  switch (role) {
+    case "ADMIN":        return d?.admin       ?? role;
+    case "AREA_MANAGER": return d?.areaManager ?? role;
+    case "PM":           return d?.pm          ?? role;
+    case "SURVEY_STAFF": return d?.surveyStaff ?? role;
+    default:             return role;
+  }
+}
+
+export function getStatusLabel(status: string, locale: Locale = "es"): string {
+  const d = _dict[locale]?.status;
+  switch (status) {
+    case "PLANNING":    return d?.planning    ?? status;
+    case "IN_PROGRESS": return d?.inProgress  ?? status;
+    case "COMPLETED":   return d?.completed   ?? status;
+    case "DONE":        return d?.done        ?? status;
+    case "ON_HOLD":     return d?.onHold      ?? status;
+    case "CANCELLED":   return d?.cancelled   ?? status;
+    case "NOT_STARTED": return d?.notStarted  ?? status;
+    case "BLOCKED":     return d?.blocked     ?? status;
+    case "TODO":        return d?.todo        ?? status;
+    case "OPEN":        return d?.open        ?? status;
+    case "RESOLVED":    return d?.resolved    ?? status;
+    case "CLOSED":      return d?.closed      ?? status;
+    default:            return status;
+  }
+}
+
+export function getPriorityLabel(priority: string, locale: Locale = "es"): string {
+  const d = _dict[locale]?.priority;
+  switch (priority) {
+    case "LOW":      return d?.low      ?? priority;
+    case "MEDIUM":   return d?.medium   ?? priority;
+    case "HIGH":     return d?.high     ?? priority;
+    case "CRITICAL": return d?.critical ?? priority;
+    default:         return priority;
+  }
+}
+
+// Legacy constants — Vietnamese fallback for files not yet i18n'd.
 export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
   AREA_MANAGER: "Quản lý chi nhánh",

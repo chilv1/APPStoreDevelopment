@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatDate, formatCurrency, STATUS_LABELS, STATUS_COLORS, PHASE_ICONS } from "@/lib/utils";
+import { formatDate, getStatusLabel, STATUS_COLORS } from "@/lib/utils";
+import { useT, useLocale } from "@/lib/i18n/context";
 
 interface DashboardData {
   totalStores: number;
@@ -16,6 +17,8 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  const t = useT();
+  const { locale, intlCode } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,17 +38,17 @@ export default function DashboardPage() {
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
       <div className="spinner" />
-      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Đang tải dữ liệu...</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.common.loadingData}</p>
     </div>
   );
 
   if (!data) return null;
 
   const statusData = [
-    { key: "PLANNING", label: "Lên kế hoạch", color: "#6b7280", icon: "📋" },
-    { key: "IN_PROGRESS", label: "Đang thực hiện", color: "#3b82f6", icon: "🔄" },
-    { key: "COMPLETED", label: "Hoàn thành", color: "#10b981", icon: "✅" },
-    { key: "ON_HOLD", label: "Tạm dừng", color: "#f59e0b", icon: "⏸️" },
+    { key: "PLANNING",    label: t.status.planning,   color: "#6b7280", icon: "📋" },
+    { key: "IN_PROGRESS", label: t.status.inProgress, color: "#3b82f6", icon: "🔄" },
+    { key: "COMPLETED",   label: t.status.completed,  color: "#10b981", icon: "✅" },
+    { key: "ON_HOLD",     label: t.status.onHold,     color: "#f59e0b", icon: "⏸️" },
   ];
 
   return (
@@ -53,10 +56,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
-          📊 Tổng Quan Hệ Thống
+          📊 {t.dashboard.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          Theo dõi tiến độ mở cửa hàng viễn thông toàn quốc
+          {t.dashboard.subtitle}
         </p>
       </div>
 
@@ -69,10 +72,10 @@ export default function DashboardPage() {
         }}>
           <span style={{ fontSize: 20 }}>⚠️</span>
           <div>
-            <div style={{ color: "#fca5a5", fontWeight: 600, fontSize: 14 }}>Cảnh báo trễ tiến độ</div>
+            <div style={{ color: "#fca5a5", fontWeight: 600, fontSize: 14 }}>{t.dashboard.overdueAlertTitle}</div>
             <div style={{ color: "#f87171", fontSize: 13, marginTop: 2 }}>
-              {data.overdueStores > 0 && `${data.overdueStores} cửa hàng trễ deadline khai trương `}
-              {data.overdueTasks > 0 && `• ${data.overdueTasks} task quá hạn`}
+              {data.overdueStores > 0 && `${t.dashboard.overdueStores.replace("{n}", String(data.overdueStores))} `}
+              {data.overdueTasks > 0 && `• ${t.dashboard.overdueTasks.replace("{n}", String(data.overdueTasks))}`}
             </div>
           </div>
         </div>
@@ -80,11 +83,11 @@ export default function DashboardPage() {
 
       {/* Summary Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon="🏪" label="Tổng cửa hàng" value={data.totalStores} color="#3b82f6" />
-        <StatCard icon="🔄" label="Đang thực hiện" value={data.statusCounts["IN_PROGRESS"] || 0} color="#8b5cf6" />
-        <StatCard icon="✅" label="Đã khai trương" value={data.statusCounts["COMPLETED"] || 0} color="#10b981" />
-        <StatCard icon="⏸️" label="Tạm dừng" value={data.statusCounts["ON_HOLD"] || 0} color="#f59e0b" />
-        <StatCard icon="📈" label="Tiến độ TB" value={`${data.avgProgress}%`} color="#f59e0b" />
+        <StatCard icon="🏪" label={t.dashboard.statTotal}        value={data.totalStores} color="#3b82f6" />
+        <StatCard icon="🔄" label={t.dashboard.statInProgress}   value={data.statusCounts["IN_PROGRESS"] || 0} color="#8b5cf6" />
+        <StatCard icon="✅" label={t.dashboard.statCompleted}    value={data.statusCounts["COMPLETED"] || 0}  color="#10b981" />
+        <StatCard icon="⏸️" label={t.dashboard.statOnHold}       value={data.statusCounts["ON_HOLD"] || 0}    color="#f59e0b" />
+        <StatCard icon="📈" label={t.dashboard.statAvgProgress}  value={`${data.avgProgress}%`}              color="#f59e0b" />
       </div>
 
       {/* Main content grid */}
@@ -92,18 +95,18 @@ export default function DashboardPage() {
         {/* Store List */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>🏪 Danh sách cửa hàng</h2>
-            <Link href="/stores" style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}>Xem tất cả →</Link>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>{t.dashboard.storeListTitle}</h2>
+            <Link href="/stores" style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}>{t.common.seeAll} →</Link>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Cửa hàng</th>
-                  <th>Chi nhánh</th>
-                  <th>Trạng thái</th>
-                  <th>Tiến độ</th>
-                  <th>Khai trương DK</th>
+                  <th>{t.dashboard.tableStore}</th>
+                  <th>{t.dashboard.tableBranch}</th>
+                  <th>{t.dashboard.tableStatus}</th>
+                  <th>{t.dashboard.tableProgress}</th>
+                  <th>{t.dashboard.tableTargetOpen}</th>
                 </tr>
               </thead>
               <tbody>
@@ -120,7 +123,7 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <span className={`badge ${STATUS_COLORS[store.status]}`}>
-                        {STATUS_LABELS[store.status]}
+                        {getStatusLabel(store.status, locale)}
                       </span>
                     </td>
                     <td>
@@ -133,7 +136,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     </td>
-                    <td style={{ fontSize: 13 }}>{formatDate(store.targetOpenDate)}</td>
+                    <td style={{ fontSize: 13 }}>{formatDate(store.targetOpenDate, intlCode)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -144,11 +147,11 @@ export default function DashboardPage() {
         {/* Activity Feed */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>🕐 Hoạt động gần đây</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>{t.dashboard.activityFeedTitle}</h2>
           </div>
           <div style={{ padding: "8px 16px", maxHeight: 380, overflowY: "auto" }}>
             {data.recentActivities.length === 0 ? (
-              <p style={{ color: "var(--text-muted)", fontSize: 13, padding: 16, textAlign: "center" }}>Chưa có hoạt động</p>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, padding: 16, textAlign: "center" }}>{t.dashboard.noActivity}</p>
             ) : data.recentActivities.map((act: any, i: number) => (
               <div key={i} className="activity-item">
                 <div className="activity-dot" style={{ background: "#3b82f6" }} />
@@ -163,7 +166,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                    {new Date(act.createdAt).toLocaleString("vi-VN")}
+                    {new Date(act.createdAt).toLocaleString(intlCode)}
                   </div>
                 </div>
               </div>
@@ -176,7 +179,7 @@ export default function DashboardPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* Status cards */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>Phân bố trạng thái</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.dashboard.statusBreakdownTitle}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {statusData.map((s) => (
               <div key={s.key} style={{
@@ -195,15 +198,15 @@ export default function DashboardPage() {
 
         {/* Region Progress */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>🏢 Tiến độ theo chi nhánh</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.dashboard.branchProgressTitle}</h2>
           {Object.entries(data.regionProgress).length === 0 ? (
-            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Chưa có dữ liệu</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{t.common.noData}</p>
           ) : Object.entries(data.regionProgress).map(([region, info]) => (
             <div key={region} style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "#f0f4ff" }}>{region}</span>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                  {info.total} cửa hàng · TB {Math.round(info.progress / info.total)}%
+                  {t.dashboard.branchAvg.replace("{n}", String(info.total)).replace("{p}", String(Math.round(info.progress / info.total)))}
                 </span>
               </div>
               <div className="progress-bar" style={{ height: 8 }}>
