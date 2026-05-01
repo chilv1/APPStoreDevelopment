@@ -96,7 +96,7 @@ export default function EditStoreModal({
   );
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>✏️ Chỉnh Sửa Cửa Hàng</h2>

@@ -98,7 +98,7 @@ export default function UsersPage() {
       )}
 
       {showCreate && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowCreate(false)}>
+        <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setShowCreate(false)}>
           <div className="modal-content" onMouseDown={e => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>➕ Thêm User Mới</h2>
