@@ -7,8 +7,9 @@ import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: "📊", label: "Tổng quan" },
-  { href: "/stores", icon: "🏪", label: "Cửa hàng" },
-  { href: "/reports", icon: "📈", label: "Báo cáo" },
+  { href: "/stores",    icon: "🏪", label: "Cửa hàng" },
+  { href: "/map",       icon: "🗺️", label: "Bản đồ" },
+  { href: "/reports",   icon: "📈", label: "Báo cáo" },
 ];
 
 const ADMIN_ITEMS = [
