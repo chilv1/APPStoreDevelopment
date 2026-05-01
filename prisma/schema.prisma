@@ -35,6 +35,8 @@ model StoreProject {
   progress       Int       @default(0)
   budget         Float?
   notes          String?
+  latitude       Float?
+  longitude      Float?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

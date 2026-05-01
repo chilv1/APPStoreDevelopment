@@ -44,24 +44,30 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   return NextResponse.json(store);
 }
 
-export async function PATCH(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await _.json();
+  const body = await request.json();
 
   const store = await prisma.storeProject.update({
     where: { id },
     data: {
-      ...(body.name && { name: body.name }),
-      ...(body.status && { status: body.status }),
-      ...(body.progress !== undefined && { progress: body.progress }),
-      ...(body.targetOpenDate && { targetOpenDate: new Date(body.targetOpenDate) }),
-      ...(body.pmId !== undefined && { pmId: body.pmId }),
-      ...(body.notes !== undefined && { notes: body.notes }),
+      ...(body.name          && { name: body.name }),
+      ...(body.address       && { address: body.address }),
+      ...(body.region        && { region: body.region }),
+      ...(body.status        && { status: body.status }),
+      ...(body.progress      !== undefined && { progress: body.progress }),
+      ...(body.budget        !== undefined && { budget: body.budget !== null ? Number(body.budget) : null }),
+      ...(body.targetOpenDate !== undefined && { targetOpenDate: body.targetOpenDate ? new Date(body.targetOpenDate) : null }),
+      ...(body.actualOpenDate !== undefined && { actualOpenDate: body.actualOpenDate ? new Date(body.actualOpenDate) : null }),
+      ...(body.pmId          !== undefined && { pmId: body.pmId || null }),
+      ...(body.notes         !== undefined && { notes: body.notes }),
+      ...(body.latitude      !== undefined && { latitude: body.latitude !== null && body.latitude !== "" ? Number(body.latitude) : null }),
+      ...(body.longitude     !== undefined && { longitude: body.longitude !== null && body.longitude !== "" ? Number(body.longitude) : null }),
     },
-    include: { pm: true, phases: true },
+    include: { pm: { select: { id: true, name: true, email: true, role: true } }, phases: true },
   });
 
   return NextResponse.json(store);

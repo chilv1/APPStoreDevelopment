@@ -7,6 +7,7 @@ import { formatDate, formatCurrency, STATUS_LABELS, STATUS_COLORS, PRIORITY_LABE
 import { useSession } from "next-auth/react";
 import TaskModal from "@/components/stores/TaskModal";
 import IssueModal from "@/components/stores/IssueModal";
+import EditStoreModal from "@/components/stores/EditStoreModal";
 
 type Tab = "phases" | "gantt" | "issues" | "activity";
 
@@ -20,6 +21,7 @@ export default function StoreDetailPage() {
   const [selectedPhase, setSelectedPhase] = useState<any>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showIssue, setShowIssue] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const fetchStore = () => {
     fetch(`/api/stores/${id}`)
@@ -78,8 +80,29 @@ export default function StoreDetailPage() {
               {store.pm && <span>👤 PM: <strong style={{ color: "#f0f4ff" }}>{store.pm.name}</strong></span>}
               {store.budget && <span>💰 {formatCurrency(store.budget)}</span>}
               {store.targetOpenDate && <span>🎯 KH khai trương: <strong style={{ color: "#f0f4ff" }}>{formatDate(store.targetOpenDate)}</strong></span>}
+              {store.latitude != null && store.longitude != null && (
+                <a href={`https://www.google.com/maps?q=${store.latitude},${store.longitude}`} target="_blank" rel="noopener noreferrer"
+                  style={{ color: "var(--accent-blue)", textDecoration: "none", fontSize: 13 }}>
+                  📍 {store.latitude.toFixed(5)}, {store.longitude.toFixed(5)}
+                </a>
+              )}
             </div>
           </div>
+
+          {/* Edit button */}
+          {["ADMIN", "AREA_MANAGER"].includes(user?.role) && (
+            <button onClick={() => setShowEdit(true)} style={{
+              padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)",
+              background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)",
+              fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+              transition: "all 0.15s ease",
+            }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
+            >
+              ✏️ Chỉnh sửa
+            </button>
+          )}
 
           {/* Overall Progress */}
           <div style={{ textAlign: "right", minWidth: 180 }}>
@@ -321,6 +344,11 @@ export default function StoreDetailPage() {
       {/* Issue Modal */}
       {showIssue && (
         <IssueModal storeId={id} onClose={() => setShowIssue(false)} onCreated={() => { fetchStore(); setShowIssue(false); }} />
+      )}
+
+      {/* Edit Store Modal */}
+      {showEdit && (
+        <EditStoreModal store={store} onClose={() => setShowEdit(false)} onUpdated={() => { fetchStore(); setShowEdit(false); }} />
       )}
     </div>
   );
