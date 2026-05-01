@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useT } from "@/lib/i18n/context";
+import type { Dict } from "@/lib/i18n/types";
 
-const STATUS_OPTIONS = [
-  { value: "PLANNING",    label: "Lên kế hoạch" },
-  { value: "IN_PROGRESS", label: "Đang thực hiện" },
-  { value: "ON_HOLD",     label: "Tạm dừng" },
-  { value: "COMPLETED",   label: "Đã khai trương" },
-  { value: "CANCELLED",   label: "Đã huỷ" },
+const STATUS_OPTIONS: { value: string; labelKey: keyof Dict["status"] }[] = [
+  { value: "PLANNING",    labelKey: "planning" },
+  { value: "IN_PROGRESS", labelKey: "inProgress" },
+  { value: "ON_HOLD",     labelKey: "onHold" },
+  { value: "COMPLETED",   labelKey: "completed" },
+  { value: "CANCELLED",   labelKey: "cancelled" },
 ];
 
 function toDateInput(val: string | null | undefined) {
@@ -24,6 +26,7 @@ export default function EditStoreModal({
   onClose: () => void;
   onUpdated: () => void;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name:             store.name ?? "",
     address:          store.address ?? "",
@@ -80,7 +83,7 @@ export default function EditStoreModal({
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Lỗi cập nhật");
+        throw new Error(err.message || t.common.errorUpdate);
       }
       onUpdated();
     } catch (err: any) {
@@ -95,17 +98,25 @@ export default function EditStoreModal({
     </label>
   );
 
+  const getRoleLabel = (role: string) => {
+    if (role === "ADMIN") return t.role.admin;
+    if (role === "AREA_MANAGER") return t.role.areaManager;
+    if (role === "PM") return t.role.pm;
+    if (role === "SURVEY_STAFF") return t.role.surveyStaff;
+    return role;
+  };
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>✏️ Chỉnh Sửa Cửa Hàng</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>{t.modal.editTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
         {/* Mã dự án — read-only */}
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", marginBottom: 20, fontSize: 13, color: "var(--text-secondary)" }}>
-          🔖 Mã dự án: <strong style={{ color: "#f0f4ff" }}>{store.code}</strong>
+          🔖 {t.modal.projectCode.replace(" *", "")}: <strong style={{ color: "#f0f4ff" }}>{store.code}</strong>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -113,35 +124,35 @@ export default function EditStoreModal({
 
             {/* Tên cửa hàng */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>Tên cửa hàng *</Label>
+              <Label>{t.modal.storeName}</Label>
               <input className="input" required value={form.name} onChange={(e) => set("name", e.target.value)} />
             </div>
 
             {/* Địa chỉ */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>Địa chỉ</Label>
-              <input className="input" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Số nhà, đường, phường, quận, tỉnh/thành" />
+              <Label>{t.modal.address.replace(" *", "")}</Label>
+              <input className="input" value={form.address} onChange={(e) => set("address", e.target.value)} placeholder={t.modal.addressPh} />
             </div>
 
             {/* Chi nhánh */}
             <div>
-              <Label>Chi nhánh</Label>
+              <Label>{t.modal.branch}</Label>
               <select className="input" value={selectedBranchId}
                 onChange={e => {
                   setSelectedBranchId(e.target.value);
                   const br = branches.find(b => b.id === e.target.value);
                   set("businessCenterId", br?.businessCenters?.[0]?.id || "");
                 }}>
-                <option value="">— Chọn chi nhánh —</option>
+                <option value="">{t.modal.selectBranch}</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.code} — {b.name}</option>)}
               </select>
             </div>
 
             {/* Business Center */}
             <div>
-              <Label>Business Center</Label>
+              <Label>{t.modal.bc}</Label>
               <select className="input" value={form.businessCenterId} onChange={e => set("businessCenterId", e.target.value)}>
-                <option value="">— Chọn BC —</option>
+                <option value="">{t.modal.selectBC}</option>
                 {(branches.find(b => b.id === selectedBranchId)?.businessCenters || []).map((bc: any) => (
                   <option key={bc.id} value={bc.id}>{bc.code} — {bc.name}</option>
                 ))}
@@ -150,25 +161,22 @@ export default function EditStoreModal({
 
             {/* Trạng thái */}
             <div>
-              <Label>Trạng thái</Label>
+              <Label>{t.modal.editStatus}</Label>
               <select className="input" value={form.status} onChange={(e) => set("status", e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{t.status[s.labelKey]}</option>)}
               </select>
             </div>
 
             {/* PM */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>PM phụ trách</Label>
+              <Label>{t.modal.editPM}</Label>
               <select className="input" value={form.pmId} onChange={(e) => set("pmId", e.target.value)}>
-                <option value="">— Chưa phân công —</option>
+                <option value="">— {t.common.notAssigned} —</option>
                 {pmList.map((u) => {
-                  const roleLabel = u.role === "ADMIN" ? "Admin"
-                    : u.role === "AREA_MANAGER" ? "Quản lý chi nhánh"
-                    : u.role === "PM" ? "PM"
-                    : u.role === "SURVEY_STAFF" ? "NV Khảo sát" : u.role;
+                  const roleLabel = getRoleLabel(u.role);
                   const branchLabel = u.branch
                     ? `${u.branch.code} — ${u.branch.name}`
-                    : u.role === "ADMIN" ? "Toàn hệ thống" : "Chưa gán chi nhánh";
+                    : u.role === "ADMIN" ? t.sidebar.admin : t.common.notAssigned;
                   return (
                     <option key={u.id} value={u.id}>
                       {u.name} ({roleLabel}) · {branchLabel}
@@ -180,33 +188,33 @@ export default function EditStoreModal({
 
             {/* Ngân sách */}
             <div>
-              <Label>Ngân sách (VNĐ)</Label>
-              <input className="input" type="number" placeholder="VD: 800000000"
+              <Label>{t.modal.budget}</Label>
+              <input className="input" type="number" placeholder={t.modal.budgetPh}
                 value={form.budget} onChange={(e) => set("budget", e.target.value)} />
             </div>
 
             {/* KH khai trương */}
             <div>
-              <Label>Ngày khai trương dự kiến</Label>
+              <Label>{t.modal.targetOpenAuto.replace("🔒 ", "").replace(" (automático)", "").replace(" (tự động)", "")}</Label>
               <input className="input" type="date" value={form.targetOpenDate} onChange={(e) => set("targetOpenDate", e.target.value)} />
             </div>
 
             {/* Thực tế khai trương */}
             <div>
-              <Label>Ngày khai trương thực tế</Label>
+              <Label>{t.modal.actualOpenDate}</Label>
               <input className="input" type="date" value={form.actualOpenDate} onChange={(e) => set("actualOpenDate", e.target.value)} />
             </div>
 
             {/* Toạ độ */}
             <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
-                <Label>Vĩ độ (Latitude)</Label>
-                <input className="input" type="number" step="any" placeholder="VD: 10.7769"
+                <Label>{t.modal.latitude}</Label>
+                <input className="input" type="number" step="any" placeholder={t.modal.latPh}
                   value={form.latitude} onChange={(e) => set("latitude", e.target.value)} />
               </div>
               <div>
-                <Label>Kinh độ (Longitude)</Label>
-                <input className="input" type="number" step="any" placeholder="VD: 106.7009"
+                <Label>{t.modal.longitude}</Label>
+                <input className="input" type="number" step="any" placeholder={t.modal.lngPh}
                   value={form.longitude} onChange={(e) => set("longitude", e.target.value)} />
               </div>
             </div>
@@ -214,22 +222,21 @@ export default function EditStoreModal({
             {/* Preview bản đồ nếu có toạ độ */}
             {form.latitude && form.longitude && !isNaN(Number(form.latitude)) && !isNaN(Number(form.longitude)) && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <Label>Xem trước vị trí</Label>
                 <a
                   href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}
                 >
-                  📍 {form.latitude}, {form.longitude} — Mở Google Maps ↗
+                  {t.modal.openMaps.replace("{lat}", form.latitude).replace("{lng}", form.longitude)}
                 </a>
               </div>
             )}
 
             {/* Ghi chú */}
             <div style={{ gridColumn: "1 / -1" }}>
-              <Label>Ghi chú</Label>
+              <Label>{t.modal.notesField}</Label>
               <textarea className="input" rows={3} style={{ resize: "vertical" }}
-                placeholder="Thông tin bổ sung về dự án..."
+                placeholder={t.modal.notesPh}
                 value={form.notes} onChange={(e) => set("notes", e.target.value)} />
             </div>
           </div>
@@ -245,13 +252,13 @@ export default function EditStoreModal({
               flex: 1, padding: "11px", borderRadius: 10,
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 14, fontWeight: 500, cursor: "pointer",
-            }}>Hủy</button>
+            }}>{t.common.cancel}</button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{
               flex: 2, padding: "11px", borderRadius: 10, border: "none",
               color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />Đang lưu...</> : "✓ Lưu thay đổi"}
+              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />{t.modal.saving}</> : t.modal.saveBtn}
             </button>
           </div>
         </form>

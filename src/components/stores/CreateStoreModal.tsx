@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useT } from "@/lib/i18n/context";
 
 export default function CreateStoreModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const t = useT();
   const { data: session } = useSession();
   const todayStr = (() => {
     const d = new Date();
@@ -70,7 +72,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
       });
 
       if (!res.ok) {
-        let msg = `Lỗi ${res.status}`;
+        let msg = `${t.common.errorSave} (${res.status})`;
         try { const err = await res.json(); msg = err.error || err.message || msg; } catch {}
         throw new Error(msg);
       }
@@ -86,7 +88,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>🏪 Tạo Cửa Hàng Mới</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>{t.modal.createTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
@@ -94,36 +96,36 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Tên cửa hàng *
+                {t.modal.storeName}
               </label>
-              <input className="input" required placeholder="VD: Cửa Hàng Quận 3 - Lý Tự Trọng"
+              <input className="input" required placeholder={t.modal.storeNamePh}
                 value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Mã dự án *
+                {t.modal.projectCode}
               </label>
-              <input className="input" required placeholder="VD: HCM-Q3-003"
+              <input className="input" required placeholder={t.modal.projectCodePh}
                 value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Chi nhánh</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.modal.branch}</label>
               <select className="input" value={selectedBranchId}
                 onChange={e => {
                   setSelectedBranchId(e.target.value);
                   const branch = branches.find(b => b.id === e.target.value);
                   setForm(f => ({ ...f, businessCenterId: branch?.businessCenters?.[0]?.id || "" }));
                 }}>
-                <option value="">— Chọn chi nhánh —</option>
+                <option value="">{t.modal.selectBranch}</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.code} — {b.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Business Center</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.modal.bc}</label>
               <select className="input" value={form.businessCenterId} onChange={e => setForm(f => ({ ...f, businessCenterId: e.target.value }))}>
-                <option value="">— Chọn BC —</option>
+                <option value="">{t.modal.selectBC}</option>
                 {(branches.find(b => b.id === selectedBranchId)?.businessCenters || []).map((bc: any) => (
                   <option key={bc.id} value={bc.id}>{bc.code} — {bc.name}</option>
                 ))}
@@ -132,29 +134,29 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
 
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Địa chỉ *
+                {t.modal.address}
               </label>
-              <input className="input" required placeholder="Số nhà, đường, phường, quận, tỉnh/thành"
+              <input className="input" required placeholder={t.modal.addressPh}
                 value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
 
             {/* Project start date — admin chooses */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Ngày bắt đầu dự án *
+                {t.modal.projectStartDate}
               </label>
               <input className="input" type="date" required
                 value={form.projectStartDate}
                 onChange={(e) => setForm({ ...form, projectStartDate: e.target.value })} />
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                Hệ thống sẽ tính ngày khai trương từ ngày này
+                {t.modal.projectStartHint}
               </div>
             </div>
 
             {/* Target opening date — auto-computed, READ ONLY */}
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                🔒 Ngày khai trương dự kiến (tự động)
+                {t.modal.targetOpenAuto}
               </label>
               <input className="input" type="date" disabled readOnly tabIndex={-1}
                 value={targetOpenDate}
@@ -166,36 +168,38 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
                 }} />
               {totalProjectDays != null ? (
                 <div style={{ fontSize: 11, color: "#93c5fd", marginTop: 4 }}>
-                  ⚡ = Ngày bắt đầu + <strong>{totalProjectDays} ngày</strong> ({Math.round(totalProjectDays / 30 * 10) / 10} tháng) theo cấu hình mẫu giai đoạn
+                  {t.modal.targetOpenHintComputed
+                    .replace("{days}", String(totalProjectDays))
+                    .replace("{months}", String(Math.round(totalProjectDays / 30 * 10) / 10))}
                 </div>
               ) : (
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  Đang tải cấu hình mẫu giai đoạn...
+                  {t.modal.targetOpenHintLoading}
                 </div>
               )}
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Ngân sách (VNĐ)
+                {t.modal.budget}
               </label>
-              <input className="input" type="number" placeholder="VD: 800000000"
+              <input className="input" type="number" placeholder={t.modal.budgetPh}
                 value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Vĩ độ (Latitude)
+                {t.modal.latitude}
               </label>
-              <input className="input" type="number" step="any" placeholder="VD: 10.7769"
+              <input className="input" type="number" step="any" placeholder={t.modal.latPh}
                 value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Kinh độ (Longitude)
+                {t.modal.longitude}
               </label>
-              <input className="input" type="number" step="any" placeholder="VD: 106.7009"
+              <input className="input" type="number" step="any" placeholder={t.modal.lngPh}
                 value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
             </div>
 
@@ -204,16 +208,16 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
                 <a href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}>
-                  📍 {form.latitude}, {form.longitude} — Mở Google Maps ↗
+                  {t.modal.openMaps.replace("{lat}", form.latitude).replace("{lng}", form.longitude)}
                 </a>
               </div>
             )}
 
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                Ghi chú
+                {t.modal.notesField}
               </label>
-              <textarea className="input" placeholder="Thông tin bổ sung về dự án..." rows={3}
+              <textarea className="input" placeholder={t.modal.notesPh} rows={3}
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 style={{ resize: "vertical" }} />
             </div>
@@ -233,14 +237,14 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 14, fontWeight: 500, cursor: "pointer",
             }}>
-              Hủy
+              {t.common.cancel}
             </button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{
               flex: 2, padding: "11px", borderRadius: 10, border: "none",
               color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Đang tạo...</> : "✓ Tạo cửa hàng"}
+              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> {t.modal.creating}</> : t.modal.createBtn}
             </button>
           </div>
         </form>

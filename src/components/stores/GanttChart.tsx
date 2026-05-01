@@ -2,34 +2,30 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PHASE_ICONS } from "@/lib/utils";
+import { useT, useLocale } from "@/lib/i18n/context";
+import type { Dict } from "@/lib/i18n/types";
 
 const PHASE_DURATIONS = [30, 14, 21, 14, 21, 60, 21, 21, 14, 14, 30];
 const DAY_MS = 1000 * 60 * 60 * 24;
 const CONTRACT_PHASE_NUMBER = 4;
 
-// Phase stage groups: 4 logical stages of store opening
-const PHASE_STAGES = [
-  {
-    key: "SEARCH",       label: "Tìm mặt bằng & Hợp đồng",
-    icon: "🔍", phases: [1, 2, 3, 4],
-    color: "#a78bfa", bgColor: "rgba(167, 139, 250, 0.06)", borderColor: "rgba(167, 139, 250, 0.2)",
-  },
-  {
-    key: "BUILD",        label: "Thiết kế & Xây dựng",
-    icon: "🔨", phases: [5, 6, 7],
-    color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.06)", borderColor: "rgba(251, 146, 60, 0.2)",
-  },
-  {
-    key: "PREPARE",      label: "Nhân sự & Chuẩn bị",
-    icon: "📚", phases: [8, 9, 10],
-    color: "#60a5fa", bgColor: "rgba(96, 165, 250, 0.06)", borderColor: "rgba(96, 165, 250, 0.2)",
-  },
-  {
-    key: "LAUNCH",       label: "Khai trương",
-    icon: "🎉", phases: [11],
-    color: "#facc15", bgColor: "rgba(250, 204, 21, 0.06)", borderColor: "rgba(250, 204, 21, 0.2)",
-  },
+// Phase stage groups: 4 logical stages of store opening (label resolved via t.gantt.stage*)
+type StageKey = "SEARCH" | "BUILD" | "PREPARE" | "LAUNCH";
+const PHASE_STAGES: { key: StageKey; icon: string; phases: number[]; color: string; bgColor: string; borderColor: string }[] = [
+  { key: "SEARCH",  icon: "🔍", phases: [1, 2, 3, 4], color: "#a78bfa", bgColor: "rgba(167, 139, 250, 0.06)", borderColor: "rgba(167, 139, 250, 0.2)" },
+  { key: "BUILD",   icon: "🔨", phases: [5, 6, 7],    color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.06)", borderColor: "rgba(251, 146, 60, 0.2)" },
+  { key: "PREPARE", icon: "📚", phases: [8, 9, 10],   color: "#60a5fa", bgColor: "rgba(96, 165, 250, 0.06)", borderColor: "rgba(96, 165, 250, 0.2)" },
+  { key: "LAUNCH",  icon: "🎉", phases: [11],         color: "#facc15", bgColor: "rgba(250, 204, 21, 0.06)", borderColor: "rgba(250, 204, 21, 0.2)" },
 ];
+
+function getStageLabel(key: StageKey, t: Dict): string {
+  switch (key) {
+    case "SEARCH":  return t.gantt.stageSearch;
+    case "BUILD":   return t.gantt.stageBuild;
+    case "PREPARE": return t.gantt.stagePrepare;
+    case "LAUNCH":  return t.gantt.stageLaunch;
+  }
+}
 
 type ZoomLevel = "WEEK" | "MONTH" | "QUARTER" | "ALL";
 
@@ -42,20 +38,33 @@ const ZOOM_DAYS: Record<ZoomLevel, number> = {
 
 type DerivedStatus = "DONE" | "ON_TRACK" | "AT_RISK" | "OVERDUE" | "NOT_STARTED" | "BLOCKED";
 
-const STATUS_THEME: Record<DerivedStatus, { color: string; label: string; emoji: string }> = {
-  DONE:        { color: "#10b981", label: "Hoàn thành",     emoji: "✓" },
-  ON_TRACK:    { color: "#3b82f6", label: "Đúng tiến độ",   emoji: "▶" },
-  AT_RISK:     { color: "#f59e0b", label: "Sắp trễ",        emoji: "⚠" },
-  OVERDUE:     { color: "#ef4444", label: "Đã trễ",         emoji: "⚠" },
-  NOT_STARTED: { color: "#6b7280", label: "Chưa bắt đầu",   emoji: "○" },
-  BLOCKED:     { color: "#a855f7", label: "Vướng mắc",      emoji: "✕" },
+// Theme = colors + emoji only; label resolved via getStatusThemeLabel(status, t)
+const STATUS_THEME: Record<DerivedStatus, { color: string; emoji: string }> = {
+  DONE:        { color: "#10b981", emoji: "✓" },
+  ON_TRACK:    { color: "#3b82f6", emoji: "▶" },
+  AT_RISK:     { color: "#f59e0b", emoji: "⚠" },
+  OVERDUE:     { color: "#ef4444", emoji: "⚠" },
+  NOT_STARTED: { color: "#6b7280", emoji: "○" },
+  BLOCKED:     { color: "#a855f7", emoji: "✕" },
 };
 
-const PHASE_STATUS_OPTIONS = [
-  { value: "NOT_STARTED", label: "Chưa bắt đầu", color: "#6b7280" },
-  { value: "IN_PROGRESS", label: "Đang thực hiện", color: "#3b82f6" },
-  { value: "COMPLETED",   label: "Hoàn thành",     color: "#10b981" },
-  { value: "BLOCKED",     label: "Vướng mắc",      color: "#a855f7" },
+function getStatusThemeLabel(status: DerivedStatus, t: Dict): string {
+  switch (status) {
+    case "DONE":        return t.gantt.statusDone;
+    case "ON_TRACK":    return t.gantt.statusOnTrack;
+    case "AT_RISK":     return t.gantt.statusAtRisk;
+    case "OVERDUE":     return t.gantt.statusOverdue;
+    case "NOT_STARTED": return t.gantt.statusNotStarted;
+    case "BLOCKED":     return t.gantt.statusBlocked;
+  }
+}
+
+type PhaseStatusOpt = { value: string; color: string; labelKey: keyof Dict["status"] };
+const PHASE_STATUS_OPTIONS: PhaseStatusOpt[] = [
+  { value: "NOT_STARTED", labelKey: "notStarted", color: "#6b7280" },
+  { value: "IN_PROGRESS", labelKey: "inProgress", color: "#3b82f6" },
+  { value: "COMPLETED",   labelKey: "completed",  color: "#10b981" },
+  { value: "BLOCKED",     labelKey: "blocked",    color: "#a855f7" },
 ];
 
 function deriveStatus(phase: any, now: Date): DerivedStatus {
@@ -81,12 +90,12 @@ function getProgress(phase: any): number {
   return Math.round((done / tasks.length) * 100);
 }
 
-function fmtDate(d: Date | string): string {
-  return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+function fmtDate(d: Date | string, intlCode = "es-PE"): string {
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function fmtDateShort(d: Date | string): string {
-  return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+function fmtDateShort(d: Date | string, intlCode = "es-PE"): string {
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit" });
 }
 
 function toDateInput(d: Date | string | null | undefined): string {
@@ -97,6 +106,7 @@ function toDateInput(d: Date | string | null | undefined): string {
 
 // ---- Phase Edit Modal ----
 function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () => void; onSaved: (info?: { cascadedCount?: number; cascadeDays?: number }) => void }) {
+  const t = useT();
   const [form, setForm] = useState({
     plannedStart: toDateInput(phase.plannedStart),
     plannedEnd:   toDateInput(phase.plannedEnd),
@@ -143,7 +153,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
       onSaved({ cascadedCount: data.cascadedCount, cascadeDays: data.cascadeDays });
     } else {
       const err = await res.json().catch(() => ({}));
-      setError(err.error || "Lỗi cập nhật");
+      setError(err.error || t.common.errorUpdate);
       setLoading(false);
     }
   };
@@ -153,13 +163,13 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>
-            {PHASE_ICONS[phase.phaseNumber]} GĐ {phase.phaseNumber}: {phase.name}
+            {PHASE_ICONS[phase.phaseNumber]} {t.storesList.phaseAbbrev}{phase.phaseNumber}: {phase.name}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8 }}>Trạng thái</label>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8 }}>{t.ganttModals.phaseStatus}</label>
           <div style={{ display: "flex", gap: 6 }}>
             {PHASE_STATUS_OPTIONS.map(s => (
               <button key={s.value} onClick={() => setForm({ ...form, status: s.value })} style={{
@@ -168,29 +178,29 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
                 background: form.status === s.value ? `${s.color}22` : "transparent",
                 color: form.status === s.value ? s.color : "var(--text-secondary)",
                 cursor: "pointer",
-              }}>{s.label}</button>
+              }}>{t.status[s.labelKey]}</button>
             ))}
           </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>📅 Kế hoạch bắt đầu</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>{t.ganttModals.plannedStart}</label>
             <input type="date" className="input" value={form.plannedStart}
               onChange={(e) => setForm({ ...form, plannedStart: e.target.value })} />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>📅 Kế hoạch kết thúc</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>{t.ganttModals.plannedEnd}</label>
             <input type="date" className="input" value={form.plannedEnd}
               onChange={(e) => setForm({ ...form, plannedEnd: e.target.value })} />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>✅ Thực tế bắt đầu</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>{t.ganttModals.actualStart}</label>
             <input type="date" className="input" value={form.actualStart}
               onChange={(e) => setForm({ ...form, actualStart: e.target.value })} />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>✅ Thực tế kết thúc</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>{t.ganttModals.actualEnd}</label>
             <input type="date" className="input" value={form.actualEnd}
               onChange={(e) => setForm({ ...form, actualEnd: e.target.value })} />
           </div>
@@ -212,11 +222,13 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
               style={{ accentColor: "#3b82f6", marginTop: 2, cursor: "pointer" }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>
-                ⚡ Đẩy các giai đoạn sau theo
+                {t.ganttModals.cascadeLabel}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                Tự động dời <strong style={{ color: "#f0f4ff" }}>{11 - phase.phaseNumber} giai đoạn còn lại</strong> {cascadeDeltaDays > 0 ? `về sau` : `về trước`}{" "}
-                <strong style={{ color: cascadeDeltaDays > 0 ? "#fca5a5" : "#6ee7b7" }}>{cascadeDeltaDays > 0 ? "+" : ""}{cascadeDeltaDays} ngày</strong>
+                {t.ganttModals.cascadeDesc
+                  .replace("{n}", String(11 - phase.phaseNumber))
+                  .replace("{dir}", cascadeDeltaDays > 0 ? t.ganttModals.cascadeForward : t.ganttModals.cascadeBackward)
+                  .replace("{days}", `${cascadeDeltaDays > 0 ? "+" : ""}${cascadeDeltaDays}`)}
               </div>
             </div>
           </label>
@@ -233,13 +245,13 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
             flex: 1, padding: "10px", borderRadius: 8,
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-          }}>Hủy</button>
+          }}>{t.common.cancel}</button>
           <button onClick={handleSave} disabled={loading} className="gradient-btn" style={{
             flex: 2, padding: "10px", borderRadius: 8, border: "none",
             color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}>
-            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Đang lưu...</> : "✓ Lưu thay đổi"}
+            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.ganttModals.saving}</> : t.ganttModals.saveChanges}
           </button>
         </div>
       </div>
@@ -249,6 +261,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
 
 // ---- Save Baseline Modal ----
 function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: string[]; onClose: () => void; onSave: (name: string) => Promise<void> }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const trimmed = name.trim();
@@ -258,28 +271,27 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>📌 Lưu mốc kế hoạch</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.ganttModals.saveBaselineTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14, lineHeight: 1.5 }}>
-          Snapshot ngày kế hoạch hiện tại của <strong style={{ color: "#f0f4ff" }}>11 giai đoạn</strong> để đối chiếu sau.
-          Mốc đã lưu là <strong style={{ color: "#f0f4ff" }}>không thể sửa</strong> — chỉ xóa.
+          {t.ganttModals.saveBaselineDesc}
         </p>
         <div style={{ marginBottom: 14 }}>
           <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
-            Tên mốc *
+            {t.ganttModals.baselineName}
           </label>
           <input
             className="input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="VD: Kế hoạch ban đầu, Sau ký HĐ, Q3-2026..."
+            placeholder={t.ganttModals.baselineNamePh}
             maxLength={100}
             autoFocus
             onKeyDown={(e) => { if (e.key === "Enter" && trimmed && !dup && !saving) { setSaving(true); onSave(trimmed); } }}
           />
           {dup && (
-            <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 4 }}>⚠️ Đã có mốc tên này. Hãy đặt tên khác.</div>
+            <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 4 }}>{t.ganttModals.duplicateName}</div>
           )}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -287,7 +299,7 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
             flex: 1, padding: "10px", borderRadius: 8,
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-          }}>Hủy</button>
+          }}>{t.common.cancel}</button>
           <button
             disabled={!trimmed || dup || saving}
             onClick={async () => { setSaving(true); await onSave(trimmed); }}
@@ -299,7 +311,7 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
               opacity: !trimmed || dup || saving ? 0.5 : 1,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-            {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang lưu...</> : "📌 Lưu mốc"}
+            {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> {t.ganttModals.saving}</> : t.ganttModals.saveBaselineBtn}
           </button>
         </div>
       </div>
@@ -309,6 +321,8 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
 
 // ---- Phase Notes Section (inside Edit Modal) ----
 function PhaseNotesSection({ phase }: { phase: any }) {
+  const t = useT();
+  const { intlCode } = useLocale();
   // Initialize from phase.notes if included by store detail API; otherwise lazy-fetch
   const [notes, setNotes] = useState<any[]>(Array.isArray(phase.notes) ? phase.notes : []);
   const [loading, setLoading] = useState(!Array.isArray(phase.notes));
@@ -356,7 +370,7 @@ function PhaseNotesSection({ phase }: { phase: any }) {
   };
 
   const deleteNote = async (id: string) => {
-    if (!confirm("Xóa ghi chú này?")) return;
+    if (!confirm(t.phaseNotes.deleteConfirm)) return;
     const res = await fetch(`/api/phase-notes/${id}`, { method: "DELETE" });
     if (res.ok) setNotes(prev => prev.filter(n => n.id !== id));
   };
@@ -365,17 +379,17 @@ function PhaseNotesSection({ phase }: { phase: any }) {
     <div style={{ marginBottom: 14, background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>
-          💬 Ghi chú {notes.length > 0 && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>({notes.length})</span>}
+          {t.phaseNotes.title} {notes.length > 0 && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>({notes.length})</span>}
         </div>
       </div>
 
       {loading ? (
-        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Đang tải ghi chú...</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{t.phaseNotes.loading}</div>
       ) : (
         <>
           {notes.length === 0 && (
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, fontStyle: "italic" }}>
-              Chưa có ghi chú. Thêm ghi chú đầu tiên ↓
+              {t.phaseNotes.emptyState}
             </div>
           )}
 
@@ -387,18 +401,18 @@ function PhaseNotesSection({ phase }: { phase: any }) {
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <span style={{ fontSize: 11, color: "#93c5fd", fontWeight: 600 }}>
-                    {n.author?.name || "Hệ thống"} · {new Date(n.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    {n.author?.name || t.common.system} · {new Date(n.createdAt).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <div style={{ display: "flex", gap: 4 }}>
                     {editingId === n.id ? (
                       <>
-                        <button onClick={() => saveEdit(n.id)} style={{ fontSize: 10, color: "#6ee7b7", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}>Lưu</button>
-                        <button onClick={() => setEditingId(null)} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>Hủy</button>
+                        <button onClick={() => saveEdit(n.id)} style={{ fontSize: 10, color: "#6ee7b7", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}>{t.phaseNotes.saveEdit}</button>
+                        <button onClick={() => setEditingId(null)} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>{t.phaseNotes.cancelEdit}</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditingId(n.id); setEditDraft(n.content); }} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>Sửa</button>
-                        <button onClick={() => deleteNote(n.id)} style={{ fontSize: 10, color: "#fca5a5", background: "transparent", border: "none", cursor: "pointer" }}>Xóa</button>
+                        <button onClick={() => { setEditingId(n.id); setEditDraft(n.content); }} style={{ fontSize: 10, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer" }}>{t.phaseNotes.edit}</button>
+                        <button onClick={() => deleteNote(n.id)} style={{ fontSize: 10, color: "#fca5a5", background: "transparent", border: "none", cursor: "pointer" }}>{t.phaseNotes.delete}</button>
                       </>
                     )}
                   </div>
@@ -418,7 +432,7 @@ function PhaseNotesSection({ phase }: { phase: any }) {
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Thêm ghi chú nhanh... (vd: Trời mưa 3 ngày, vendor giao chậm)"
+              placeholder={t.phaseNotes.placeholder}
               rows={2}
               maxLength={1000}
               className="input"
@@ -435,12 +449,12 @@ function PhaseNotesSection({ phase }: { phase: any }) {
               opacity: draft.trim() && !saving ? 1 : 0.5,
               alignSelf: "flex-start", whiteSpace: "nowrap",
             }}>
-              {saving ? "..." : "Thêm"}
+              {saving ? "..." : t.phaseNotes.add}
             </button>
           </div>
           {draft.length > 0 && (
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, textAlign: "right" }}>
-              {draft.length}/1000 · Ctrl/⌘+Enter để lưu nhanh
+              {t.phaseNotes.charLimit.replace("{n}", String(draft.length))}
             </div>
           )}
         </>
@@ -450,7 +464,8 @@ function PhaseNotesSection({ phase }: { phase: any }) {
 }
 
 // ---- Status Quick-Toggle Dropdown ----
-function StatusBadgeDropdown({ phase, theme, onChange }: any) {
+function StatusBadgeDropdown({ phase, theme, status, onChange }: { phase: any; theme: { color: string; emoji: string }; status: DerivedStatus; onChange: (newStatus: string) => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -471,7 +486,7 @@ function StatusBadgeDropdown({ phase, theme, onChange }: any) {
         borderRadius: 99, padding: "3px 9px",
         whiteSpace: "nowrap", cursor: "pointer",
       }}>
-        {theme.emoji} {theme.label} ▾
+        {theme.emoji} {getStatusThemeLabel(status, t)} ▾
       </button>
       {open && (
         <div style={{
@@ -487,7 +502,7 @@ function StatusBadgeDropdown({ phase, theme, onChange }: any) {
               color: phase.status === s.value ? s.color : "#f0f4ff",
               border: "none", borderRadius: 6, textAlign: "left",
               fontSize: 11, fontWeight: 600, cursor: "pointer",
-            }}>{s.label}</button>
+            }}>{t.status[s.labelKey]}</button>
           ))}
         </div>
       )}
@@ -497,12 +512,14 @@ function StatusBadgeDropdown({ phase, theme, onChange }: any) {
 
 // ---- Custom Hover Tooltip ----
 function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: Date }) {
+  const t = useT();
+  const { intlCode } = useLocale();
   if (!phase) return null;
   const status = deriveStatus(phase, now);
   const theme = STATUS_THEME[status];
   const progress = getProgress(phase);
   const tasks = phase.tasks || [];
-  const doneTasks = tasks.filter((t: any) => t.status === "DONE").length;
+  const doneTasks = tasks.filter((tk: any) => tk.status === "DONE").length;
 
   // Variance calculation
   const plannedEnd = new Date(phase.plannedEnd);
@@ -510,10 +527,14 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
   let varianceMsg = "";
   if (phase.status === "COMPLETED" && actualEnd) {
     const days = Math.round((actualEnd.getTime() - plannedEnd.getTime()) / DAY_MS);
-    varianceMsg = days > 0 ? `Trễ ${days} ngày` : days < 0 ? `Sớm ${Math.abs(days)} ngày` : "Đúng kế hoạch";
+    varianceMsg = days > 0 ? t.gantt.tooltipDelayed.replace("{n}", String(days))
+                : days < 0 ? t.gantt.tooltipEarly.replace("{n}", String(Math.abs(days)))
+                : t.gantt.tooltipDone;
   } else if (phase.status !== "COMPLETED") {
     const days = Math.round((plannedEnd.getTime() - now.getTime()) / DAY_MS);
-    varianceMsg = days > 0 ? `Còn ${days} ngày` : days === 0 ? "Hết hạn hôm nay" : `Quá hạn ${Math.abs(days)} ngày`;
+    varianceMsg = days > 0 ? t.gantt.tooltipDaysLeft.replace("{n}", String(days))
+                : days === 0 ? t.gantt.tooltipDueToday
+                : t.gantt.tooltipOverdue.replace("{n}", String(Math.abs(days)));
   }
 
   return (
@@ -526,13 +547,13 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f4ff" }}>
-          {PHASE_ICONS[phase.phaseNumber]} GĐ {phase.phaseNumber}: {phase.name}
+          {PHASE_ICONS[phase.phaseNumber]} {t.storesList.phaseAbbrev}{phase.phaseNumber}: {phase.name}
         </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 99, background: `${theme.color}22`, color: theme.color, fontWeight: 600, border: `1px solid ${theme.color}55` }}>
-          {theme.emoji} {theme.label}
+          {theme.emoji} {getStatusThemeLabel(status, t)}
         </span>
         {varianceMsg && (
           <span style={{ fontSize: 10, color: status === "OVERDUE" ? "#fca5a5" : status === "AT_RISK" ? "#fcd34d" : "var(--text-secondary)" }}>
@@ -542,16 +563,16 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 10px", fontSize: 11, marginBottom: 8 }}>
-        <span style={{ color: "var(--text-muted)" }}>Kế hoạch:</span>
-        <span style={{ color: "#f0f4ff" }}>{fmtDateShort(phase.plannedStart)} → {fmtDateShort(phase.plannedEnd)}</span>
+        <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipPlanned}</span>
+        <span style={{ color: "#f0f4ff" }}>{fmtDateShort(phase.plannedStart, intlCode)} → {fmtDateShort(phase.plannedEnd, intlCode)}</span>
         {phase.actualStart && (
           <>
-            <span style={{ color: "var(--text-muted)" }}>Thực tế:</span>
-            <span style={{ color: theme.color }}>{fmtDateShort(phase.actualStart)} → {phase.actualEnd ? fmtDateShort(phase.actualEnd) : "Hôm nay"}</span>
+            <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipActual}</span>
+            <span style={{ color: theme.color }}>{fmtDateShort(phase.actualStart, intlCode)} → {phase.actualEnd ? fmtDateShort(phase.actualEnd, intlCode) : t.gantt.tooltipUntilToday}</span>
           </>
         )}
-        <span style={{ color: "var(--text-muted)" }}>Tasks:</span>
-        <span style={{ color: "#f0f4ff" }}>{doneTasks}/{tasks.length || 0} hoàn thành</span>
+        <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipTasks}</span>
+        <span style={{ color: "#f0f4ff" }}>{t.gantt.tooltipTasksDone.replace("{done}", String(doneTasks)).replace("{total}", String(tasks.length || 0))}</span>
       </div>
 
       {/* Progress bar */}
@@ -559,7 +580,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
         <div style={{ width: `${progress}%`, height: "100%", background: theme.color, transition: "width 0.2s" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-muted)" }}>
-        <span>Tiến độ</span><span>{progress}%</span>
+        <span>{t.gantt.tooltipProgress}</span><span>{progress}%</span>
       </div>
 
       {/* Latest note preview */}
@@ -569,7 +590,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
           borderTop: "1px solid rgba(255,255,255,0.06)",
         }}>
           <div style={{ fontSize: 10, color: "#facc15", fontWeight: 600, marginBottom: 3 }}>
-            💬 {phase.notes.length} ghi chú · gần nhất:
+            {t.gantt.tooltipNotes.replace("{n}", String(phase.notes.length))}
           </div>
           <div style={{
             fontSize: 11, color: "#f0f4ff", lineHeight: 1.4,
@@ -584,7 +605,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
       )}
 
       <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-muted)", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
-        💡 Bấm vào thanh để chỉnh sửa hoặc thêm ghi chú
+        {t.gantt.tooltipHint}
       </div>
     </div>
   );
@@ -594,6 +615,8 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
 // Main GanttChart Component
 // ============================================================================
 export default function GanttChart({ storeId, phases, targetDate, onUpdated, currentUserRole }: { storeId?: string; phases: any[]; targetDate?: string | null; onUpdated?: () => void; currentUserRole?: string }) {
+  const t = useT();
+  const { intlCode } = useLocale();
   const [zoom, setZoom] = useState<ZoomLevel>("MONTH");
   const [viewOffsetDays, setViewOffsetDays] = useState(0); // shift view forward/back
   const [editingPhase, setEditingPhase] = useState<any>(null);
@@ -705,21 +728,21 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
       if (pct >= -5 && pct <= 105) {
         out.push({
           date: new Date(cursor),
-          label: cursor.toLocaleDateString("vi-VN", { month: "short" }).replace("thg ", "Th "),
+          label: cursor.toLocaleDateString(intlCode, { month: "short" }),
           pct,
         });
       }
       cursor.setMonth(cursor.getMonth() + 1);
     }
     return out;
-  }, [start, end]);
+  }, [start, end, intlCode]);
 
   // Days until opening
   const daysUntilOpening = target ? Math.ceil((target.getTime() - now.getTime()) / DAY_MS) : null;
   const openingMsg = daysUntilOpening == null ? null
-    : daysUntilOpening > 0 ? `Khai trương: ${daysUntilOpening} ngày nữa`
-    : daysUntilOpening === 0 ? "Khai trương hôm nay 🎉"
-    : `Đã quá hạn khai trương ${Math.abs(daysUntilOpening)} ngày`;
+    : daysUntilOpening > 0 ? t.gantt.openingIn.replace("{n}", String(daysUntilOpening))
+    : daysUntilOpening === 0 ? t.gantt.openingToday
+    : t.gantt.openingOverdue.replace("{n}", String(Math.abs(daysUntilOpening)));
 
   const LEFT_COL = 200;
   const RIGHT_COL = 130;
@@ -852,17 +875,17 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
       await refetchBaselines();
       setActiveBaselineId(newBaseline.id);
       setShowSaveBaseline(false);
-      setToast({ msg: `✓ Đã lưu mốc "${name}"`, type: "success" });
+      setToast({ msg: t.ganttModals.baselineSavedToast.replace("{name}", name), type: "success" });
       setTimeout(() => setToast(null), 4000);
     } else {
       const err = await res.json().catch(() => ({}));
-      setToast({ msg: `⚠️ ${err.error || "Lỗi lưu mốc"}`, type: "warning" });
+      setToast({ msg: t.ganttModals.baselineErrorToast.replace("{error}", err.error || t.common.errorSave), type: "warning" });
       setTimeout(() => setToast(null), 4000);
     }
   };
 
   const deleteBaseline = async (id: string, name: string) => {
-    if (!confirm(`Xóa mốc "${name}"?`)) return;
+    if (!confirm(t.ganttModals.deleteBaselineConfirm.replace("{name}", name))) return;
     const res = await fetch(`/api/baselines/${id}`, { method: "DELETE" });
     if (res.ok) {
       await refetchBaselines();
@@ -875,7 +898,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>
-          📅 Gantt Chart — Tiến Độ 11 Giai Đoạn
+          {t.gantt.title}
         </h2>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {openingMsg && (
@@ -889,12 +912,12 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               🎯 <span>{openingMsg}</span>
             </div>
           )}
-          <button onClick={handlePrint} className="no-print" title="In hoặc xuất PDF" style={{
+          <button onClick={handlePrint} className="no-print" title={t.gantt.printExport} style={{
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", padding: "5px 12px", borderRadius: 8,
             fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
           }}>
-            🖨️ In / Xuất PDF
+            {t.gantt.printExport}
           </button>
         </div>
       </div>
@@ -906,16 +929,16 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
           padding: "8px 12px", background: "rgba(255,255,255,0.02)",
           border: "1px solid var(--border)", borderRadius: 8,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>📌 Mốc kế hoạch:</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{t.ganttModals.baselineLabel}</span>
           <select className="input"
             value={activeBaselineId}
             onChange={(e) => setActiveBaselineId(e.target.value)}
             style={{ padding: "4px 10px", fontSize: 12, width: "auto", minWidth: 180 }}
           >
-            <option value="">— Không so sánh —</option>
+            <option value="">{t.ganttModals.noCompare}</option>
             {baselines.map(b => (
               <option key={b.id} value={b.id}>
-                {b.name} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}
+                {b.name} · {new Date(b.createdAt).toLocaleDateString(intlCode)}
               </option>
             ))}
           </select>
@@ -928,9 +951,9 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               cursor: baselines.length >= 5 ? "not-allowed" : "pointer",
               opacity: baselines.length >= 5 ? 0.4 : 1,
             }}
-              title={baselines.length >= 5 ? "Tối đa 5 mốc/cửa hàng" : "Lưu trạng thái plannedStart/End hiện tại làm mốc"}
+              title={baselines.length >= 5 ? t.ganttModals.baselineLimitFull : t.ganttModals.saveBaselineNew}
             >
-              📌 Lưu mốc mới
+              {t.ganttModals.saveBaselineNew}
             </button>
           )}
 
@@ -940,15 +963,15 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
             }}>
-              Quản lý ({baselines.length})
+              {t.ganttModals.manageBaselines.replace("{n}", String(baselines.length))}
             </button>
           )}
 
           {activeBaseline && (
             <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)" }}>
-              Đang so sánh với: <strong style={{ color: "#f0f4ff" }}>{activeBaseline.name}</strong>
-              {" · "}
-              {activeBaseline.creator?.name || "Hệ thống"}
+              {t.ganttModals.comparing
+                .replace("{name}", activeBaseline.name)
+                .replace("{creator}", activeBaseline.creator?.name || t.common.system)}
             </span>
           )}
         </div>
@@ -964,7 +987,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               color: zoom === z ? "#93c5fd" : "var(--text-secondary)",
               border: "none", cursor: "pointer",
             }}>
-              {z === "WEEK" ? "Tuần" : z === "MONTH" ? "Tháng" : z === "QUARTER" ? "Quý" : "Tất cả"}
+              {z === "WEEK" ? t.gantt.zoomWeek : z === "MONTH" ? t.gantt.zoomMonth : z === "QUARTER" ? t.gantt.zoomQuarter : t.gantt.zoomAll}
             </button>
           ))}
         </div>
@@ -975,30 +998,32 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
-            }}>← Lùi</button>
+            }}>{t.gantt.navPrev}</button>
             <button onClick={() => setViewOffsetDays(0)} disabled={viewOffsetDays === 0} style={{
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
               background: viewOffsetDays === 0 ? "rgba(255,255,255,0.02)" : "rgba(59,130,246,0.1)",
               border: `1px solid ${viewOffsetDays === 0 ? "var(--border)" : "rgba(59,130,246,0.3)"}`,
               color: viewOffsetDays === 0 ? "var(--text-muted)" : "#93c5fd",
               cursor: viewOffsetDays === 0 ? "default" : "pointer",
-            }}>Hôm nay</button>
+            }}>{t.gantt.navToday}</button>
             <button onClick={() => setViewOffsetDays(viewOffsetDays + Math.floor(ZOOM_DAYS[zoom] / 3))} style={{
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
-            }}>Tới →</button>
+            }}>{t.gantt.navNext}</button>
           </div>
         )}
 
         <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)" }}>
-          Hiển thị: <strong style={{ color: "#f0f4ff" }}>{fmtDate(start)}</strong> → <strong style={{ color: "#f0f4ff" }}>{fmtDate(end)}</strong>
+          {t.gantt.showing
+            .replace("{start}", fmtDate(start, intlCode))
+            .replace("{end}", fmtDate(end, intlCode))}
         </div>
       </div>
 
       {phasesWithDates.some((p: any) => p._fallback) && (
         <div style={{ marginBottom: 10, fontSize: 11, color: "#f59e0b", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 6, padding: "6px 10px", display: "inline-block" }}>
-          ⚠️ Một số giai đoạn chưa có ngày kế hoạch — đang hiển thị ước tính
+          {t.gantt.fallbackWarn}
         </div>
       )}
 
@@ -1007,12 +1032,12 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
         {Object.entries(STATUS_THEME).filter(([k]) => k !== "BLOCKED").map(([key, theme]) => (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: theme.color, display: "inline-block" }} />
-            {theme.label}
+            {getStatusThemeLabel(key as DerivedStatus, t)}
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 10 }}>
           <span style={{ display: "inline-block", color: "#10b981", fontSize: 14 }}>◆</span>
-          Mốc quan trọng
+          {t.gantt.legendMilestone}
         </div>
       </div>
 
@@ -1049,7 +1074,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
                 whiteSpace: "nowrap", zIndex: 5,
               }}>
-                Hôm nay · {fmtDateShort(now)}
+                {t.gantt.todayPill.replace("{date}", fmtDateShort(now, intlCode))}
               </div>
             )}
           </div>
@@ -1102,9 +1127,9 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                     borderBottom: `1px solid ${stage.borderColor}`,
                   }}>
                     <span style={{ fontSize: 13, marginRight: 6 }}>{stage.icon}</span>
-                    {stage.label}
+                    {getStageLabel(stage.key, t)}
                     <span style={{ marginLeft: 10, fontSize: 9, color: "var(--text-muted)", fontWeight: 500, letterSpacing: 0, textTransform: "none" }}>
-                      ({stagePhases.length} giai đoạn)
+                      {t.gantt.phaseCount.replace("{n}", String(stagePhases.length))}
                     </span>
                   </div>
                   {stagePhases.map((phase: any) => {
@@ -1135,7 +1160,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                     <span style={{ fontSize: 18, lineHeight: 1 }}>{PHASE_ICONS[phase.phaseNumber]}</span>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: "#f0f4ff", fontWeight: 600, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        GĐ {phase.phaseNumber}
+                        {t.storesList.phaseAbbrev}{phase.phaseNumber}
                       </div>
                       <div style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {phase.name}
@@ -1167,10 +1192,18 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                       const curEndMs = new Date(phase.plannedEnd).getTime();
                       const baseEndMs = bs.plannedEnd.getTime();
                       const varianceDays = Math.round((curEndMs - baseEndMs) / DAY_MS);
+                      const varianceText = varianceDays > 0
+                        ? t.gantt.tooltipDelayed.replace("{n}", String(varianceDays))
+                        : varianceDays < 0
+                        ? t.gantt.tooltipEarly.replace("{n}", String(-varianceDays))
+                        : t.gantt.tooltipDone;
                       return (
                         <>
                           <div
-                            title={`Mốc "${activeBaseline.name}": ${fmtDateShort(bs.plannedStart)} → ${fmtDateShort(bs.plannedEnd)}\n${varianceDays > 0 ? `Trễ ${varianceDays} ngày` : varianceDays < 0 ? `Sớm ${-varianceDays} ngày` : "Đúng kế hoạch"}`}
+                            title={`${t.ganttModals.baselineTooltip
+                              .replace("{name}", activeBaseline.name)
+                              .replace("{start}", fmtDateShort(bs.plannedStart, intlCode))
+                              .replace("{end}", fmtDateShort(bs.plannedEnd, intlCode))}\n${varianceText}`}
                             style={{
                               position: "absolute",
                               left: `${bVisLeft}%`, width: `${bVisWidth}%`,
@@ -1200,13 +1233,13 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
                     {/* Out-of-view indicator (left/right) */}
                     {plannedLeft + plannedWidth < 0 && (
-                      <div title={`Đã qua: ${fmtDateShort(phase.plannedStart)} → ${fmtDateShort(phase.plannedEnd)}`} style={{
+                      <div title={t.gantt.pastBar.replace("{dates}", `${fmtDateShort(phase.plannedStart, intlCode)} → ${fmtDateShort(phase.plannedEnd, intlCode)}`)} style={{
                         position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)",
                         fontSize: 14, color: theme.color, opacity: 0.7,
                       }}>‹‹</div>
                     )}
                     {plannedLeft > 100 && (
-                      <div title={`Sắp tới: ${fmtDateShort(phase.plannedStart)} → ${fmtDateShort(phase.plannedEnd)}`} style={{
+                      <div title={t.gantt.futureBar.replace("{dates}", `${fmtDateShort(phase.plannedStart, intlCode)} → ${fmtDateShort(phase.plannedEnd, intlCode)}`)} style={{
                         position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
                         fontSize: 14, color: theme.color, opacity: 0.7,
                       }}>››</div>
@@ -1237,9 +1270,9 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                           whiteSpace: "nowrap", zIndex: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                         }}>
                           {dragState!.deltaDays > 0 ? `+${dragState!.deltaDays}d` : `${dragState!.deltaDays}d`} ·
-                          {" "}{fmtDateShort(new Date(dragState!.type !== "resize-end" ? dragState!.originalStart + dragState!.deltaDays * DAY_MS : dragState!.originalStart))}
+                          {" "}{fmtDateShort(new Date(dragState!.type !== "resize-end" ? dragState!.originalStart + dragState!.deltaDays * DAY_MS : dragState!.originalStart), intlCode)}
                           {" → "}
-                          {fmtDateShort(new Date(dragState!.type !== "resize-start" ? dragState!.originalEnd + dragState!.deltaDays * DAY_MS : dragState!.originalEnd))}
+                          {fmtDateShort(new Date(dragState!.type !== "resize-start" ? dragState!.originalEnd + dragState!.deltaDays * DAY_MS : dragState!.originalEnd), intlCode)}
                         </div>
                       );
 
@@ -1298,7 +1331,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                                   borderLeft: "2px solid rgba(255,255,255,0.5)",
                                   zIndex: 4,
                                 }}
-                                title="Kéo để đổi ngày bắt đầu"
+                                title={t.common.dragStartHint}
                               />
                               <div
                                 onMouseDown={(e) => startDrag(e, phase, "resize-end")}
@@ -1308,7 +1341,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                                   borderRight: "2px solid rgba(255,255,255,0.5)",
                                   zIndex: 4,
                                 }}
-                                title="Kéo để đổi ngày kết thúc"
+                                title={t.common.dragEndHint}
                               />
                             </>
                           )}
@@ -1333,7 +1366,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
                     {/* Notes badge — small chip above the bar when phase has notes */}
                     {Array.isArray(phase.notes) && phase.notes.length > 0 && visWidth > 0 && (
-                      <div title={`${phase.notes.length} ghi chú`} style={{
+                      <div title={`${phase.notes.length} ${t.common.notes}`} style={{
                         position: "absolute",
                         left: `${visLeft}%`, top: -4,
                         background: "#1e293b", color: "#facc15",
@@ -1350,7 +1383,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
                   {/* Right status badge with quick-toggle */}
                   <div style={{ width: RIGHT_COL, flexShrink: 0, paddingLeft: 12, display: "flex", justifyContent: "flex-end" }}>
-                    <StatusBadgeDropdown phase={phase} theme={theme}
+                    <StatusBadgeDropdown phase={phase} theme={theme} status={status}
                       onChange={(newStatus: string) => handleStatusChange(phase.id, newStatus)} />
                   </div>
                 </div>
@@ -1375,7 +1408,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                   boxShadow: "0 2px 6px rgba(139,92,246,0.4)",
                 }} />
                 <div style={{ fontSize: 9, color: "#c4b5fd", fontWeight: 700, marginTop: 4, whiteSpace: "nowrap", background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 4, padding: "2px 6px" }}>
-                  ◆ Ký HĐ · {fmtDateShort(contractDate)}
+                  {t.gantt.milestoneContract.replace("{date}", fmtDateShort(contractDate, intlCode))}
                 </div>
               </div>
             )}
@@ -1391,7 +1424,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                   boxShadow: "0 2px 8px rgba(16,185,129,0.5)",
                 }} />
                 <div style={{ fontSize: 9, color: "#6ee7b7", fontWeight: 700, marginTop: 4, whiteSpace: "nowrap", background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 4, padding: "2px 6px" }}>
-                  ◆ Khai trương · {fmtDateShort(target)}
+                  {t.gantt.milestoneOpening.replace("{date}", fmtDateShort(target, intlCode))}
                 </div>
               </div>
             )}
@@ -1412,7 +1445,10 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
             onUpdated?.();
             if (info?.cascadedCount && info.cascadedCount > 0) {
               setToast({
-                msg: `✓ Đã đẩy ${info.cascadedCount} giai đoạn sau ${info.cascadeDays! > 0 ? "+" : ""}${info.cascadeDays} ngày`,
+                msg: t.ganttModals.cascadedOk
+                  .replace("{n}", String(info.cascadedCount))
+                  .replace("{prefix}", info.cascadeDays! > 0 ? "+" : "")
+                  .replace("{days}", String(info.cascadeDays)),
                 type: "success",
               });
               setTimeout(() => setToast(null), 4000);
@@ -1425,6 +1461,10 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
         const phase = phasesWithDates.find((p: any) => p.id === pendingCascade.phaseId);
         if (!phase) { setPendingCascade(null); return null; }
         const remaining = 11 - pendingCascade.phaseNumber;
+        const titleParts = t.ganttModals.pendingCascadeTitle
+          .replace("{n}", String(pendingCascade.phaseNumber))
+          .replace("{prefix}", pendingCascade.deltaDays > 0 ? "+" : "")
+          .replace("{days}", String(pendingCascade.deltaDays));
         return (
           <div style={{
             position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
@@ -1436,20 +1476,17 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
             <div style={{ fontSize: 22 }}>⚡</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", marginBottom: 2 }}>
-                GĐ {pendingCascade.phaseNumber} đã được dời{" "}
-                <span style={{ color: pendingCascade.deltaDays > 0 ? "#fca5a5" : "#6ee7b7" }}>
-                  {pendingCascade.deltaDays > 0 ? "+" : ""}{pendingCascade.deltaDays} ngày
-                </span>
+                {titleParts}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                Đẩy <strong style={{ color: "#f0f4ff" }}>{remaining} giai đoạn còn lại</strong> theo cùng độ trễ?
+                {t.ganttModals.pendingCascadeAsk.replace("{n}", String(remaining))}
               </div>
             </div>
             <button onClick={() => setPendingCascade(null)} style={{
               padding: "6px 12px", borderRadius: 6, fontSize: 12,
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
-            }}>Bỏ qua</button>
+            }}>{t.ganttModals.dismiss}</button>
             <button onClick={async () => {
               const pc = pendingCascade;
               setPendingCascade(null);
@@ -1468,7 +1505,10 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                 });
                 onUpdated?.();
                 setToast({
-                  msg: `✓ Đã đẩy ${11 - pc.phaseNumber} giai đoạn sau ${pc.deltaDays > 0 ? "+" : ""}${pc.deltaDays} ngày`,
+                  msg: t.ganttModals.cascadedOk
+                    .replace("{n}", String(11 - pc.phaseNumber))
+                    .replace("{prefix}", pc.deltaDays > 0 ? "+" : "")
+                    .replace("{days}", String(pc.deltaDays)),
                   type: "success",
                 });
                 setTimeout(() => setToast(null), 4000);
@@ -1477,7 +1517,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
               background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
               border: "none", color: "#fff", cursor: "pointer",
-            }}>⚡ Đẩy theo</button>
+            }}>{t.ganttModals.applyCascade}</button>
           </div>
         );
       })()}
@@ -1507,11 +1547,11 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
         <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setShowManageBaselines(false)}>
           <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>📌 Quản lý mốc kế hoạch</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.ganttModals.manageBaselinesTitle}</h2>
               <button onClick={() => setShowManageBaselines(false)} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>
-              Đã lưu <strong style={{ color: "#f0f4ff" }}>{baselines.length}/5</strong> mốc cho cửa hàng này.
+              {t.ganttModals.baselinesSaved.replace("{n}", String(baselines.length))}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
               {baselines.map(b => (
@@ -1523,14 +1563,14 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>📌 {b.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                      {b.creator?.name || "Hệ thống"} · {new Date(b.createdAt).toLocaleString("vi-VN")} · {(b.snapshots || []).length} GĐ snapshot
+                      {b.creator?.name || t.common.system} · {new Date(b.createdAt).toLocaleString(intlCode)} · {t.ganttModals.snapshotsCount.replace("{n}", String((b.snapshots || []).length))}
                     </div>
                   </div>
                   <button onClick={() => deleteBaseline(b.id, b.name)} style={{
                     padding: "4px 10px", borderRadius: 6,
                     background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
                     color: "#fca5a5", fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  }}>Xóa</button>
+                  }}>{t.common.delete}</button>
                 </div>
               ))}
             </div>

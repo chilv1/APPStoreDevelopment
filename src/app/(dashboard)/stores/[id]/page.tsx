@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { formatDate, formatCurrency, STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
+import { formatDate, formatCurrency, getStatusLabel, getPriorityLabel, STATUS_COLORS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import TaskModal from "@/components/stores/TaskModal";
 import IssueModal from "@/components/stores/IssueModal";
 import EditStoreModal from "@/components/stores/EditStoreModal";
 import GanttChart from "@/components/stores/GanttChart";
+import { useT, useLocale } from "@/lib/i18n/context";
 
 type Tab = "phases" | "gantt" | "issues" | "activity";
 
@@ -17,6 +18,8 @@ export default function StoreDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user as any;
+  const t = useT();
+  const { locale, intlCode } = useLocale();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("phases");
@@ -52,11 +55,11 @@ export default function StoreDetailPage() {
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
       <div className="spinner" />
-      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Đang tải...</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.common.loading}</p>
     </div>
   );
 
-  if (!store) return <div style={{ padding: 32, color: "var(--text-secondary)" }}>Không tìm thấy cửa hàng</div>;
+  if (!store) return <div style={{ padding: 32, color: "var(--text-secondary)" }}>{t.common.notFound}</div>;
 
   const completedPhases = store.phases?.filter((p: any) => p.status === "COMPLETED").length || 0;
 
@@ -64,7 +67,7 @@ export default function StoreDetailPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
       {/* Breadcrumb */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, fontSize: 13, color: "var(--text-secondary)" }}>
-        <Link href="/stores" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>🏪 Cửa hàng</Link>
+        <Link href="/stores" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>🏪 {t.sidebar.stores}</Link>
         <span>›</span>
         <span style={{ color: "#f0f4ff" }}>{store.name}</span>
       </div>
@@ -78,7 +81,7 @@ export default function StoreDetailPage() {
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f0f4ff" }}>{store.name}</h1>
-              <span className={`badge ${STATUS_COLORS[store.status]}`}>{STATUS_LABELS[store.status]}</span>
+              <span className={`badge ${STATUS_COLORS[store.status]}`}>{getStatusLabel(store.status, locale)}</span>
             </div>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>📍 {store.address}</div>
             <div style={{ display: "flex", gap: 20, fontSize: 13, color: "var(--text-secondary)", flexWrap: "wrap", marginTop: 8 }}>
@@ -87,9 +90,9 @@ export default function StoreDetailPage() {
                 ? <span>🏢 <strong style={{ color: "#f0f4ff" }}>{store.bc.branch?.name}</strong> · <strong style={{ color: "#60a5fa" }}>{store.bc.code}</strong> — {store.bc.name}</span>
                 : store.region && <span>🌏 {store.region}</span>
               }
-              {store.pm && <span>👤 PM: <strong style={{ color: "#f0f4ff" }}>{store.pm.name}</strong></span>}
+              {store.pm && <span>👤 {t.storeDetail.pm}: <strong style={{ color: "#f0f4ff" }}>{store.pm.name}</strong></span>}
               {store.budget && <span>💰 {formatCurrency(store.budget)}</span>}
-              {store.targetOpenDate && <span>🎯 KH khai trương: <strong style={{ color: "#f0f4ff" }}>{formatDate(store.targetOpenDate)}</strong></span>}
+              {store.targetOpenDate && <span>🎯 {t.storeDetail.targetOpenLabel}: <strong style={{ color: "#f0f4ff" }}>{formatDate(store.targetOpenDate, intlCode)}</strong></span>}
               {store.latitude != null && store.longitude != null && (
                 <a href={`https://www.google.com/maps?q=${store.latitude},${store.longitude}`} target="_blank" rel="noopener noreferrer"
                   style={{ color: "var(--accent-blue)", textDecoration: "none", fontSize: 13 }}>
@@ -111,7 +114,7 @@ export default function StoreDetailPage() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
               >
-                ✏️ Chỉnh sửa
+                {t.storeDetail.edit}
               </button>
               <button onClick={() => setShowDelete(true)} style={{
                 padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)",
@@ -122,7 +125,7 @@ export default function StoreDetailPage() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.16)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.5)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; }}
               >
-                🗑️ Xóa
+                {t.storeDetail.delete}
               </button>
             </div>
           )}
@@ -130,7 +133,7 @@ export default function StoreDetailPage() {
           {/* Overall Progress */}
           <div style={{ textAlign: "right", minWidth: 180 }}>
             <div style={{ fontSize: 36, fontWeight: 900, color: "#f0f4ff", lineHeight: 1 }}>{store.progress}%</div>
-            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>Hoàn thành {completedPhases}/11 giai đoạn</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>{t.storeDetail.completedPhases.replace("{done}", String(completedPhases)).replace("{total}", "11")}</div>
             <div className="progress-bar" style={{ height: 8 }}>
               <div className="progress-bar-fill" style={{ width: `${store.progress}%` }} />
             </div>
@@ -158,7 +161,7 @@ export default function StoreDetailPage() {
                 {phase.status === "COMPLETED" ? "✓" : PHASE_ICONS[phase.phaseNumber]}
               </div>
               <div style={{ fontSize: 9, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.2 }}>
-                GĐ {phase.phaseNumber}
+                {t.storesList.phaseAbbrev}{phase.phaseNumber}
               </div>
             </div>
           ))}
@@ -168,10 +171,10 @@ export default function StoreDetailPage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", width: "fit-content" }}>
         {([
-          { key: "phases", label: "📋 Giai đoạn & Tasks" },
-          { key: "gantt", label: "📅 Gantt Chart" },
-          { key: "issues", label: `⚠️ Vướng mắc ${store.issues?.length ? `(${store.issues.length})` : ""}` },
-          { key: "activity", label: "🕐 Lịch sử" },
+          { key: "phases",   label: t.storeDetail.tabPhases },
+          { key: "gantt",    label: t.storeDetail.tabGantt },
+          { key: "issues",   label: `${t.storeDetail.tabIssues} ${store.issues?.length ? `(${store.issues.length})` : ""}` },
+          { key: "activity", label: t.storeDetail.tabActivity },
         ] as { key: Tab; label: string }[]).map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
             padding: "8px 16px", borderRadius: 7, border: "none", cursor: "pointer",
@@ -205,7 +208,7 @@ export default function StoreDetailPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", lineHeight: 1.3 }}>{phase.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                    {phase.tasks?.filter((t: any) => t.status === "DONE").length || 0}/{phase.tasks?.length || 0} tasks
+                    {phase.tasks?.filter((tk: any) => tk.status === "DONE").length || 0}/{phase.tasks?.length || 0} {t.storeDetail.taskCount}
                   </div>
                 </div>
               </div>
@@ -219,11 +222,11 @@ export default function StoreDetailPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>
-                      {PHASE_ICONS[selectedPhase.phaseNumber]} GĐ {selectedPhase.phaseNumber}: {selectedPhase.name}
+                      {PHASE_ICONS[selectedPhase.phaseNumber]} {t.storeDetail.phaseTitleHeader.replace("{n}", String(selectedPhase.phaseNumber)).replace("{name}", selectedPhase.name)}
                     </h2>
                     <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{selectedPhase.description}</p>
                   </div>
-                  <span className={`badge ${STATUS_COLORS[selectedPhase.status]}`}>{STATUS_LABELS[selectedPhase.status]}</span>
+                  <span className={`badge ${STATUS_COLORS[selectedPhase.status]}`}>{getStatusLabel(selectedPhase.status, locale)}</span>
                 </div>
               </div>
 
@@ -257,16 +260,16 @@ export default function StoreDetailPage() {
                         )}
                         {task.dueDate && (
                           <span style={{ fontSize: 11, color: new Date(task.dueDate) < new Date() && task.status !== "DONE" ? "#f87171" : "var(--text-muted)" }}>
-                            📅 {formatDate(task.dueDate)}
+                            📅 {formatDate(task.dueDate, intlCode)}
                           </span>
                         )}
                       </div>
                     </div>
                     <span className={`badge ${PRIORITY_COLORS[task.priority]}`} style={{ fontSize: 10 }}>
-                      {PRIORITY_LABELS[task.priority]}
+                      {getPriorityLabel(task.priority, locale)}
                     </span>
                     <span className={`badge ${STATUS_COLORS[task.status]}`} style={{ fontSize: 10 }}>
-                      {STATUS_LABELS[task.status]}
+                      {getStatusLabel(task.status, locale)}
                     </span>
                   </div>
                 ))}
@@ -287,11 +290,11 @@ export default function StoreDetailPage() {
         <div>
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>Vướng mắc & Rủi ro</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{t.storeDetail.issuesTitle}</h2>
             <button onClick={() => setShowIssue(true)} className="gradient-btn" style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
               color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}>+ Ghi nhận vướng mắc</button>
+            }}>{t.storeDetail.registerIssue}</button>
           </div>
 
           {/* Stats + filter */}
@@ -300,24 +303,24 @@ export default function StoreDetailPage() {
             const counts = { ALL: all.length, OPEN: 0, IN_PROGRESS: 0, RESOLVED: 0, CLOSED: 0 } as any;
             all.forEach((i: any) => { if (counts[i.status] !== undefined) counts[i.status]++; });
             const FILTER_TABS = [
-              { key: "ALL",         label: "Tất cả",       color: "#8b9ab5" },
-              { key: "OPEN",        label: "Chưa xử lý",   color: "#f59e0b" },
-              { key: "IN_PROGRESS", label: "Đang xử lý",   color: "#3b82f6" },
-              { key: "RESOLVED",    label: "Đã giải quyết",color: "#10b981" },
-              { key: "CLOSED",      label: "Đã đóng",      color: "#6b7280" },
+              { key: "ALL",         label: t.storeDetail.filterAllIssues,       color: "#8b9ab5" },
+              { key: "OPEN",        label: t.storeDetail.filterOpenIssues,      color: "#f59e0b" },
+              { key: "IN_PROGRESS", label: t.storeDetail.filterInProgressIssues,color: "#3b82f6" },
+              { key: "RESOLVED",    label: t.storeDetail.filterResolvedIssues,  color: "#10b981" },
+              { key: "CLOSED",      label: t.storeDetail.filterClosedIssues,    color: "#6b7280" },
             ];
             return (
               <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-                {FILTER_TABS.map(t => counts[t.key] >= 0 && (
-                  <button key={t.key} onClick={() => setIssueFilter(t.key)} style={{
-                    padding: "5px 12px", borderRadius: 20, border: `1px solid ${issueFilter === t.key ? t.color : "var(--border)"}`,
-                    background: issueFilter === t.key ? `${t.color}22` : "transparent",
-                    color: issueFilter === t.key ? t.color : "var(--text-secondary)",
+                {FILTER_TABS.map(ft => counts[ft.key] >= 0 && (
+                  <button key={ft.key} onClick={() => setIssueFilter(ft.key)} style={{
+                    padding: "5px 12px", borderRadius: 20, border: `1px solid ${issueFilter === ft.key ? ft.color : "var(--border)"}`,
+                    background: issueFilter === ft.key ? `${ft.color}22` : "transparent",
+                    color: issueFilter === ft.key ? ft.color : "var(--text-secondary)",
                     fontSize: 12, fontWeight: 500, cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 6,
                   }}>
-                    {t.label}
-                    {counts[t.key] > 0 && <span style={{ background: issueFilter === t.key ? t.color : "rgba(255,255,255,0.1)", color: issueFilter === t.key ? "#fff" : "var(--text-secondary)", borderRadius: 99, padding: "0 6px", fontSize: 10, fontWeight: 700 }}>{counts[t.key]}</span>}
+                    {ft.label}
+                    {counts[ft.key] > 0 && <span style={{ background: issueFilter === ft.key ? ft.color : "rgba(255,255,255,0.1)", color: issueFilter === ft.key ? "#fff" : "var(--text-secondary)", borderRadius: 99, padding: "0 6px", fontSize: 10, fontWeight: 700 }}>{counts[ft.key]}</span>}
                   </button>
                 ))}
               </div>
@@ -332,7 +335,7 @@ export default function StoreDetailPage() {
                 const typeIcon = issue.type === "RISK" ? "⚠️" : issue.type === "BLOCKER" ? "🚫" : "🔴";
                 const sevColor = { CRITICAL: "#ef4444", HIGH: "#f97316", MEDIUM: "#f59e0b", LOW: "#6b7280" }[issue.severity as string] || "#6b7280";
                 const statusStep = { OPEN: 0, IN_PROGRESS: 1, RESOLVED: 2, CLOSED: 3 }[issue.status as string] ?? 0;
-                const stepLabels = ["Chưa xử lý", "Đang xử lý", "Đã giải quyết", "Đã đóng"];
+                const stepLabels = [t.storeDetail.stepNotStarted, t.storeDetail.stepInProgress, t.storeDetail.stepResolved, t.storeDetail.stepClosed];
                 const stepColors = ["#f59e0b", "#3b82f6", "#10b981", "#6b7280"];
                 return (
                   <div key={issue.id} style={{
@@ -350,7 +353,7 @@ export default function StoreDetailPage() {
                       </div>
                       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                         <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: `${sevColor}22`, color: sevColor, border: `1px solid ${sevColor}44`, fontWeight: 600 }}>
-                          {{ CRITICAL: "Khẩn cấp", HIGH: "Cao", MEDIUM: "Trung bình", LOW: "Thấp" }[issue.severity as string] || issue.severity}
+                          {getPriorityLabel(issue.severity, locale)}
                         </span>
                       </div>
                     </div>
@@ -381,14 +384,16 @@ export default function StoreDetailPage() {
                     {/* Resolution */}
                     {issue.resolution && (
                       <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#6ee7b7", marginBottom: 10 }}>
-                        ✓ <strong>Giải pháp:</strong> {issue.resolution}
+                        <strong>{t.storeDetail.resolutionLabel}</strong> {issue.resolution}
                       </div>
                     )}
 
                     {/* Footer */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
                       <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                        Báo cáo bởi: {issue.reporter?.name || "N/A"} · {new Date(issue.createdAt).toLocaleDateString("vi-VN")}
+                        {t.storeDetail.reportedBy
+                          .replace("{name}", issue.reporter?.name || "N/A")
+                          .replace("{date}", new Date(issue.createdAt).toLocaleDateString(intlCode))}
                       </div>
                       {issue.status !== "CLOSED" && (
                         <div style={{ display: "flex", gap: 6 }}>
@@ -396,14 +401,14 @@ export default function StoreDetailPage() {
                             padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)",
                             background: "rgba(255,255,255,0.04)", color: "var(--text-secondary)",
                             fontSize: 11, cursor: "pointer",
-                          }}>Chỉnh sửa</button>
+                          }}>{t.common.edit}</button>
                           <button onClick={() => setResolveTarget(issue)} style={{
                             padding: "4px 12px", borderRadius: 6, border: `1px solid ${issue.status === "OPEN" ? "rgba(59,130,246,0.4)" : "rgba(16,185,129,0.4)"}`,
                             background: issue.status === "OPEN" ? "rgba(59,130,246,0.1)" : "rgba(16,185,129,0.1)",
                             color: issue.status === "OPEN" ? "#93c5fd" : "#6ee7b7",
                             fontSize: 11, fontWeight: 600, cursor: "pointer",
                           }}>
-                            {issue.status === "OPEN" ? "Xử lý →" : issue.status === "IN_PROGRESS" ? "Cập nhật →" : "Đóng →"}
+                            {issue.status === "OPEN" ? t.storeDetail.actionResolve : issue.status === "IN_PROGRESS" ? t.storeDetail.actionUpdate : t.storeDetail.actionClose}
                           </button>
                         </div>
                       )}
@@ -413,7 +418,7 @@ export default function StoreDetailPage() {
               })}
             {(!store.issues || store.issues.filter((i: any) => issueFilter === "ALL" || i.status === issueFilter).length === 0) && (
               <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)", fontSize: 14 }}>
-                {issueFilter === "ALL" ? "✅ Không có vướng mắc nào. Tiến độ suôn sẻ!" : `Không có vướng mắc nào ở trạng thái này.`}
+                {issueFilter === "ALL" ? t.storeDetail.noIssues : t.storeDetail.noIssuesFiltered}
               </div>
             )}
           </div>
@@ -422,7 +427,7 @@ export default function StoreDetailPage() {
 
       {activeTab === "activity" && (
         <div style={{ maxWidth: 600 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>Lịch sử hoạt động</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.storeDetail.activityTitle}</h2>
           {store.activities?.map((act: any, i: number) => (
             <div key={i} className="activity-item">
               <div className="activity-dot" style={{ background: "#3b82f6" }} />
@@ -432,13 +437,13 @@ export default function StoreDetailPage() {
                   {" "}{act.details}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
-                  {new Date(act.createdAt).toLocaleString("vi-VN")}
+                  {new Date(act.createdAt).toLocaleString(intlCode)}
                 </div>
               </div>
             </div>
           ))}
           {(!store.activities || store.activities.length === 0) && (
-            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Chưa có hoạt động nào</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{t.storeDetail.noActivityData}</p>
           )}
         </div>
       )}
@@ -526,6 +531,7 @@ export default function StoreDetailPage() {
 // Delete Store Modal — type-to-confirm to prevent accidents
 // ============================================================================
 function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: () => void; onDeleted: () => void }) {
+  const t = useT();
   const [typed, setTyped] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -548,7 +554,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
       onDeleted();
     } else {
       const err = await res.json().catch(() => ({}));
-      setError(err.error || "Lỗi xóa cửa hàng");
+      setError(err.error || "Error");
       setLoading(false);
     }
   };
@@ -558,7 +564,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "#fca5a5", margin: 0 }}>
-            🗑️ Xóa cửa hàng
+            {t.modal.deleteTitle}
           </h2>
           <button onClick={onClose} disabled={loading} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
@@ -569,26 +575,39 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
           borderRadius: 8, padding: "12px 14px", marginBottom: 16,
         }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#fca5a5", marginBottom: 8 }}>
-            ⚠️ Hành động này KHÔNG THỂ HOÀN TÁC
+            {t.modal.deleteWarning}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-            Bạn sắp xóa cửa hàng <strong style={{ color: "#f0f4ff" }}>{store.name}</strong> ({store.code}).
-            Cùng với cửa hàng, các dữ liệu sau sẽ bị xóa vĩnh viễn:
+            {t.modal.deleteAbout
+              .split("{name}").join(store.name)
+              .split("{code}").join(store.code)}
           </div>
           <ul style={{ margin: "8px 0 0 16px", padding: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.8 }}>
-            <li><strong style={{ color: "#fca5a5" }}>{phaseCount}</strong> giai đoạn + <strong style={{ color: "#fca5a5" }}>{taskCount}</strong> task</li>
-            <li><strong style={{ color: "#fca5a5" }}>{issueCount}</strong> vướng mắc / rủi ro</li>
-            <li><strong style={{ color: "#fca5a5" }}>{noteCount}</strong> ghi chú giai đoạn</li>
-            <li><strong style={{ color: "#fca5a5" }}>{activityCount}</strong> bản ghi lịch sử hoạt động</li>
-            <li>Tất cả mốc kế hoạch (baselines) đã lưu</li>
+            <li dangerouslySetInnerHTML={{
+              __html: t.modal.deleteListPhases
+                .replace("{n}", `<strong style="color:#fca5a5">${phaseCount}</strong>`)
+                .replace("{tasks}", `<strong style="color:#fca5a5">${taskCount}</strong>`)
+            }} />
+            <li dangerouslySetInnerHTML={{
+              __html: t.modal.deleteListIssues.replace("{n}", `<strong style="color:#fca5a5">${issueCount}</strong>`)
+            }} />
+            <li dangerouslySetInnerHTML={{
+              __html: t.modal.deleteListNotes.replace("{n}", `<strong style="color:#fca5a5">${noteCount}</strong>`)
+            }} />
+            <li dangerouslySetInnerHTML={{
+              __html: t.modal.deleteListActivities.replace("{n}", `<strong style="color:#fca5a5">${activityCount}</strong>`)
+            }} />
+            <li>{t.modal.deleteListBaselines}</li>
           </ul>
         </div>
 
         {/* Type-to-confirm */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
-            Để xác nhận, gõ <strong style={{ color: "#f0f4ff", fontFamily: "monospace", background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>{confirmText}</strong> vào ô dưới:
-          </label>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}
+            dangerouslySetInnerHTML={{
+              __html: t.modal.typeToConfirm.replace("{code}",
+                `<strong style="color:#f0f4ff;font-family:monospace;background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px">${confirmText}</strong>`)
+            }} />
           <input
             className="input"
             value={typed}
@@ -615,7 +634,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
             flex: 1, padding: "10px", borderRadius: 8,
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: loading ? "not-allowed" : "pointer",
-          }}>Hủy</button>
+          }}>{t.common.cancel}</button>
           <button
             disabled={!isMatch || loading}
             onClick={handleDelete}
@@ -627,7 +646,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
               cursor: !isMatch || loading ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang xóa...</> : "🗑️ Xóa vĩnh viễn"}
+            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> {t.modal.deleting}</> : t.modal.deleteForever}
           </button>
         </div>
       </div>
@@ -635,38 +654,45 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
   );
 }
 
-const STATUS_FLOW = [
-  { value: "OPEN",        label: "Chưa xử lý",    color: "#f59e0b" },
-  { value: "IN_PROGRESS", label: "Đang xử lý",    color: "#3b82f6" },
-  { value: "RESOLVED",    label: "Đã giải quyết", color: "#10b981" },
-  { value: "CLOSED",      label: "Đã đóng",       color: "#6b7280" },
-];
+// Status flow keys (labels resolved at runtime via useT)
+const STATUS_FLOW_KEYS = [
+  { value: "OPEN",        color: "#f59e0b" },
+  { value: "IN_PROGRESS", color: "#3b82f6" },
+  { value: "RESOLVED",    color: "#10b981" },
+  { value: "CLOSED",      color: "#6b7280" },
+] as const;
 
 function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
+  const t = useT();
   const [status, setStatus] = useState(issue.status);
   const [resolution, setResolution] = useState(issue.resolution || "");
 
   const needsResolution = status === "RESOLVED" || status === "CLOSED";
 
+  const STATUS_FLOW_T = [
+    { value: "OPEN",        label: t.storeDetail.stepNotStarted, color: "#f59e0b" },
+    { value: "IN_PROGRESS", label: t.storeDetail.stepInProgress, color: "#3b82f6" },
+    { value: "RESOLVED",    label: t.storeDetail.stepResolved,   color: "#10b981" },
+    { value: "CLOSED",      label: t.storeDetail.stepClosed,     color: "#6b7280" },
+  ];
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>🔧 Xử lý vướng mắc</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.modal.resolveTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
-        {/* Issue summary */}
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13 }}>
           <div style={{ fontWeight: 600, color: "#f0f4ff", marginBottom: 2 }}>{issue.title}</div>
           {issue.description && <div style={{ color: "var(--text-secondary)" }}>{issue.description}</div>}
         </div>
 
-        {/* Status selector */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>Chuyển trạng thái</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>{t.modal.resolveStatusLabel}</label>
           <div style={{ display: "flex", gap: 8 }}>
-            {STATUS_FLOW.map(s => (
+            {STATUS_FLOW_T.map(s => (
               <button key={s.value} onClick={() => setStatus(s.value)} style={{
                 flex: 1, padding: "8px 4px", borderRadius: 8, fontSize: 11, fontWeight: 600,
                 border: `1.5px solid ${status === s.value ? s.color : "var(--border)"}`,
@@ -680,13 +706,12 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
           </div>
         </div>
 
-        {/* Resolution notes */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-            Ghi chú giải pháp {needsResolution && <span style={{ color: "#ef4444" }}>*</span>}
+            {t.modal.resolveNotesLabel} {needsResolution && <span style={{ color: "#ef4444" }}>*</span>}
           </label>
           <textarea className="input" rows={4} style={{ resize: "vertical" }}
-            placeholder={needsResolution ? "Mô tả cách đã giải quyết, kết quả đạt được..." : "Ghi chú thêm về tình trạng xử lý..."}
+            placeholder={needsResolution ? t.modal.resolveNotesPhResolved : t.modal.resolveNotesPhInProgress}
             value={resolution} onChange={(e) => setResolution(e.target.value)}
           />
         </div>
@@ -696,7 +721,7 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
             flex: 1, padding: "10px", borderRadius: 8,
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-          }}>Hủy</button>
+          }}>{t.common.cancel}</button>
           <button
             disabled={loading || (needsResolution && !resolution.trim())}
             onClick={() => onSave({ status, resolution: resolution.trim() || null })}
@@ -706,7 +731,7 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               opacity: needsResolution && !resolution.trim() ? 0.5 : 1,
             }}>
-            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Đang lưu...</> : "✓ Lưu cập nhật"}
+            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.modal.resolveSaveBtn}
           </button>
         </div>
       </div>
@@ -714,53 +739,54 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
   );
 }
 
-const ISSUE_TYPES = [
-  { value: "ISSUE",   label: "🔴 Vấn đề phát sinh" },
-  { value: "RISK",    label: "⚠️ Rủi ro tiềm ẩn" },
-  { value: "BLOCKER", label: "🚫 Vướng mắc blocker" },
-];
-const SEVERITIES = [
-  { value: "LOW",      label: "Thấp" },
-  { value: "MEDIUM",   label: "Trung bình" },
-  { value: "HIGH",     label: "Cao" },
-  { value: "CRITICAL", label: "Khẩn cấp" },
-];
-
 function EditIssueModal({ issue, onClose, onSave, onDelete, loading }: any) {
+  const t = useT();
   const [form, setForm] = useState({
     title: issue.title, description: issue.description || "",
     type: issue.type, severity: issue.severity,
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const ISSUE_TYPES = [
+    { value: "ISSUE",   label: t.modal.issueTypeIssue },
+    { value: "RISK",    label: t.modal.issueTypeRisk },
+    { value: "BLOCKER", label: t.modal.issueTypeBlocker },
+  ];
+  const SEVERITIES = [
+    { value: "LOW",      label: t.priority.low },
+    { value: "MEDIUM",   label: t.priority.medium },
+    { value: "HIGH",     label: t.priority.high },
+    { value: "CRITICAL", label: t.priority.critical },
+  ];
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>✏️ Chỉnh sửa vướng mắc</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.modal.editIssueTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Tiêu đề *</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.modal.issueTitleField}</label>
           <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Loại</label>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.modal.issueType}</label>
             <select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              {ISSUE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {ISSUE_TYPES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Mức độ</label>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.modal.editIssueLevelLabel}</label>
             <select className="input" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
-              {SEVERITIES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {SEVERITIES.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
         </div>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Mô tả</label>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.common.description}</label>
           <textarea className="input" rows={3} style={{ resize: "vertical" }}
             value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
@@ -770,25 +796,25 @@ function EditIssueModal({ issue, onClose, onSave, onDelete, loading }: any) {
             <button onClick={() => setConfirmDelete(true)} style={{
               padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)",
               background: "rgba(239,68,68,0.08)", color: "#fca5a5", fontSize: 13, cursor: "pointer",
-            }}>Xóa</button>
+            }}>{t.common.delete}</button>
           ) : (
             <button onClick={onDelete} disabled={loading} style={{
               padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.5)",
               background: "rgba(239,68,68,0.15)", color: "#fca5a5", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}>Xác nhận xóa?</button>
+            }}>{t.modal.confirmDelete}</button>
           )}
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{
             padding: "10px 16px", borderRadius: 8,
             background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-          }}>Hủy</button>
+          }}>{t.common.cancel}</button>
           <button disabled={loading || !form.title.trim()} onClick={() => onSave(form)} className="gradient-btn" style={{
             padding: "10px 20px", borderRadius: 8, border: "none",
             color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
             display: "flex", alignItems: "center", gap: 6,
           }}>
-            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Lưu...</> : "✓ Lưu"}
+            {loading ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.common.save}
           </button>
         </div>
       </div>
