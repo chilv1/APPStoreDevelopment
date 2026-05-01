@@ -40,6 +40,10 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
+  if (!body.name?.trim()) return NextResponse.json({ error: "Tên cửa hàng là bắt buộc" }, { status: 400 });
+  if (!body.code?.trim()) return NextResponse.json({ error: "Mã dự án là bắt buộc" }, { status: 400 });
+  if (!body.address?.trim()) return NextResponse.json({ error: "Địa chỉ là bắt buộc" }, { status: 400 });
+
   const PHASES = [
     { phaseNumber: 1, name: "Tìm Kiếm Mặt Bằng", description: "Khảo sát, đăng ads, phối hợp broker, công ty BĐS" },
     { phaseNumber: 2, name: "Thẩm Định Mặt Bằng", description: "Kiểm tra pháp lý, kỹ thuật, thương mại" },
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
     { phaseNumber: 11, name: "Khai Trương & Vận Hành", description: "Grand Opening, KPI, báo cáo" },
   ];
 
-  const store = await prisma.storeProject.create({
+  try { const store = await prisma.storeProject.create({
     data: {
       name:             body.name,
       code:             body.code,
@@ -94,4 +98,12 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(store, { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Lỗi tạo cửa hàng";
+    const isDuplicate = msg.includes("Unique constraint") || e?.code === "P2002";
+    return NextResponse.json(
+      { error: isDuplicate ? `Mã dự án "${body.code}" đã tồn tại` : msg },
+      { status: isDuplicate ? 409 : 500 }
+    );
+  }
 }

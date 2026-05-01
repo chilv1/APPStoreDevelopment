@@ -44,8 +44,9 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Lỗi tạo cửa hàng");
+        let msg = `Lỗi ${res.status}`;
+        try { const err = await res.json(); msg = err.error || err.message || msg; } catch {}
+        throw new Error(msg);
       }
 
       onCreated();
