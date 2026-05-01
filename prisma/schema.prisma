@@ -51,6 +51,7 @@ model User {
   activities     Activity[]
   issues         Issue[]        @relation("IssueReporter")
   phaseNotes     PhaseNote[]    @relation("PhaseNoteAuthor")
+  baselines      PhaseBaseline[] @relation("BaselineCreator")
 }
 
 model StoreProject {
@@ -77,6 +78,7 @@ model StoreProject {
   phases           Phase[]
   issues           Issue[]
   activities       Activity[]
+  baselines        PhaseBaseline[]
 }
 
 model Phase {
@@ -112,6 +114,32 @@ model PhaseNote {
   phase     Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   authorId  String?
   author    User?    @relation("PhaseNoteAuthor", fields: [authorId], references: [id])
+}
+
+// Snapshot đông cứng plannedStart/plannedEnd của tất cả 11 phase tại 1 thời điểm,
+// để đối chiếu sau này ("Trễ 12 ngày so với Kế hoạch ban đầu").
+model PhaseBaseline {
+  id        String   @id @default(cuid())
+  name      String                                            // "Kế hoạch ban đầu", "Sau ký HĐ"
+  createdAt DateTime @default(now())
+
+  storeId   String
+  store     StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdBy String?
+  creator   User?        @relation("BaselineCreator", fields: [createdBy], references: [id])
+  snapshots PhaseBaselineSnapshot[]
+}
+
+model PhaseBaselineSnapshot {
+  id           String    @id @default(cuid())
+  phaseNumber  Int                                            // 1..11
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+
+  baselineId String
+  baseline   PhaseBaseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+
+  @@unique([baselineId, phaseNumber])
 }
 
 // Cấu hình mẫu cho 11 giai đoạn — admin có thể chỉnh độ dài + tên mặc định

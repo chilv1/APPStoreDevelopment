@@ -247,6 +247,66 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
   );
 }
 
+// ---- Save Baseline Modal ----
+function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: string[]; onClose: () => void; onSave: (name: string) => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const trimmed = name.trim();
+  const dup = existingNames.includes(trimmed);
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>📌 Lưu mốc kế hoạch</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14, lineHeight: 1.5 }}>
+          Snapshot ngày kế hoạch hiện tại của <strong style={{ color: "#f0f4ff" }}>11 giai đoạn</strong> để đối chiếu sau.
+          Mốc đã lưu là <strong style={{ color: "#f0f4ff" }}>không thể sửa</strong> — chỉ xóa.
+        </p>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
+            Tên mốc *
+          </label>
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="VD: Kế hoạch ban đầu, Sau ký HĐ, Q3-2026..."
+            maxLength={100}
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter" && trimmed && !dup && !saving) { setSaving(true); onSave(trimmed); } }}
+          />
+          {dup && (
+            <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 4 }}>⚠️ Đã có mốc tên này. Hãy đặt tên khác.</div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: "10px", borderRadius: 8,
+            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
+          }}>Hủy</button>
+          <button
+            disabled={!trimmed || dup || saving}
+            onClick={async () => { setSaving(true); await onSave(trimmed); }}
+            className="gradient-btn"
+            style={{
+              flex: 2, padding: "10px", borderRadius: 8, border: "none",
+              color: "#fff", fontSize: 13, fontWeight: 600,
+              cursor: !trimmed || dup || saving ? "not-allowed" : "pointer",
+              opacity: !trimmed || dup || saving ? 0.5 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+            {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang lưu...</> : "📌 Lưu mốc"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Phase Notes Section (inside Edit Modal) ----
 function PhaseNotesSection({ phase }: { phase: any }) {
   // Initialize from phase.notes if included by store detail API; otherwise lazy-fetch
@@ -533,7 +593,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
 // ============================================================================
 // Main GanttChart Component
 // ============================================================================
-export default function GanttChart({ phases, targetDate, onUpdated }: { phases: any[]; targetDate?: string | null; onUpdated?: () => void }) {
+export default function GanttChart({ storeId, phases, targetDate, onUpdated, currentUserRole }: { storeId?: string; phases: any[]; targetDate?: string | null; onUpdated?: () => void; currentUserRole?: string }) {
   const [zoom, setZoom] = useState<ZoomLevel>("MONTH");
   const [viewOffsetDays, setViewOffsetDays] = useState(0); // shift view forward/back
   const [editingPhase, setEditingPhase] = useState<any>(null);
@@ -550,8 +610,32 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
   } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "info" | "success" | "warning" } | null>(null);
   const [pendingCascade, setPendingCascade] = useState<{ phaseId: string; phaseNumber: number; deltaDays: number } | null>(null);
+
+  // === Baselines (Tier 2) ===
+  const [baselines, setBaselines] = useState<any[]>([]);
+  const [activeBaselineId, setActiveBaselineId] = useState<string>("");
+  const [showSaveBaseline, setShowSaveBaseline] = useState(false);
+  const [showManageBaselines, setShowManageBaselines] = useState(false);
+
   const ganttRef = useRef<HTMLDivElement>(null);
   const barAreaWidthRef = useRef<number>(0);
+
+  // Fetch baselines on mount
+  useEffect(() => {
+    if (!storeId) return;
+    fetch(`/api/stores/${storeId}/baselines`).then(r => r.json()).then(d => {
+      setBaselines(Array.isArray(d) ? d : []);
+    }).catch(() => {});
+  }, [storeId]);
+
+  const refetchBaselines = async () => {
+    if (!storeId) return;
+    const res = await fetch(`/api/stores/${storeId}/baselines`);
+    const d = await res.json();
+    setBaselines(Array.isArray(d) ? d : []);
+  };
+
+  const canManageBaselines = currentUserRole === "ADMIN" || currentUserRole === "AREA_MANAGER";
 
   if (!phases.length) return null;
 
@@ -743,6 +827,49 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
 
   const isClipped = (val: number) => val < 0 || val > 100;
 
+  // Baseline lookup: snapshot of selected baseline by phaseNumber
+  const activeBaseline = baselines.find(b => b.id === activeBaselineId) || null;
+  const baselineByPhase = useMemo(() => {
+    if (!activeBaseline) return new Map<number, { plannedStart: Date; plannedEnd: Date }>();
+    const m = new Map<number, { plannedStart: Date; plannedEnd: Date }>();
+    for (const s of activeBaseline.snapshots || []) {
+      if (s.plannedStart && s.plannedEnd) {
+        m.set(s.phaseNumber, { plannedStart: new Date(s.plannedStart), plannedEnd: new Date(s.plannedEnd) });
+      }
+    }
+    return m;
+  }, [activeBaseline]);
+
+  // Save baseline handler
+  const saveBaseline = async (name: string) => {
+    if (!storeId) return;
+    const res = await fetch(`/api/stores/${storeId}/baselines`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      const newBaseline = await res.json();
+      await refetchBaselines();
+      setActiveBaselineId(newBaseline.id);
+      setShowSaveBaseline(false);
+      setToast({ msg: `✓ Đã lưu mốc "${name}"`, type: "success" });
+      setTimeout(() => setToast(null), 4000);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      setToast({ msg: `⚠️ ${err.error || "Lỗi lưu mốc"}`, type: "warning" });
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
+  const deleteBaseline = async (id: string, name: string) => {
+    if (!confirm(`Xóa mốc "${name}"?`)) return;
+    const res = await fetch(`/api/baselines/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      await refetchBaselines();
+      if (activeBaselineId === id) setActiveBaselineId("");
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -771,6 +898,61 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
           </button>
         </div>
       </div>
+
+      {/* Baseline toolbar */}
+      {storeId && (
+        <div className="no-print" style={{
+          display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap",
+          padding: "8px 12px", background: "rgba(255,255,255,0.02)",
+          border: "1px solid var(--border)", borderRadius: 8,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>📌 Mốc kế hoạch:</span>
+          <select className="input"
+            value={activeBaselineId}
+            onChange={(e) => setActiveBaselineId(e.target.value)}
+            style={{ padding: "4px 10px", fontSize: 12, width: "auto", minWidth: 180 }}
+          >
+            <option value="">— Không so sánh —</option>
+            {baselines.map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name} · {new Date(b.createdAt).toLocaleDateString("vi-VN")}
+              </option>
+            ))}
+          </select>
+
+          {canManageBaselines && (
+            <button onClick={() => setShowSaveBaseline(true)} disabled={baselines.length >= 5} style={{
+              padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+              color: "#fff", border: "none",
+              cursor: baselines.length >= 5 ? "not-allowed" : "pointer",
+              opacity: baselines.length >= 5 ? 0.4 : 1,
+            }}
+              title={baselines.length >= 5 ? "Tối đa 5 mốc/cửa hàng" : "Lưu trạng thái plannedStart/End hiện tại làm mốc"}
+            >
+              📌 Lưu mốc mới
+            </button>
+          )}
+
+          {baselines.length > 0 && canManageBaselines && (
+            <button onClick={() => setShowManageBaselines(true)} style={{
+              padding: "4px 10px", borderRadius: 6, fontSize: 11,
+              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              color: "var(--text-secondary)", cursor: "pointer",
+            }}>
+              Quản lý ({baselines.length})
+            </button>
+          )}
+
+          {activeBaseline && (
+            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)" }}>
+              Đang so sánh với: <strong style={{ color: "#f0f4ff" }}>{activeBaseline.name}</strong>
+              {" · "}
+              {activeBaseline.creator?.name || "Hệ thống"}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Zoom + Nav toolbar */}
       <div className="no-print" style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -970,6 +1152,51 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
                         width: 1, background: "rgba(255,255,255,0.04)", pointerEvents: "none",
                       }} />
                     ))}
+
+                    {/* Baseline ghost bar (rendered FIRST so the current bar overlays it) */}
+                    {activeBaseline && (() => {
+                      const bs = baselineByPhase.get(phase.phaseNumber);
+                      if (!bs) return null;
+                      const bLeft = pctFromDate(bs.plannedStart);
+                      const bWidth = widthFromRange(bs.plannedStart, bs.plannedEnd);
+                      const bVisLeft = Math.max(bLeft, 0);
+                      const bVisRight = Math.min(bLeft + bWidth, 100);
+                      const bVisWidth = Math.max(bVisRight - bVisLeft, 0);
+                      if (bVisWidth <= 0) return null;
+                      // Variance days vs current
+                      const curEndMs = new Date(phase.plannedEnd).getTime();
+                      const baseEndMs = bs.plannedEnd.getTime();
+                      const varianceDays = Math.round((curEndMs - baseEndMs) / DAY_MS);
+                      return (
+                        <>
+                          <div
+                            title={`Mốc "${activeBaseline.name}": ${fmtDateShort(bs.plannedStart)} → ${fmtDateShort(bs.plannedEnd)}\n${varianceDays > 0 ? `Trễ ${varianceDays} ngày` : varianceDays < 0 ? `Sớm ${-varianceDays} ngày` : "Đúng kế hoạch"}`}
+                            style={{
+                              position: "absolute",
+                              left: `${bVisLeft}%`, width: `${bVisWidth}%`,
+                              top: BAR_AREA_HEIGHT - 8,
+                              height: 5,
+                              background: "rgba(255,255,255,0.04)",
+                              border: "1px dashed rgba(255,255,255,0.25)",
+                              borderRadius: 2,
+                              zIndex: 1,
+                            }}
+                          />
+                          {/* Variance indicator: small connector showing delta direction */}
+                          {varianceDays !== 0 && bVisWidth > 2 && plannedLeft >= 0 && plannedLeft <= 100 && (
+                            <div style={{
+                              position: "absolute",
+                              left: `${Math.min(bVisRight, plannedLeft + plannedWidth)}%`,
+                              width: `${Math.abs((plannedLeft + plannedWidth) - bVisRight)}%`,
+                              top: BAR_AREA_HEIGHT - 6,
+                              height: 1,
+                              background: varianceDays > 0 ? "rgba(239,68,68,0.45)" : "rgba(16,185,129,0.45)",
+                              zIndex: 1, pointerEvents: "none",
+                            }} />
+                          )}
+                        </>
+                      );
+                    })()}
 
                     {/* Out-of-view indicator (left/right) */}
                     {plannedLeft + plannedWidth < 0 && (
@@ -1264,6 +1491,51 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
           fontSize: 13, fontWeight: 600,
           boxShadow: "0 8px 24px rgba(0,0,0,0.4)", zIndex: 70,
         }}>{toast.msg}</div>
+      )}
+
+      {/* Save Baseline Modal */}
+      {showSaveBaseline && (
+        <SaveBaselineModal
+          existingNames={baselines.map(b => b.name)}
+          onClose={() => setShowSaveBaseline(false)}
+          onSave={(name) => saveBaseline(name)}
+        />
+      )}
+
+      {/* Manage Baselines Modal */}
+      {showManageBaselines && (
+        <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setShowManageBaselines(false)}>
+          <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>📌 Quản lý mốc kế hoạch</h2>
+              <button onClick={() => setShowManageBaselines(false)} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>
+              Đã lưu <strong style={{ color: "#f0f4ff" }}>{baselines.length}/5</strong> mốc cho cửa hàng này.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
+              {baselines.map(b => (
+                <div key={b.id} style={{
+                  background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)",
+                  borderRadius: 8, padding: "10px 12px",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>📌 {b.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                      {b.creator?.name || "Hệ thống"} · {new Date(b.createdAt).toLocaleString("vi-VN")} · {(b.snapshots || []).length} GĐ snapshot
+                    </div>
+                  </div>
+                  <button onClick={() => deleteBaseline(b.id, b.name)} style={{
+                    padding: "4px 10px", borderRadius: 6,
+                    background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                    color: "#fca5a5", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  }}>Xóa</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Print/animation styles */}
