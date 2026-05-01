@@ -9,8 +9,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = await request.json();
   const user = session.user as any;
 
-  // Guard against stale session userId after re-seed
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+  // Resolve reporter by email (stable across re-seeds) then fall back to id
+  const dbUser = await prisma.user.findFirst({
+    where: { OR: [{ email: user.email }, { id: user.id }] },
+    select: { id: true },
+  });
 
   const issue = await prisma.issue.create({
     data: {
@@ -20,7 +23,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       type: body.type || "ISSUE",
       severity: body.severity || "MEDIUM",
       status: "OPEN",
-      reporterId: dbUser ? user.id : null,
+      reporterId: dbUser?.id ?? null,
     },
     include: { reporter: { select: { name: true } } },
   });

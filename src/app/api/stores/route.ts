@@ -218,7 +218,7 @@ export async function POST(request: Request) {
   });
 
   // Verify user exists in DB (session might have stale ID after re-seed)
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+  const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
   try { await prisma.activity.create({
     data: {
       storeId: store.id,

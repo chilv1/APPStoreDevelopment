@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   });
 
   // Log activity (non-critical — ignore FK errors from stale sessions)
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+  const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
   try { await prisma.activity.create({
     data: {
       userId:  dbUser ? user.id : null,
