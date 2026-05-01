@@ -31,7 +31,7 @@ export default function TaskModal({ task, storeId, canEdit, onClose, onUpdated }
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-content" style={{ maxWidth: 520 }}>
+      <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", lineHeight: 1.3, flex: 1, paddingRight: 16 }}>
             {task.title}

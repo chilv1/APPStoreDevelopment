@@ -220,7 +220,7 @@ export default function BranchesPage() {
       {/* Branch Modal */}
       {branchModal.open && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setBranchModal({ open: false })}>
-          <div className="modal-content" style={{ maxWidth: 440 }}>
+          <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>🏢 {branchModal.edit ? "Sửa" : "Tạo"} Chi Nhánh</h2>
               <button onClick={() => setBranchModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
@@ -258,7 +258,7 @@ export default function BranchesPage() {
       {/* BC Modal */}
       {bcModal.open && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setBcModal({ open: false })}>
-          <div className="modal-content" style={{ maxWidth: 480 }}>
+          <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>🏪 {bcModal.edit ? "Sửa" : "Tạo"} Business Center</h2>
               <button onClick={() => setBcModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>

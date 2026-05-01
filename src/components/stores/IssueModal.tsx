@@ -36,7 +36,7 @@ export default function IssueModal({ storeId, onClose, onCreated }: {
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-content">
+      <div className="modal-content" onMouseDown={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>⚠️ Ghi Nhận Vướng Mắc</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
