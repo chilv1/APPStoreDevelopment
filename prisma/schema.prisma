@@ -97,6 +97,18 @@ model Phase {
   @@unique([storeId, phaseNumber])
 }
 
+// Cấu hình mẫu cho 11 giai đoạn — admin có thể chỉnh độ dài + tên mặc định
+// 11 records cố định, mỗi record cho 1 phaseNumber 1..11
+model PhaseTemplate {
+  phaseNumber  Int      @id          // 1..11
+  name         String
+  description  String?
+  durationDays Int                   // độ dài mặc định (ngày)
+  taskTitles   String                // JSON-encoded string[] — danh sách task mặc định
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
 model Task {
   id          String    @id @default(cuid())
   title       String

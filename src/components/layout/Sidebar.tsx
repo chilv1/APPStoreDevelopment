@@ -15,7 +15,8 @@ const NAV_ITEMS = [
 ];
 
 const ADMIN_ITEMS = [
-  { href: "/users", icon: "👥", label: "Quản lý User" },
+  { href: "/users",           icon: "👥", label: "Quản lý User" },
+  { href: "/phase-templates", icon: "⚙️", label: "Mẫu Giai Đoạn" },
 ];
 
 export default function Sidebar({ session }: { session: any }) {
