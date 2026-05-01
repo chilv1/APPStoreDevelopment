@@ -8,6 +8,7 @@ import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/dashboard", icon: "📊", label: "Tổng quan" },
   { href: "/stores",    icon: "🏪", label: "Cửa hàng" },
+  { href: "/gantt",     icon: "📅", label: "Gantt tổng" },
   { href: "/branches",  icon: "🏢", label: "Chi nhánh & BC" },
   { href: "/map",       icon: "🗺️", label: "Bản đồ" },
   { href: "/reports",   icon: "📈", label: "Báo cáo" },

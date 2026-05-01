@@ -7,6 +7,30 @@ const PHASE_DURATIONS = [30, 14, 21, 14, 21, 60, 21, 21, 14, 14, 30];
 const DAY_MS = 1000 * 60 * 60 * 24;
 const CONTRACT_PHASE_NUMBER = 4;
 
+// Phase stage groups: 4 logical stages of store opening
+const PHASE_STAGES = [
+  {
+    key: "SEARCH",       label: "Tìm mặt bằng & Hợp đồng",
+    icon: "🔍", phases: [1, 2, 3, 4],
+    color: "#a78bfa", bgColor: "rgba(167, 139, 250, 0.06)", borderColor: "rgba(167, 139, 250, 0.2)",
+  },
+  {
+    key: "BUILD",        label: "Thiết kế & Xây dựng",
+    icon: "🔨", phases: [5, 6, 7],
+    color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.06)", borderColor: "rgba(251, 146, 60, 0.2)",
+  },
+  {
+    key: "PREPARE",      label: "Nhân sự & Chuẩn bị",
+    icon: "📚", phases: [8, 9, 10],
+    color: "#60a5fa", bgColor: "rgba(96, 165, 250, 0.06)", borderColor: "rgba(96, 165, 250, 0.2)",
+  },
+  {
+    key: "LAUNCH",       label: "Khai trương",
+    icon: "🎉", phases: [11],
+    color: "#facc15", bgColor: "rgba(250, 204, 21, 0.06)", borderColor: "rgba(250, 204, 21, 0.2)",
+  },
+];
+
 type ZoomLevel = "WEEK" | "MONTH" | "QUARTER" | "ALL";
 
 const ZOOM_DAYS: Record<ZoomLevel, number> = {
@@ -72,16 +96,32 @@ function toDateInput(d: Date | string | null | undefined): string {
 }
 
 // ---- Phase Edit Modal ----
-function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () => void; onSaved: () => void }) {
+function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () => void; onSaved: (info?: { cascadedCount?: number; cascadeDays?: number }) => void }) {
   const [form, setForm] = useState({
     plannedStart: toDateInput(phase.plannedStart),
     plannedEnd:   toDateInput(phase.plannedEnd),
     actualStart:  toDateInput(phase.actualStart),
     actualEnd:    toDateInput(phase.actualEnd),
     status:       phase.status,
+    cascade:      false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Detect if plannedEnd has changed -> show cascade option
+  const originalPlannedEnd = toDateInput(phase.plannedEnd);
+  const plannedEndChanged = form.plannedEnd && form.plannedEnd !== originalPlannedEnd;
+  const isLastPhase = phase.phaseNumber >= 11;
+  const canCascade = plannedEndChanged && !isLastPhase;
+
+  const cascadeDeltaDays = (() => {
+    if (!plannedEndChanged) return 0;
+    try {
+      const orig = new Date(originalPlannedEnd).getTime();
+      const next = new Date(form.plannedEnd).getTime();
+      return Math.round((next - orig) / (1000 * 60 * 60 * 24));
+    } catch { return 0; }
+  })();
 
   const handleSave = async () => {
     setLoading(true);
@@ -95,10 +135,12 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
         actualStart:  form.actualStart  || null,
         actualEnd:    form.actualEnd    || null,
         status:       form.status,
+        cascade:      form.cascade && canCascade,
       }),
     });
     if (res.ok) {
-      onSaved();
+      const data = await res.json().catch(() => ({}));
+      onSaved({ cascadedCount: data.cascadedCount, cascadeDays: data.cascadeDays });
     } else {
       const err = await res.json().catch(() => ({}));
       setError(err.error || "Lỗi cập nhật");
@@ -153,6 +195,29 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
               onChange={(e) => setForm({ ...form, actualEnd: e.target.value })} />
           </div>
         </div>
+
+        {/* Auto-cascade option — appears when planned end date changed */}
+        {canCascade && (
+          <label style={{
+            display: "flex", alignItems: "flex-start", gap: 10,
+            background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.25)",
+            borderRadius: 8, padding: "10px 12px", marginBottom: 12,
+            cursor: "pointer",
+          }}>
+            <input type="checkbox" checked={form.cascade}
+              onChange={(e) => setForm({ ...form, cascade: e.target.checked })}
+              style={{ accentColor: "#3b82f6", marginTop: 2, cursor: "pointer" }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>
+                ⚡ Đẩy các giai đoạn sau theo
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                Tự động dời <strong style={{ color: "#f0f4ff" }}>{11 - phase.phaseNumber} giai đoạn còn lại</strong> {cascadeDeltaDays > 0 ? `về sau` : `về trước`}{" "}
+                <strong style={{ color: cascadeDeltaDays > 0 ? "#fca5a5" : "#6ee7b7" }}>{cascadeDeltaDays > 0 ? "+" : ""}{cascadeDeltaDays} ngày</strong>
+              </div>
+            </div>
+          </label>
+        )}
 
         {error && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, padding: "8px 12px", color: "#fca5a5", fontSize: 12, marginBottom: 12 }}>
@@ -317,6 +382,8 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
     deltaDays: number;
     moved: boolean;
   } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "info" | "success" | "warning" } | null>(null);
+  const [pendingCascade, setPendingCascade] = useState<{ phaseId: string; phaseNumber: number; deltaDays: number } | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
   const barAreaWidthRef = useRef<number>(0);
 
@@ -456,6 +523,11 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
           body: JSON.stringify(body),
         });
         onUpdated?.();
+        // Offer cascade if not the last phase and dates shifted
+        const phase = phasesWithDates.find((p: any) => p.id === ds.phaseId);
+        if (phase && phase.phaseNumber < 11 && ds.deltaDays !== 0) {
+          setPendingCascade({ phaseId: ds.phaseId, phaseNumber: phase.phaseNumber, deltaDays: ds.deltaDays });
+        }
       } catch { /* ignore */ }
       setDragState(null);
     };
@@ -668,7 +740,26 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
               }} />
             )}
 
-            {phasesWithDates.map((phase: any) => {
+            {PHASE_STAGES.map((stage) => {
+              const stagePhases = phasesWithDates.filter((p: any) => stage.phases.includes(p.phaseNumber));
+              if (stagePhases.length === 0) return null;
+              return (
+                <div key={stage.key} style={{ background: stage.bgColor, borderTop: `1px solid ${stage.borderColor}` }}>
+                  {/* Stage header banner */}
+                  <div style={{
+                    display: "flex", alignItems: "center",
+                    padding: "6px 12px 4px",
+                    fontSize: 10, fontWeight: 800, color: stage.color,
+                    letterSpacing: 0.8, textTransform: "uppercase",
+                    borderBottom: `1px solid ${stage.borderColor}`,
+                  }}>
+                    <span style={{ fontSize: 13, marginRight: 6 }}>{stage.icon}</span>
+                    {stage.label}
+                    <span style={{ marginLeft: 10, fontSize: 9, color: "var(--text-muted)", fontWeight: 500, letterSpacing: 0, textTransform: "none" }}>
+                      ({stagePhases.length} giai đoạn)
+                    </span>
+                  </div>
+                  {stagePhases.map((phase: any) => {
               const status = deriveStatus(phase, now);
               const theme = STATUS_THEME[status];
               const progress = getProgress(phase);
@@ -856,6 +947,9 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
                 </div>
               );
             })}
+                </div>
+              );
+            })}
           </div>
 
           {/* Milestone diamonds at bottom strip */}
@@ -904,7 +998,90 @@ export default function GanttChart({ phases, targetDate, onUpdated }: { phases: 
       {/* Edit modal */}
       {editingPhase && (
         <PhaseEditModal phase={editingPhase} onClose={() => setEditingPhase(null)}
-          onSaved={() => { setEditingPhase(null); onUpdated?.(); }} />
+          onSaved={(info) => {
+            setEditingPhase(null);
+            onUpdated?.();
+            if (info?.cascadedCount && info.cascadedCount > 0) {
+              setToast({
+                msg: `✓ Đã đẩy ${info.cascadedCount} giai đoạn sau ${info.cascadeDays! > 0 ? "+" : ""}${info.cascadeDays} ngày`,
+                type: "success",
+              });
+              setTimeout(() => setToast(null), 4000);
+            }
+          }} />
+      )}
+
+      {/* Cascade prompt — appears after drag changes plannedEnd */}
+      {pendingCascade && (() => {
+        const phase = phasesWithDates.find((p: any) => p.id === pendingCascade.phaseId);
+        if (!phase) { setPendingCascade(null); return null; }
+        const remaining = 11 - pendingCascade.phaseNumber;
+        return (
+          <div style={{
+            position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+            background: "rgba(15, 23, 42, 0.98)", border: "1px solid rgba(59,130,246,0.4)",
+            borderRadius: 12, padding: "14px 18px",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.5)", zIndex: 60,
+            display: "flex", alignItems: "center", gap: 14, maxWidth: 560,
+          }}>
+            <div style={{ fontSize: 22 }}>⚡</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", marginBottom: 2 }}>
+                GĐ {pendingCascade.phaseNumber} đã được dời{" "}
+                <span style={{ color: pendingCascade.deltaDays > 0 ? "#fca5a5" : "#6ee7b7" }}>
+                  {pendingCascade.deltaDays > 0 ? "+" : ""}{pendingCascade.deltaDays} ngày
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                Đẩy <strong style={{ color: "#f0f4ff" }}>{remaining} giai đoạn còn lại</strong> theo cùng độ trễ?
+              </div>
+            </div>
+            <button onClick={() => setPendingCascade(null)} style={{
+              padding: "6px 12px", borderRadius: 6, fontSize: 12,
+              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              color: "var(--text-secondary)", cursor: "pointer",
+            }}>Bỏ qua</button>
+            <button onClick={async () => {
+              const pc = pendingCascade;
+              setPendingCascade(null);
+              // Send a no-op PATCH with cascade flag to push subsequent phases
+              const phase = phasesWithDates.find((p: any) => p.id === pc.phaseId);
+              if (!phase) return;
+              const origEnd = new Date(phase.plannedEnd);
+              // Compute "previous" end so the API sees a delta
+              const prevEnd = new Date(origEnd.getTime() - pc.deltaDays * DAY_MS);
+              // Trick: pretend original was prevEnd by sending current plannedEnd unchanged with cascade=true
+              // The API computes delta from DB original vs new. Since we already saved new, we manually shift:
+              try {
+                await fetch(`/api/phases/cascade-shift`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ phaseId: pc.phaseId, deltaDays: pc.deltaDays }),
+                });
+                onUpdated?.();
+                setToast({
+                  msg: `✓ Đã đẩy ${11 - pc.phaseNumber} giai đoạn sau ${pc.deltaDays > 0 ? "+" : ""}${pc.deltaDays} ngày`,
+                  type: "success",
+                });
+                setTimeout(() => setToast(null), 4000);
+              } catch { /* ignore */ }
+            }} style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+              border: "none", color: "#fff", cursor: "pointer",
+            }}>⚡ Đẩy theo</button>
+          </div>
+        );
+      })()}
+
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: "fixed", top: 80, right: 24,
+          background: toast.type === "success" ? "rgba(16,185,129,0.95)" : toast.type === "warning" ? "rgba(245,158,11,0.95)" : "rgba(59,130,246,0.95)",
+          color: "#fff", padding: "10px 16px", borderRadius: 10,
+          fontSize: 13, fontWeight: 600,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)", zIndex: 70,
+        }}>{toast.msg}</div>
       )}
 
       {/* Print/animation styles */}
