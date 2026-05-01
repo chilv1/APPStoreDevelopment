@@ -52,6 +52,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   );
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
+  // Auto-update phase status based on its tasks (don't override BLOCKED)
+  const currentPhase = allPhases.find((p) => p.id === task.phaseId);
+  if (currentPhase && currentPhase.status !== "BLOCKED") {
+    const phaseTasks = currentPhase.tasks;
+    const allDone = phaseTasks.length > 0 && phaseTasks.every((t) => t.status === "DONE");
+    const anyStarted = phaseTasks.some((t) => t.status === "DONE" || t.status === "IN_PROGRESS");
+    const newPhaseStatus = allDone ? "COMPLETED" : anyStarted ? "IN_PROGRESS" : "NOT_STARTED";
+    if (newPhaseStatus !== currentPhase.status) {
+      await prisma.phase.update({ where: { id: currentPhase.id }, data: { status: newPhaseStatus } });
+    }
+  }
+
   // Auto-update store status from progress (don't override ON_HOLD/CANCELLED)
   const currentStatus = task.phase.store.status;
   let newStatus = currentStatus;
