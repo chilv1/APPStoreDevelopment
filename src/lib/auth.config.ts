@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 // Minimal auth config for Edge middleware - no DB/Node.js modules
 export const authConfig: NextAuthConfig = {
   providers: [],
+  trustHost: true,
   pages: {
     signIn: "/login",
   },

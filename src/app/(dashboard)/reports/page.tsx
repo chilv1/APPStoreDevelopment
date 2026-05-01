@@ -62,7 +62,7 @@ export default function ReportsPage() {
       </div>
 
       {/* By Region */}
-      {Object.entries(storesByRegion).map(([region, regionStores]) => (
+      {(Object.entries(storesByRegion) as [string, any[]][]).map(([region, regionStores]) => (
         <div key={region} style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>
             📍 Vùng: {region}

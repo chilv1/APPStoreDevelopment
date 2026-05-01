@@ -4,7 +4,7 @@ const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
 const bcrypt = require("bcryptjs");
 const path = require("path");
 
-const dbFile = path.join(__dirname, "../dev.db");
+const dbFile = process.env.DATABASE_URL ? process.env.DATABASE_URL.replace("file:", "") : path.join(__dirname, "../dev.db");
 const adapter = new PrismaBetterSqlite3({ url: `file:${dbFile}` });
 const prisma = new PrismaClient({ adapter });
 
