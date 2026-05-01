@@ -96,16 +96,18 @@ export async function POST(request: Request) {
     include: { phases: true, pm: true },
   });
 
-  await prisma.activity.create({
+  // Verify user exists in DB (session might have stale ID after re-seed)
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+  try { await prisma.activity.create({
     data: {
       storeId: store.id,
-      userId: user.id,
+      userId: dbUser ? user.id : null,
       action: "STORE_CREATED",
       entity: "StoreProject",
       entityId: store.id,
       details: `Tạo dự án cửa hàng mới: ${store.name}`,
     },
-  });
+  }); } catch { /* activity log là non-critical */ }
 
   return NextResponse.json(store, { status: 201 });
   } catch (e: any) {

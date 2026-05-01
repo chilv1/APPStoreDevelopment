@@ -27,17 +27,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
     },
   });
 
-  // Log activity
-  await prisma.activity.create({
+  // Log activity (non-critical — ignore FK errors from stale sessions)
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+  try { await prisma.activity.create({
     data: {
-      userId: user.id,
+      userId:  dbUser ? user.id : null,
       storeId: task.phase.storeId,
-      action: "TASK_UPDATED",
-      entity: "Task",
+      action:  "TASK_UPDATED",
+      entity:  "Task",
       entityId: taskId,
       details: `Cập nhật task "${task.title}" → ${body.status || "updated"}`,
     },
-  });
+  }); } catch { /* non-critical */ }
 
   // Recalculate store progress
   const allPhases = await prisma.phase.findMany({

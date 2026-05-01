@@ -9,6 +9,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = await request.json();
   const user = session.user as any;
 
+  // Guard against stale session userId after re-seed
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+
   const issue = await prisma.issue.create({
     data: {
       storeId: id,
@@ -17,7 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       type: body.type || "ISSUE",
       severity: body.severity || "MEDIUM",
       status: "OPEN",
-      reporterId: user.id,
+      reporterId: dbUser ? user.id : null,
     },
     include: { reporter: { select: { name: true } } },
   });
