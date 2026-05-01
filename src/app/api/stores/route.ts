@@ -44,6 +44,16 @@ export async function POST(request: Request) {
   if (!body.code?.trim()) return NextResponse.json({ error: "Mã dự án là bắt buộc" }, { status: 400 });
   if (!body.address?.trim()) return NextResponse.json({ error: "Địa chỉ là bắt buộc" }, { status: 400 });
 
+  // Resolve region from BC's branch (region column is NOT NULL in DB)
+  let region = body.region || "";
+  if (body.businessCenterId && !region) {
+    const bc = await prisma.businessCenter.findUnique({
+      where: { id: body.businessCenterId },
+      include: { branch: { select: { name: true } } },
+    });
+    if (bc?.branch?.name) region = bc.branch.name;
+  }
+
   const PHASES = [
     { phaseNumber: 1, name: "Tìm Kiếm Mặt Bằng", description: "Khảo sát, đăng ads, phối hợp broker, công ty BĐS" },
     { phaseNumber: 2, name: "Thẩm Định Mặt Bằng", description: "Kiểm tra pháp lý, kỹ thuật, thương mại" },
@@ -63,7 +73,7 @@ export async function POST(request: Request) {
       name:             body.name,
       code:             body.code,
       address:          body.address,
-      region:           body.region || null,
+      region:           region || "—",
       businessCenterId: body.businessCenterId || null,
       targetOpenDate:   body.targetOpenDate ? new Date(body.targetOpenDate) : null,
       budget:           body.budget != null ? Number(body.budget) : null,
