@@ -4,25 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", icon: "📊", label: "Tổng quan" },
-  { href: "/stores",    icon: "🏪", label: "Cửa hàng" },
-  { href: "/gantt",     icon: "📅", label: "Gantt tổng" },
-  { href: "/branches",  icon: "🏢", label: "Chi nhánh & BC" },
-  { href: "/map",       icon: "🗺️", label: "Bản đồ" },
-  { href: "/reports",   icon: "📈", label: "Báo cáo" },
-];
-
-const ADMIN_ITEMS = [
-  { href: "/users",           icon: "👥", label: "Quản lý User" },
-  { href: "/phase-templates", icon: "⚙️", label: "Mẫu Giai Đoạn" },
-];
+import { useT } from "@/lib/i18n/context";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Sidebar({ session }: { session: any }) {
   const pathname = usePathname();
   const user = session?.user as any;
   const role = user?.role || "SURVEY_STAFF";
+  const t = useT();
+
+  const NAV_ITEMS = [
+    { href: "/dashboard", icon: "📊", label: t.sidebar.overview },
+    { href: "/stores",    icon: "🏪", label: t.sidebar.stores },
+    { href: "/gantt",     icon: "📅", label: t.sidebar.portfolioGantt },
+    { href: "/branches",  icon: "🏢", label: t.sidebar.branches },
+    { href: "/map",       icon: "🗺️", label: t.sidebar.map },
+    { href: "/reports",   icon: "📈", label: t.sidebar.reports },
+  ];
+
+  const ADMIN_ITEMS = [
+    { href: "/users",           icon: "👥", label: t.sidebar.users },
+    { href: "/phase-templates", icon: "⚙️", label: t.sidebar.phaseTemplates },
+  ];
 
   return (
     <aside className="sidebar">
@@ -49,7 +52,7 @@ export default function Sidebar({ session }: { session: any }) {
       <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
         <div style={{ marginBottom: 4 }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: "#4a5568", textTransform: "uppercase", letterSpacing: "0.08em", padding: "4px 8px", marginBottom: 4 }}>
-            Menu chính
+            {t.sidebar.mainMenu}
           </div>
           {NAV_ITEMS.map((item) => (
             <Link
@@ -67,7 +70,7 @@ export default function Sidebar({ session }: { session: any }) {
         {["ADMIN"].includes(role) && (
           <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: "#4a5568", textTransform: "uppercase", letterSpacing: "0.08em", padding: "4px 8px", marginBottom: 4 }}>
-              Quản trị
+              {t.sidebar.admin}
             </div>
             {ADMIN_ITEMS.map((item) => (
               <Link
@@ -84,14 +87,16 @@ export default function Sidebar({ session }: { session: any }) {
         )}
       </nav>
 
-      {/* User Profile */}
+      {/* User Profile + Language Switcher */}
       <div style={{ padding: "12px 10px", borderTop: "1px solid var(--border)" }}>
+        <LanguageSwitcher />
+
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "10px 12px", borderRadius: 10,
           background: "rgba(255,255,255,0.03)",
           border: "1px solid var(--border)",
-          marginBottom: 8,
+          margin: "10px 0 8px",
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 8,
@@ -125,7 +130,7 @@ export default function Sidebar({ session }: { session: any }) {
           onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.background = "rgba(239,68,68,0.15)"; }}
           onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; }}
         >
-          🚪 Đăng xuất
+          🚪 {t.sidebar.logout}
         </button>
       </div>
     </aside>

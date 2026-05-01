@@ -5,20 +5,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date | string | null | undefined): string {
+// Locale-aware formatters. App uses PEN (Soles) currency exclusively.
+// Pass intlCode like "es-PE" or "vi-VN" — defaults to es-PE.
+
+export function formatDate(date: Date | string | null | undefined, intlCode: string = "es-PE"): string {
   if (!date) return "—";
-  return new Date(date).toLocaleDateString("vi-VN", {
+  return new Date(date).toLocaleDateString(intlCode, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 }
 
-export function formatCurrency(amount: number | null | undefined): string {
-  if (!amount) return "—";
-  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)} tỷ`;
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(0)} triệu`;
-  return amount.toLocaleString("vi-VN") + " đ";
+// PEN (Soles): Peru convention "S/ 1.234.567" — period thousand separator.
+// Uses Intl.NumberFormat with 'es-PE' for proper grouping regardless of UI locale.
+export function formatCurrency(amount: number | null | undefined, _intlCode?: string): string {
+  if (amount == null) return "—";
+  const formatted = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 }).format(amount);
+  return `S/ ${formatted}`;
+}
+
+// Short form: "S/ 1,2M" or "S/ 850K"
+export function formatCurrencyShort(amount: number | null | undefined): string {
+  if (amount == null) return "—";
+  if (Math.abs(amount) >= 1_000_000_000) return `S/ ${(amount / 1_000_000_000).toFixed(1).replace(".", ",")}B`;
+  if (Math.abs(amount) >= 1_000_000)     return `S/ ${(amount / 1_000_000).toFixed(1).replace(".", ",")}M`;
+  if (Math.abs(amount) >= 1_000)         return `S/ ${(amount / 1_000).toFixed(0)}K`;
+  return `S/ ${amount}`;
 }
 
 export const ROLE_LABELS: Record<string, string> = {
