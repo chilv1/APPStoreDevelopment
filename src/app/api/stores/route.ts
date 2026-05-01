@@ -147,19 +147,38 @@ export async function POST(request: Request) {
     ],
   };
 
-  const PHASES = [
-    { phaseNumber: 1, name: "Tìm Kiếm Mặt Bằng", description: "Khảo sát, đăng ads, phối hợp broker, công ty BĐS" },
-    { phaseNumber: 2, name: "Thẩm Định Mặt Bằng", description: "Kiểm tra pháp lý, kỹ thuật, thương mại" },
-    { phaseNumber: 3, name: "Đàm Phán", description: "Đàm phán giá thuê, điều khoản, phụ lục" },
-    { phaseNumber: 4, name: "Ký Kết Hợp Đồng", description: "Soạn thảo, legal review, công chứng" },
-    { phaseNumber: 5, name: "Thiết Kế Cửa Hàng", description: "Brief thiết kế, chọn đơn vị, duyệt bản vẽ" },
-    { phaseNumber: 6, name: "Xây Dựng & Cải Tạo", description: "Đấu thầu, khởi công, giám sát, nghiệm thu" },
-    { phaseNumber: 7, name: "Trang Thiết Bị & CCDC", description: "Mua sắm thiết bị, lắp đặt IT, biển hiệu" },
-    { phaseNumber: 8, name: "Tuyển Dụng Nhân Sự", description: "Đăng tuyển, phỏng vấn, ký HĐ, onboarding" },
-    { phaseNumber: 9, name: "Đào Tạo", description: "Product training, quy trình, phần mềm" },
-    { phaseNumber: 10, name: "Chuẩn Bị Khai Trương", description: "Nhập hàng, trưng bày, dry run, marketing" },
-    { phaseNumber: 11, name: "Khai Trương & Vận Hành", description: "Grand Opening, KPI, báo cáo" },
+  // Phase durations in days (standard estimate for telecom store opening)
+  const PHASE_DURATIONS = [30, 14, 21, 14, 21, 60, 21, 21, 14, 14, 30];
+  const PHASE_NAMES = [
+    "Tìm Kiếm Mặt Bằng", "Thẩm Định Mặt Bằng", "Đàm Phán", "Ký Kết Hợp Đồng",
+    "Thiết Kế Cửa Hàng", "Xây Dựng & Cải Tạo", "Trang Thiết Bị & CCDC",
+    "Tuyển Dụng Nhân Sự", "Đào Tạo", "Chuẩn Bị Khai Trương", "Khai Trương & Vận Hành",
   ];
+  const PHASE_DESCS = [
+    "Khảo sát, đăng ads, phối hợp broker, công ty BĐS",
+    "Kiểm tra pháp lý, kỹ thuật, thương mại",
+    "Đàm phán giá thuê, điều khoản, phụ lục",
+    "Soạn thảo, legal review, công chứng",
+    "Brief thiết kế, chọn đơn vị, duyệt bản vẽ",
+    "Đấu thầu, khởi công, giám sát, nghiệm thu",
+    "Mua sắm thiết bị, lắp đặt IT, biển hiệu",
+    "Đăng tuyển, phỏng vấn, ký HĐ, onboarding",
+    "Product training, quy trình, phần mềm",
+    "Nhập hàng, trưng bày, dry run, marketing",
+    "Grand Opening, KPI, báo cáo",
+  ];
+
+  // Auto-generate phase dates starting from today
+  const projectStart = new Date();
+  projectStart.setHours(0, 0, 0, 0);
+  let cursor = new Date(projectStart);
+  const phaseDates = PHASE_DURATIONS.map((days) => {
+    const plannedStart = new Date(cursor);
+    const plannedEnd = new Date(cursor);
+    plannedEnd.setDate(plannedEnd.getDate() + days);
+    cursor = new Date(plannedEnd);
+    return { plannedStart, plannedEnd };
+  });
 
   try { const store = await prisma.storeProject.create({
     data: {
@@ -177,14 +196,16 @@ export async function POST(request: Request) {
       status: "PLANNING",
       progress: 0,
       phases: {
-        create: PHASES.map((p) => ({
-          phaseNumber: p.phaseNumber,
-          name: p.name,
-          description: p.description,
+        create: PHASE_NAMES.map((name, idx) => ({
+          phaseNumber: idx + 1,
+          name,
+          description: PHASE_DESCS[idx],
           status: "NOT_STARTED",
-          order: p.phaseNumber,
+          order: idx + 1,
+          plannedStart: phaseDates[idx].plannedStart,
+          plannedEnd:   phaseDates[idx].plannedEnd,
           tasks: {
-            create: (TASKS_BY_PHASE[p.phaseNumber] || []).map((title, i) => ({
+            create: (TASKS_BY_PHASE[idx + 1] || []).map((title, i) => ({
               title,
               status: "TODO",
               priority: i < 2 ? "HIGH" : "MEDIUM",
