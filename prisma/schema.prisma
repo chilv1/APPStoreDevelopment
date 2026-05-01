@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("SURVEY_STAFF")
+  region    String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedStores StoreProject[] @relation("PMStores")
+  assignedTasks  Task[]         @relation("TaskAssignee")
+  activities     Activity[]
+  issues         Issue[]        @relation("IssueReporter")
+}
+
+model StoreProject {
+  id             String    @id @default(cuid())
+  name           String
+  code           String    @unique
+  address        String
+  region         String
+  targetOpenDate DateTime?
+  actualOpenDate DateTime?
+  status         String    @default("PLANNING")
+  progress       Int       @default(0)
+  budget         Float?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  pmId    String?
+  pm      User?    @relation("PMStores", fields: [pmId], references: [id])
+  phases  Phase[]
+  issues  Issue[]
+  activities Activity[]
+}
+
+model Phase {
+  id          String    @id @default(cuid())
+  phaseNumber Int
+  name        String
+  description String?
+  status      String    @default("NOT_STARTED")
+  plannedStart DateTime?
+  plannedEnd  DateTime?
+  actualStart DateTime?
+  actualEnd   DateTime?
+  order       Int
+
+  storeId String
+  store   StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@unique([storeId, phaseNumber])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO")
+  priority    String    @default("MEDIUM")
+  dueDate     DateTime?
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  phaseId    String
+  phase      Phase   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+}
+
+model Issue {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String   @default("ISSUE")
+  severity    String   @default("MEDIUM")
+  status      String   @default("OPEN")
+  resolution  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  storeId    String
+  store      StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  reporterId String?
+  reporter   User?        @relation("IssueReporter", fields: [reporterId], references: [id])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  details   String?
+  createdAt DateTime @default(now())
+
+  userId  String?
+  user    User?        @relation(fields: [userId], references: [id])
+  storeId String?
+  store   StoreProject? @relation(fields: [storeId], references: [id])
+}
