@@ -100,7 +100,7 @@ export default function DashboardPage() {
               <thead>
                 <tr>
                   <th>Cửa hàng</th>
-                  <th>Vùng</th>
+                  <th>Chi nhánh</th>
                   <th>Trạng thái</th>
                   <th>Tiến độ</th>
                   <th>Khai trương DK</th>
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                       </Link>
                     </td>
                     <td>
-                      <span style={{ fontSize: 13 }}>{store.region}</span>
+                      <span style={{ fontSize: 13 }}>{store.bc ? `${store.bc.branch?.name || ""}` : store.region || "—"}</span>
                     </td>
                     <td>
                       <span className={`badge ${STATUS_COLORS[store.status]}`}>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
 
         {/* Region Progress */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>Tiến độ theo vùng</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>🏢 Tiến độ theo chi nhánh</h2>
           {Object.entries(data.regionProgress).length === 0 ? (
             <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Chưa có dữ liệu</p>
           ) : Object.entries(data.regionProgress).map(([region, info]) => (

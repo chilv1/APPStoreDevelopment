@@ -53,7 +53,7 @@ export default function MapPage() {
           { label: "Tổng cửa hàng", value: stores.length, color: "#3b82f6", icon: "🏪" },
           { label: "Có tọa độ", value: withCoords, color: "#10b981", icon: "📍" },
           { label: "Chưa có tọa độ", value: noCoords, color: "#f59e0b", icon: "⚠️" },
-          { label: "Số vùng", value: new Set(stores.map(s => s.region)).size, color: "#8b5cf6", icon: "🌏" },
+          { label: "Số chi nhánh", value: new Set(stores.map(s => s.bc?.branch?.name || s.region || "—")).size, color: "#8b5cf6", icon: "🏢" },
         ].map(stat => (
           <div key={stat.label} style={{
             background: "var(--bg-card)", border: "1px solid var(--border)",

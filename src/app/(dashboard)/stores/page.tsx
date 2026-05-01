@@ -71,7 +71,7 @@ export default function StoresPage() {
           style={{ maxWidth: 300 }}
         />
         <select className="input" value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} style={{ maxWidth: 180 }}>
-          <option value="all">Tất cả vùng</option>
+          <option value="all">Tất cả chi nhánh</option>
           {regions.map((r) => <option key={r}>{r}</option>)}
         </select>
         <select className="input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ maxWidth: 200 }}>

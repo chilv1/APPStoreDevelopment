@@ -163,7 +163,7 @@ export default function EditStoreModal({
                 <option value="">— Chưa phân công —</option>
                 {pmList.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} ({u.role === "ADMIN" ? "Admin" : u.role === "AREA_MANAGER" ? "Quản lý vùng" : "PM"}) — {u.region || "Toàn quốc"}
+                    {u.name} ({u.role === "ADMIN" ? "Admin" : u.role === "AREA_MANAGER" ? "Quản lý chi nhánh" : "PM"}) — {u.region || "Toàn quốc"}
                   </option>
                 ))}
               </select>

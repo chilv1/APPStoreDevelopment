@@ -48,15 +48,16 @@ function FitBounds({ stores }: { stores: any[] }) {
 
 export default function StoreMapClient({ stores }: { stores: any[] }) {
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [filterRegion, setFilterRegion] = useState("ALL");
+  const [filterBranch, setFilterBranch] = useState("ALL");
 
-  const regions = Array.from(new Set(stores.map(s => s.region))).sort();
+  const getBranch = (s: any) => s.bc?.branch?.name || s.region || "—";
+  const branches = Array.from(new Set(stores.map(getBranch))).sort();
   const withCoords = stores.filter(s => s.latitude != null && s.longitude != null);
   const noCoords   = stores.filter(s => s.latitude == null || s.longitude == null);
 
   const filtered = withCoords.filter(s =>
     (filterStatus === "ALL" || s.status === filterStatus) &&
-    (filterRegion === "ALL" || s.region === filterRegion)
+    (filterBranch === "ALL" || getBranch(s) === filterBranch)
   );
 
   // Proximity pairs < 500m
@@ -88,9 +89,9 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
           <option value="ALL">Tất cả trạng thái</option>
           {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select style={inputStyle} value={filterRegion} onChange={e => setFilterRegion(e.target.value)}>
-          <option value="ALL">Tất cả vùng</option>
-          {regions.map(r => <option key={r} value={r}>{r}</option>)}
+        <select style={inputStyle} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
+          <option value="ALL">Tất cả chi nhánh</option>
+          {branches.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--text-secondary)" }}>
           Hiển thị <strong style={{ color: "#f0f4ff" }}>{filtered.length}</strong> / {withCoords.length} cửa hàng có tọa độ
@@ -120,7 +121,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
               <Popup>
                 <div style={{ minWidth: 200 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{store.name}</div>
-                  <div style={{ fontSize: 12, color: "#555", marginBottom: 6 }}>{store.code} · {store.region}</div>
+                  <div style={{ fontSize: 12, color: "#555", marginBottom: 6 }}>{store.code} · {getBranch(store)}</div>
                   <div style={{ fontSize: 12, marginBottom: 4 }}>📍 {store.address}</div>
                   {store.pm && <div style={{ fontSize: 12, marginBottom: 4 }}>👤 PM: {store.pm.name}</div>}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -180,7 +181,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                     Khoảng cách: <strong>{p.dist}m</strong> — dưới ngưỡng an toàn 500m
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                    {p.a.region} · {p.a.code} và {p.b.code}
+                    {getBranch(p.a)} · {p.a.code} và {p.b.code}
                   </div>
                 </div>
               ))}
@@ -202,7 +203,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>{store.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{store.code} · {store.region}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{store.code} · {getBranch(store)}</div>
                   </div>
                   <Link href={`/stores/${store.id}`} style={{
                     fontSize: 12, color: "#f59e0b", textDecoration: "none",

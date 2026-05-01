@@ -68,7 +68,7 @@ export default function UsersPage() {
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Vai trò</th>
-                <th>Vùng phụ trách</th>
+                <th>Chi nhánh phụ trách</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +121,7 @@ export default function UsersPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Vùng phụ trách</label>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Chi nhánh phụ trách</label>
                   <select className="input" value={form.region || ""} onChange={(e) => setForm({ ...form, region: e.target.value })}>
                     {REGIONS.map((r) => <option key={r}>{r}</option>)}
                   </select>

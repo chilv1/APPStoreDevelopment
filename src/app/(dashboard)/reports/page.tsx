@@ -15,9 +15,11 @@ export default function ReportsPage() {
   const completedPhases = stores.reduce((s, st) => s + (st.phases?.filter((p: any) => p.status === "COMPLETED").length || 0), 0);
   const avgProgress = stores.length > 0 ? Math.round(stores.reduce((s, st) => s + st.progress, 0) / stores.length) : 0;
 
+  const getBranch = (s: any) => s.bc?.branch?.name || s.region || "Chưa phân công";
   const storesByRegion = stores.reduce((acc, s) => {
-    if (!acc[s.region]) acc[s.region] = [];
-    acc[s.region].push(s);
+    const key = getBranch(s);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
     return acc;
   }, {} as Record<string, any[]>);
 
@@ -65,7 +67,7 @@ export default function ReportsPage() {
       {(Object.entries(storesByRegion) as [string, any[]][]).map(([region, regionStores]) => (
         <div key={region} style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>
-            📍 Vùng: {region}
+            🏢 Chi nhánh: {region}
             <span style={{ fontSize: 13, color: "var(--text-secondary)", marginLeft: 10, fontWeight: 400 }}>
               {regionStores.length} cửa hàng · TB {Math.round(regionStores.reduce((s: number, st: any) => s + st.progress, 0) / regionStores.length)}%
             </span>
