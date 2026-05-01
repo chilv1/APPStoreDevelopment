@@ -161,11 +161,20 @@ export default function EditStoreModal({
               <Label>PM phụ trách</Label>
               <select className="input" value={form.pmId} onChange={(e) => set("pmId", e.target.value)}>
                 <option value="">— Chưa phân công —</option>
-                {pmList.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.role === "ADMIN" ? "Admin" : u.role === "AREA_MANAGER" ? "Quản lý chi nhánh" : "PM"}) — {u.region || "Toàn quốc"}
-                  </option>
-                ))}
+                {pmList.map((u) => {
+                  const roleLabel = u.role === "ADMIN" ? "Admin"
+                    : u.role === "AREA_MANAGER" ? "Quản lý chi nhánh"
+                    : u.role === "PM" ? "PM"
+                    : u.role === "SURVEY_STAFF" ? "NV Khảo sát" : u.role;
+                  const branchLabel = u.branch
+                    ? `${u.branch.code} — ${u.branch.name}`
+                    : u.role === "ADMIN" ? "Toàn hệ thống" : "Chưa gán chi nhánh";
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({roleLabel}) · {branchLabel}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
