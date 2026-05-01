@@ -146,9 +146,11 @@ async function main() {
   console.log("✅ Tạo xong 5 users");
 
   const storesData = [
-    { name: "Cửa Hàng Quận 1 - Nguyễn Huệ", code: "HCM-Q1-001", address: "125 Nguyễn Huệ, Bến Nghé, Quận 1, TP.HCM", region: "Hồ Chí Minh", status: "IN_PROGRESS", pmId: pm1.id, targetOpenDate: new Date("2025-09-01"), budget: 850000000, activePhase: 6 },
-    { name: "Cửa Hàng Bình Thạnh - Xô Viết", code: "HCM-BT-002", address: "302 Xô Viết Nghệ Tĩnh, Phường 25, Bình Thạnh, TP.HCM", region: "Hồ Chí Minh", status: "IN_PROGRESS", pmId: pm1.id, targetOpenDate: new Date("2025-10-15"), budget: 650000000, activePhase: 3 },
-    { name: "Cửa Hàng Hoàn Kiếm - Hàng Bài", code: "HN-HK-001", address: "56 Hàng Bài, Trần Hưng Đạo, Hoàn Kiếm, Hà Nội", region: "Hà Nội", status: "PLANNING", pmId: pm2.id, targetOpenDate: new Date("2025-12-01"), budget: 920000000, activePhase: 1 },
+    { name: "Cửa Hàng Quận 1 - Nguyễn Huệ",    code: "HCM-Q1-001", address: "125 Nguyễn Huệ, Bến Nghé, Quận 1, TP.HCM",                 region: "Hồ Chí Minh", status: "IN_PROGRESS", pmId: pm1.id, targetOpenDate: new Date("2025-09-01"), budget: 850000000, latitude: 10.7740,  longitude: 106.7031, activePhase: 6 },
+    { name: "Cửa Hàng Quận 1 - Đồng Khởi",     code: "HCM-Q1-002", address: "8 Đồng Khởi, Bến Nghé, Quận 1, TP.HCM",                    region: "Hồ Chí Minh", status: "PLANNING",    pmId: pm1.id, targetOpenDate: new Date("2025-11-01"), budget: 780000000, latitude: 10.7732,  longitude: 106.7034, activePhase: 2 },
+    { name: "Cửa Hàng Bình Thạnh - Xô Viết",   code: "HCM-BT-002", address: "302 Xô Viết Nghệ Tĩnh, Phường 25, Bình Thạnh, TP.HCM",     region: "Hồ Chí Minh", status: "IN_PROGRESS", pmId: pm1.id, targetOpenDate: new Date("2025-10-15"), budget: 650000000, latitude: 10.8012,  longitude: 106.7140, activePhase: 3 },
+    { name: "Cửa Hàng Hoàn Kiếm - Hàng Bài",   code: "HN-HK-001",  address: "56 Hàng Bài, Trần Hưng Đạo, Hoàn Kiếm, Hà Nội",           region: "Hà Nội",       status: "PLANNING",    pmId: pm2.id, targetOpenDate: new Date("2025-12-01"), budget: 920000000, latitude: 21.0245,  longitude: 105.8412, activePhase: 1 },
+    { name: "Cửa Hàng Đà Nẵng - Hùng Vương",   code: "DN-HV-001",  address: "72 Hùng Vương, Thạch Thang, Hải Châu, Đà Nẵng",           region: "Đà Nẵng",      status: "PLANNING",    pmId: pm2.id, targetOpenDate: new Date("2026-02-01"), budget: 720000000, latitude: 16.0671,  longitude: 108.2110, activePhase: 1 },
   ];
 
   for (const storeData of storesData) {
