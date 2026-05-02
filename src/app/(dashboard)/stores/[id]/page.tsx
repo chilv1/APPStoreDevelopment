@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { formatDate, formatCurrency, getStatusLabel, getPriorityLabel, STATUS_COLORS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useT, useLocale } from "@/lib/i18n/context";
+import { usePollingInterval } from "@/lib/hooks/usePollingInterval";
 
 // Heavy components — lazy-load on demand to keep the initial bundle small.
 // The Gantt chart alone is ~1600 lines and embeds 4 sub-modals; loading it only when
@@ -59,11 +60,13 @@ export default function StoreDetailPage() {
       });
   };
 
-  useEffect(() => {
-    fetchStore();
-    const iv = setInterval(fetchStore, 30000);
-    return () => clearInterval(iv);
-  }, [id]);
+  // Initial fetch on mount / id change.
+  useEffect(() => { fetchStore(); }, [id]);
+
+  // Background refresh — pauses when tab hidden, fires immediately on visibility.
+  // 60s instead of 30s: store data (phases, tasks, issues, notes, baselines) is heavy
+  // to refetch and rarely changes within a minute on a single store.
+  usePollingInterval(fetchStore, 60_000);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDate, getStatusLabel, STATUS_COLORS } from "@/lib/utils";
 import { useT, useLocale } from "@/lib/i18n/context";
+import { usePollingInterval } from "@/lib/hooks/usePollingInterval";
 
 interface DashboardData {
   totalStores: number;
@@ -22,18 +23,19 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initial fetch on mount (with loading state).
   useEffect(() => {
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-
-    // Poll every 30 seconds for real-time feel
-    const interval = setInterval(() => {
-      fetch("/api/dashboard").then((r) => r.json()).then(setData);
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Background polling — pauses when tab is hidden, resumes (with immediate fetch) on focus.
+  // Bumped from 30s → 60s; project state moves slowly.
+  usePollingInterval(() => {
+    fetch("/api/dashboard").then((r) => r.json()).then(setData).catch(() => {});
+  }, 60_000);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
