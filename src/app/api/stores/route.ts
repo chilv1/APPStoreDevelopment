@@ -2,32 +2,15 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getOrInitPhaseTemplates } from "@/lib/phase-templates";
+import { getStoresForUser } from "@/lib/queries/stores";
 
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const user = session.user as any;
-  
-  const where = user.role === "PM"
-    ? { pm: { email: user.email } }
-    : user.role === "AREA_MANAGER"
-    ? user.branchId
-      ? { bc: { branchId: user.branchId } }
-      : { region: user.region }
-    : {};
-
-  const stores = await prisma.storeProject.findMany({
-    where,
-    include: {
-      pm: { select: { id: true, name: true, email: true, role: true } },
-      bc: { include: { branch: { select: { id: true, name: true, code: true } } } },
-      phases: { orderBy: { phaseNumber: "asc" } },
-      _count: { select: { issues: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
-
+  // Shared role-scoped query — also used by the Reports server component to avoid an
+  // extra HTTP hop. Keeping a single source of truth means filter logic can't drift.
+  const stores = await getStoresForUser(session.user as any);
   return NextResponse.json(stores);
 }
 

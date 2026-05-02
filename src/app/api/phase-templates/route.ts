@@ -9,10 +9,18 @@ export async function GET() {
 
   const templates = await getOrInitPhaseTemplates();
   // Decode taskTitles from JSON string to array for client convenience
-  return NextResponse.json(templates.map(t => ({
+  const data = templates.map(t => ({
     ...t,
     taskTitles: (() => { try { return JSON.parse(t.taskTitles); } catch { return []; } })(),
-  })));
+  }));
+
+  // Phase templates change rarely (only when an admin saves the config page). Browser
+  // can serve from cache for 60s, then revalidate in background for up to 5 more
+  // minutes. CreateStoreModal calls this on every mount — caching makes those instant.
+  // private = don't store in shared/CDN cache (response is auth-gated).
+  return NextResponse.json(data, {
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" },
+  });
 }
 
 // Bulk update — receives array of { phaseNumber, name, description, durationDays, taskTitles }
