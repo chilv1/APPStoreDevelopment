@@ -79,10 +79,12 @@ export default function BranchTab() {
     </div>
   );
 
-  // Status breakdown for doughnut
-  const statusLabels = detail ? Object.keys(detail.statusBreakdown) : [];
-  const statusValues = statusLabels.map((k) => detail!.statusBreakdown[k]);
-  const statusColors = statusLabels.map((k) => STATUS_PALETTE[k] || COLORS.muted);
+  // Status breakdown for doughnut — keep raw keys for color lookup, render
+  // localized labels in the legend.
+  const statusKeys = detail ? Object.keys(detail.statusBreakdown) : [];
+  const statusLabels = statusKeys.map((k) => getStatusLabel(k, locale));
+  const statusValues = statusKeys.map((k) => detail!.statusBreakdown[k]);
+  const statusColors = statusKeys.map((k) => STATUS_PALETTE[k] || COLORS.muted);
 
   // Phases in progress for stacked bar (phase 1-11 across stores in branch)
   const phaseLabels = Array.from({ length: 11 }, (_, i) => `F${i + 1}`);
@@ -131,6 +133,7 @@ export default function BranchTab() {
               values={statusValues}
               colors={statusColors}
               centerText={`${detail.kpis.totalStores}`}
+              centerSubtext={t.reportsPage.kpiTotalStores}
             />
             <BarChart
               title={t.reportsPage.chartBCsInBranch}

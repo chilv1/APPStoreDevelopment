@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useT, useLocale } from "@/lib/i18n/context";
-import { formatCurrency, formatCurrencyShort, formatDate } from "@/lib/utils";
+import { formatCurrency, formatCurrencyShort, formatDate, getStatusLabel } from "@/lib/utils";
 import KPICard from "../components/KPICard";
 import DoughnutChart from "../components/DoughnutChart";
 import BarChart from "../components/BarChart";
@@ -35,7 +35,7 @@ type ExecutiveData = {
 
 export default function ExecutiveTab() {
   const t = useT();
-  const { intlCode } = useLocale();
+  const { locale, intlCode } = useLocale();
   const [data, setData] = useState<ExecutiveData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,10 +63,12 @@ export default function ExecutiveTab() {
     </div>
   );
 
-  // Prepare chart data
-  const statusLabels = Object.keys(data.statusBreakdown);
-  const statusValues = statusLabels.map((k) => data.statusBreakdown[k]);
-  const statusColors = statusLabels.map((k) => STATUS_PALETTE[k] || COLORS.muted);
+  // Prepare chart data — keep raw status keys for color lookup, render localized
+  // labels for the legend.
+  const statusKeys = Object.keys(data.statusBreakdown);
+  const statusLabels = statusKeys.map((k) => getStatusLabel(k, locale));
+  const statusValues = statusKeys.map((k) => data.statusBreakdown[k]);
+  const statusColors = statusKeys.map((k) => STATUS_PALETTE[k] || COLORS.muted);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -109,6 +111,7 @@ export default function ExecutiveTab() {
           values={statusValues}
           colors={statusColors}
           centerText={`${data.kpis.totalStores}`}
+          centerSubtext={t.reportsPage.kpiTotalStores}
         />
         <BarChart
           title={t.reportsPage.chartTopBranches}
