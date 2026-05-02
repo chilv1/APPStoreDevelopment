@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { PHASE_ICONS } from "@/lib/utils";
+import { useT, useLocale } from "@/lib/i18n/context";
 
 type Template = {
   phaseNumber: number;
@@ -13,6 +14,8 @@ type Template = {
 };
 
 export default function PhaseTemplatesPage() {
+  const t = useT();
+  const { intlCode } = useLocale();
   const { data: session } = useSession();
   const user = session?.user as any;
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -36,7 +39,7 @@ export default function PhaseTemplatesPage() {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 12 }}>
         <div style={{ fontSize: 40 }}>🔒</div>
-        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Chỉ Admin có quyền sửa cấu hình giai đoạn</p>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.phaseTemplatesPage.adminOnly}</p>
       </div>
     );
   }
@@ -80,7 +83,7 @@ export default function PhaseTemplatesPage() {
       setSavedAt(new Date());
     } else {
       const err = await res.json().catch(() => ({}));
-      setError(err.error || "Lỗi cập nhật");
+      setError(err.error || t.common.errorUpdate);
     }
     setSaving(false);
   };
@@ -95,10 +98,10 @@ export default function PhaseTemplatesPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1200, margin: "0 auto", paddingBottom: 100 }}>
       <div style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
-          ⚙️ Cấu Hình Mẫu Giai Đoạn
+          {t.phaseTemplatesPage.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          Sửa thời lượng + tên + danh sách task mặc định cho 11 giai đoạn. Áp dụng khi tạo cửa hàng MỚI (cửa hàng cũ không bị ảnh hưởng).
+          {t.phaseTemplatesPage.subtitle}
         </p>
       </div>
 
@@ -108,17 +111,19 @@ export default function PhaseTemplatesPage() {
       }}>
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#3b82f6", lineHeight: 1 }}>{totalDays}</div>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>Tổng số ngày dự án (~{Math.round(totalDays / 30 * 10) / 10} tháng)</div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+            {t.phaseTemplatesPage.statTotalDays} {t.phaseTemplatesPage.statTotalDaysHint.replace("{n}", String(Math.round(totalDays / 30 * 10) / 10))}
+          </div>
         </div>
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#10b981", lineHeight: 1 }}>{templates.length}/11</div>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>Giai đoạn được cấu hình</div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>{t.phaseTemplatesPage.statPhases}</div>
         </div>
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#8b5cf6", lineHeight: 1 }}>
-            {templates.reduce((s, t) => s + t.taskTitles.length, 0)}
+            {templates.reduce((s, tpl) => s + tpl.taskTitles.length, 0)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>Tổng task mặc định</div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>{t.phaseTemplatesPage.statTotalTasks}</div>
         </div>
       </div>
 
@@ -127,60 +132,60 @@ export default function PhaseTemplatesPage() {
         <table className="data-table" style={{ tableLayout: "fixed" }}>
           <thead>
             <tr>
-              <th style={{ width: 50 }}>#</th>
-              <th style={{ width: 220 }}>Tên giai đoạn</th>
-              <th style={{ width: 110 }}>Thời lượng (ngày)</th>
-              <th>Mô tả</th>
-              <th style={{ width: 120 }}>Tasks mặc định</th>
+              <th style={{ width: 50 }}>{t.phaseTemplatesPage.tableNo}</th>
+              <th style={{ width: 220 }}>{t.phaseTemplatesPage.tablePhaseName}</th>
+              <th style={{ width: 110 }}>{t.phaseTemplatesPage.tableDuration}</th>
+              <th>{t.phaseTemplatesPage.tableDescription}</th>
+              <th style={{ width: 120 }}>{t.phaseTemplatesPage.tableTasks}</th>
             </tr>
           </thead>
           <tbody>
-            {templates.map((t, idx) => (
+            {templates.map((tpl, idx) => (
               <>
-                <tr key={t.phaseNumber}>
+                <tr key={tpl.phaseNumber}>
                   <td style={{ verticalAlign: "top" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 18 }}>{PHASE_ICONS[t.phaseNumber]}</span>
-                      <strong style={{ color: "#f0f4ff" }}>GĐ {t.phaseNumber}</strong>
+                      <span style={{ fontSize: 18 }}>{PHASE_ICONS[tpl.phaseNumber]}</span>
+                      <strong style={{ color: "#f0f4ff" }}>{t.storesList.phaseAbbrev}{tpl.phaseNumber}</strong>
                     </div>
                   </td>
                   <td style={{ verticalAlign: "top" }}>
-                    <input className="input" value={t.name}
+                    <input className="input" value={tpl.name}
                       onChange={(e) => update(idx, { name: e.target.value })}
                       style={{ padding: "6px 10px", fontSize: 13 }} />
                   </td>
                   <td style={{ verticalAlign: "top" }}>
-                    <input className="input" type="number" min={1} value={t.durationDays}
+                    <input className="input" type="number" min={1} value={tpl.durationDays}
                       onChange={(e) => update(idx, { durationDays: Number(e.target.value) })}
                       style={{ padding: "6px 10px", fontSize: 13, textAlign: "center" }} />
                   </td>
                   <td style={{ verticalAlign: "top" }}>
-                    <input className="input" value={t.description || ""}
+                    <input className="input" value={tpl.description || ""}
                       onChange={(e) => update(idx, { description: e.target.value })}
-                      placeholder="Mô tả ngắn gọn về giai đoạn..."
+                      placeholder={t.phaseTemplatesPage.phaseDescPh}
                       style={{ padding: "6px 10px", fontSize: 13 }} />
                   </td>
                   <td style={{ verticalAlign: "top", textAlign: "center" }}>
-                    <button onClick={() => setExpanded(expanded === t.phaseNumber ? null : t.phaseNumber)} style={{
+                    <button onClick={() => setExpanded(expanded === tpl.phaseNumber ? null : tpl.phaseNumber)} style={{
                       padding: "5px 10px", borderRadius: 6,
-                      background: expanded === t.phaseNumber ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
-                      border: `1px solid ${expanded === t.phaseNumber ? "rgba(59,130,246,0.4)" : "var(--border)"}`,
-                      color: expanded === t.phaseNumber ? "#93c5fd" : "var(--text-secondary)",
+                      background: expanded === tpl.phaseNumber ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
+                      border: `1px solid ${expanded === tpl.phaseNumber ? "rgba(59,130,246,0.4)" : "var(--border)"}`,
+                      color: expanded === tpl.phaseNumber ? "#93c5fd" : "var(--text-secondary)",
                       fontSize: 11, fontWeight: 600, cursor: "pointer",
                     }}>
-                      {t.taskTitles.length} tasks {expanded === t.phaseNumber ? "▴" : "▾"}
+                      {t.phaseTemplatesPage.tasksLabel.replace("{n}", String(tpl.taskTitles.length))} {expanded === tpl.phaseNumber ? "▴" : "▾"}
                     </button>
                   </td>
                 </tr>
-                {expanded === t.phaseNumber && (
-                  <tr key={`${t.phaseNumber}-tasks`}>
+                {expanded === tpl.phaseNumber && (
+                  <tr key={`${tpl.phaseNumber}-tasks`}>
                     <td colSpan={5} style={{ background: "rgba(59,130,246,0.04)", borderTop: "1px solid rgba(59,130,246,0.2)" }}>
                       <div style={{ padding: "10px 4px" }}>
                         <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 8, fontWeight: 600 }}>
-                          📋 Tasks mặc định (sẽ được tạo khi mở cửa hàng mới)
+                          {t.phaseTemplatesPage.taskHeaderTitle}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {t.taskTitles.map((title, taskIdx) => (
+                          {tpl.taskTitles.map((title, taskIdx) => (
                             <div key={taskIdx} style={{ display: "flex", gap: 6, alignItems: "center" }}>
                               <span style={{ fontSize: 11, color: "var(--text-muted)", width: 24, textAlign: "center" }}>{taskIdx + 1}</span>
                               <input className="input" value={title}
@@ -198,7 +203,7 @@ export default function PhaseTemplatesPage() {
                             background: "rgba(255,255,255,0.03)", border: "1px dashed var(--border)",
                             color: "var(--text-secondary)", fontSize: 11, cursor: "pointer",
                             marginTop: 4, alignSelf: "flex-start",
-                          }}>+ Thêm task</button>
+                          }}>{t.phaseTemplatesPage.addTask}</button>
                         </div>
                       </div>
                     </td>
@@ -228,11 +233,11 @@ export default function PhaseTemplatesPage() {
       }}>
         {savedAt && !dirty && (
           <span style={{ fontSize: 12, color: "#6ee7b7" }}>
-            ✓ Đã lưu lúc {savedAt.toLocaleTimeString("vi-VN")}
+            {t.phaseTemplatesPage.savedAt.replace("{time}", savedAt.toLocaleTimeString(intlCode))}
           </span>
         )}
         {dirty && (
-          <span style={{ fontSize: 12, color: "#fcd34d" }}>● Có thay đổi chưa lưu</span>
+          <span style={{ fontSize: 12, color: "#fcd34d" }}>{t.phaseTemplatesPage.dirty}</span>
         )}
         <button onClick={handleSave} disabled={!dirty || saving} className="gradient-btn" style={{
           padding: "10px 24px", borderRadius: 8, border: "none",
@@ -241,7 +246,7 @@ export default function PhaseTemplatesPage() {
           opacity: !dirty || saving ? 0.5 : 1,
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang lưu...</> : "✓ Lưu thay đổi"}
+          {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> {t.phaseTemplatesPage.savingBtn}</> : t.phaseTemplatesPage.saveBtn}
         </button>
       </div>
     </div>

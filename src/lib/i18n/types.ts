@@ -188,4 +188,122 @@ export type Dict = {
     taskStatus: string; taskPriority: string; taskAssignee: string;
     taskDueDate: string; taskNotes: string; taskNotesPh: string;
   };
+
+  // Branches & Business Centers page
+  branchesPage: {
+    title: string; subtitle: string; createBranch: string;
+    statBranches: string; statBCs: string; statStores: string;
+    emptyTitle: string; emptyHint: string;
+    branchHeaderInfo: string; // "{n} BC · {stores} tiendas"
+    addBC: string;
+    emptyBC: string; emptyBCHint: string;
+    bcStoresCount: string; // "🏬 {n} tiendas"
+    branchModalCreate: string; branchModalEdit: string;
+    branchName: string; branchNamePh: string;
+    branchCode: string; branchCodePh: string;
+    branchDescription: string; branchDescriptionPh: string;
+    bcModalCreate: string; bcModalEdit: string;
+    bcName: string; bcNamePh: string;
+    bcCode: string; bcCodePh: string;
+    bcAddress: string; bcAddressPh: string;
+    bcDescription: string; bcDescriptionPh: string;
+    branchSelect: string;
+    saveBranchBtn: string; saveBCBtn: string;
+    confirmDeleteBranch: string; confirmDeleteBC: string;
+  };
+
+  // Map page
+  mapPage: {
+    title: string; subtitle: string;
+    loadingMap: string; loadingData: string;
+    statTotal: string; statWithCoords: string; statNoCoords: string; statBranches: string;
+    emptyStores: string;
+    noCoordsTitle: string; noCoordsHint: string;
+    filterLabel: string;
+    filterAllStatus: string; filterAllBranch: string;
+    showing: string; // "{n} / {total} ..."
+    alertWithinRange: string; // "{m}m"
+    viewDetail: string;
+    legendNearbyAlert: string;
+    thresholdLabel: string;
+    alertNoneTitle: string; alertSomeTitle: string; // "{n} pares"
+    alertNoneDesc: string;
+    alertDistance: string; // "{m}m"
+    missingCoordsTitle: string; // "{n} ..."
+    updateAction: string;
+  };
+
+  // Reports page
+  reportsPage: {
+    title: string; subtitle: string;
+    print: string;
+    statTotalProjects: string; statCompletedPhases: string;
+    statAvgProgress: string; statOpened: string;
+    regionHeader: string; regionSummary: string;
+    tableProjectCode: string; tableStoreName: string; tablePM: string;
+    tableStatus: string; tableProgress: string; tableActivePhase: string;
+    tableTargetOpen: string;
+    notAssignedBranch: string;
+    activePhaseFmt: string; // "Fase {n}: {name}"
+    emptyProjects: string;
+  };
+
+  // Portfolio Gantt page
+  portfolio: {
+    title: string; subtitle: string;
+    statTotal: string; statInProgress: string; statPlanning: string;
+    statCompleted: string; statOnHold: string;
+    filterLabel: string;
+    filterAllStatus: string; filterAllBranch: string;
+    sortLabel: string;
+    sortDeadline: string; sortProgress: string; sortName: string; sortStatus: string;
+    showing: string;
+    legendDone: string; legendInProgress: string; legendOverdue: string;
+    legendNotStarted: string; legendOpening: string;
+    emptyFilter: string;
+    storePMNone: string;
+    phaseCount: string; // "{done}/11 GĐ"
+    openingTooltip: string;
+    todayPill: string;
+  };
+
+  // Users page
+  usersPage: {
+    title: string; subtitle: string;
+    addUser: string;
+    tableName: string; tableEmail: string; tableRole: string;
+    tableBranch: string; tableActions: string;
+    actionEdit: string; actionDelete: string;
+    branchSystem: string;
+    branchNone: string;
+    branchNoneOption: string;
+    createTitle: string; editTitle: string;
+    fieldName: string; fieldNamePh: string;
+    fieldEmail: string; fieldEmailPh: string;
+    fieldRole: string; fieldBranch: string;
+    fieldPwdNew: string; fieldPwdNewPh: string;
+    fieldPwdDefault: string; fieldPwdDefaultPh: string;
+    createBtn: string; editBtn: string;
+    creating: string; editing: string;
+    errorCreate: string; errorEdit: string;
+    deleteConfirmTitle: string; deleteConfirmDesc: string;
+    deleteBtn: string; deletingBtn: string;
+    adminOnly: string;
+  };
+
+  // Phase Templates admin page
+  phaseTemplatesPage: {
+    title: string; subtitle: string;
+    statTotalDays: string; statTotalDaysHint: string;
+    statPhases: string; statTotalTasks: string;
+    tableNo: string; tablePhaseName: string; tableDuration: string;
+    tableDescription: string; tableTasks: string;
+    tasksLabel: string;
+    taskHeaderTitle: string;
+    addTask: string;
+    phaseDescPh: string;
+    savedAt: string; dirty: string;
+    savingBtn: string; saveBtn: string;
+    adminOnly: string;
+  };
 };

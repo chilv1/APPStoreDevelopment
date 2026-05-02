@@ -2,24 +2,30 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useT, useLocale } from "@/lib/i18n/context";
+import { getStatusLabel } from "@/lib/utils";
+import type { Dict } from "@/lib/i18n/types";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
-const STATUS_THEME: Record<string, { color: string; label: string }> = {
-  PLANNING:    { color: "#6b7280", label: "Lên kế hoạch" },
-  IN_PROGRESS: { color: "#3b82f6", label: "Đang thực hiện" },
-  COMPLETED:   { color: "#10b981", label: "Hoàn thành" },
-  ON_HOLD:     { color: "#f59e0b", label: "Tạm dừng" },
-  CANCELLED:   { color: "#ef4444", label: "Đã huỷ" },
+const STATUS_COLOR: Record<string, string> = {
+  PLANNING:    "#6b7280",
+  IN_PROGRESS: "#3b82f6",
+  COMPLETED:   "#10b981",
+  ON_HOLD:     "#f59e0b",
+  CANCELLED:   "#ef4444",
 };
+const STATUS_KEYS = ["PLANNING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "CANCELLED"];
 
 type SortKey = "name" | "progress" | "target" | "status";
 
-function fmtDateShort(d: Date | string): string {
-  return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+function fmtDateShort(d: Date | string, intlCode = "es-PE"): string {
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit" });
 }
 
 export default function PortfolioGanttPage() {
+  const t = useT();
+  const { locale, intlCode } = useLocale();
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterBranch, setFilterBranch] = useState("ALL");
@@ -96,13 +102,13 @@ export default function PortfolioGanttPage() {
       const p = pct(cursor.getTime());
       out.push({
         date: new Date(cursor),
-        label: cursor.toLocaleDateString("vi-VN", { month: "short" }).replace("thg ", "Th "),
+        label: cursor.toLocaleDateString(intlCode, { month: "short" }),
         pct: p,
       });
       cursor.setMonth(cursor.getMonth() + 1);
     }
     return out;
-  }, [timeline]);
+  }, [timeline, intlCode]);
 
   const LEFT_COL = 280;
   const RIGHT_COL = 80;
@@ -114,26 +120,33 @@ export default function PortfolioGanttPage() {
     </div>
   );
 
+  const sortOpts: { k: SortKey; labelKey: keyof Dict["portfolio"] }[] = [
+    { k: "target",   labelKey: "sortDeadline" },
+    { k: "progress", labelKey: "sortProgress" },
+    { k: "name",     labelKey: "sortName" },
+    { k: "status",   labelKey: "sortStatus" },
+  ];
+
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1600, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
-          📅 Gantt Tổng — Toàn Bộ Dự Án Cửa Hàng
+          {t.portfolio.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          So sánh tiến độ {sorted.length} cửa hàng trên cùng một timeline
+          {t.portfolio.subtitle.replace("{n}", String(sorted.length))}
         </p>
       </div>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Tổng cửa hàng", value: enriched.length, color: "#3b82f6" },
-          { label: "Đang thực hiện", value: enriched.filter(s => s.status === "IN_PROGRESS").length, color: "#3b82f6" },
-          { label: "Lên kế hoạch", value: enriched.filter(s => s.status === "PLANNING").length, color: "#6b7280" },
-          { label: "Hoàn thành", value: enriched.filter(s => s.status === "COMPLETED").length, color: "#10b981" },
-          { label: "Tạm dừng", value: enriched.filter(s => s.status === "ON_HOLD").length, color: "#f59e0b" },
+          { label: t.portfolio.statTotal, value: enriched.length, color: "#3b82f6" },
+          { label: t.portfolio.statInProgress, value: enriched.filter(s => s.status === "IN_PROGRESS").length, color: "#3b82f6" },
+          { label: t.portfolio.statPlanning, value: enriched.filter(s => s.status === "PLANNING").length, color: "#6b7280" },
+          { label: t.portfolio.statCompleted, value: enriched.filter(s => s.status === "COMPLETED").length, color: "#10b981" },
+          { label: t.portfolio.statOnHold, value: enriched.filter(s => s.status === "ON_HOLD").length, color: "#f59e0b" },
         ].map(s => (
           <div key={s.label} style={{
             background: "var(--bg-card)", border: "1px solid var(--border)",
@@ -147,37 +160,34 @@ export default function PortfolioGanttPage() {
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>Lọc:</span>
+        <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>{t.portfolio.filterLabel}</span>
         <select className="input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
           style={{ padding: "6px 10px", fontSize: 12, width: "auto" }}>
-          <option value="ALL">Tất cả trạng thái</option>
-          {Object.entries(STATUS_THEME).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          <option value="ALL">{t.portfolio.filterAllStatus}</option>
+          {STATUS_KEYS.map(k => <option key={k} value={k}>{getStatusLabel(k, locale)}</option>)}
         </select>
         <select className="input" value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}
           style={{ padding: "6px 10px", fontSize: 12, width: "auto" }}>
-          <option value="ALL">Tất cả chi nhánh</option>
+          <option value="ALL">{t.portfolio.filterAllBranch}</option>
           {branches.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
 
-        <span style={{ marginLeft: 12, fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>Sắp xếp:</span>
+        <span style={{ marginLeft: 12, fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>{t.portfolio.sortLabel}</span>
         <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 8, border: "1px solid var(--border)" }}>
-          {([
-            { k: "target", l: "Theo deadline" },
-            { k: "progress", l: "Theo % tiến độ" },
-            { k: "name", l: "Tên" },
-            { k: "status", l: "Trạng thái" },
-          ] as { k: SortKey; l: string }[]).map(opt => (
+          {sortOpts.map(opt => (
             <button key={opt.k} onClick={() => setSortKey(opt.k)} style={{
               padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
               background: sortKey === opt.k ? "rgba(59,130,246,0.2)" : "transparent",
               color: sortKey === opt.k ? "#93c5fd" : "var(--text-secondary)",
               border: "none", cursor: "pointer",
-            }}>{opt.l}</button>
+            }}>{t.portfolio[opt.labelKey]}</button>
           ))}
         </div>
 
         <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-muted)" }}>
-          Hiển thị <strong style={{ color: "#f0f4ff" }}>{sorted.length}</strong> / {enriched.length} cửa hàng
+          {t.portfolio.showing
+            .replace("{n}", String(sorted.length))
+            .replace("{total}", String(enriched.length))}
         </span>
       </div>
 
@@ -185,23 +195,23 @@ export default function PortfolioGanttPage() {
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 12, fontSize: 11, color: "var(--text-secondary)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 12, height: 8, borderRadius: 2, background: "#10b981", display: "inline-block" }} />
-          GĐ hoàn thành
+          {t.portfolio.legendDone}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 12, height: 8, borderRadius: 2, background: "#3b82f6", display: "inline-block" }} />
-          GĐ đang thực hiện
+          {t.portfolio.legendInProgress}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 12, height: 8, borderRadius: 2, background: "#ef4444", display: "inline-block" }} />
-          GĐ đã trễ
+          {t.portfolio.legendOverdue}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 12, height: 8, borderRadius: 2, background: "rgba(107, 114, 128, 0.4)", display: "inline-block" }} />
-          GĐ chưa bắt đầu
+          {t.portfolio.legendNotStarted}
         </div>
         <div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ display: "inline-block", color: "#10b981", fontSize: 14, lineHeight: 1 }}>◆</span>
-          Ngày khai trương
+          {t.portfolio.legendOpening}
         </div>
       </div>
 
@@ -230,7 +240,7 @@ export default function PortfolioGanttPage() {
                 background: "#ef4444", color: "#fff",
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
                 whiteSpace: "nowrap", zIndex: 5,
-              }}>Hôm nay · {fmtDateShort(now)}</div>
+              }}>{t.portfolio.todayPill.replace("{date}", fmtDateShort(now, intlCode))}</div>
             )}
           </div>
 
@@ -248,10 +258,11 @@ export default function PortfolioGanttPage() {
 
             {sorted.length === 0 ? (
               <div style={{ padding: 60, textAlign: "center", color: "var(--text-muted)" }}>
-                Không có cửa hàng nào phù hợp với bộ lọc.
+                {t.portfolio.emptyFilter}
               </div>
             ) : sorted.map(store => {
-              const stTheme = STATUS_THEME[store.status] || STATUS_THEME.PLANNING;
+              const stColor = STATUS_COLOR[store.status] || STATUS_COLOR.PLANNING;
+              const stLabel = getStatusLabel(store.status, locale);
               const targetT = store.targetOpenDate ? new Date(store.targetOpenDate).getTime() : null;
               const targetPct = targetT ? pct(targetT) : null;
 
@@ -270,16 +281,16 @@ export default function PortfolioGanttPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{
                         fontSize: 9, padding: "2px 6px", borderRadius: 4,
-                        background: `${stTheme.color}22`, color: stTheme.color,
-                        border: `1px solid ${stTheme.color}40`, fontWeight: 600,
-                      }}>{stTheme.label}</span>
+                        background: `${stColor}22`, color: stColor,
+                        border: `1px solid ${stColor}40`, fontWeight: 600,
+                      }}>{stLabel}</span>
                       <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{store.code}</span>
                     </div>
                     <div style={{ fontSize: 13, color: "#f0f4ff", fontWeight: 600, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {store.name}
                     </div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {store.bc?.branch?.name || store.region || "—"} · {store.pm?.name || "Chưa có PM"}
+                      {store.bc?.branch?.name || store.region || "—"} · {store.pm?.name || t.portfolio.storePMNone}
                     </div>
                   </div>
 
@@ -311,7 +322,7 @@ export default function PortfolioGanttPage() {
                         : 0.35;
                       return (
                         <div key={phase.id}
-                          title={`GĐ ${phase.phaseNumber}: ${phase.name}\n${fmtDateShort(phase.plannedStart)} → ${fmtDateShort(phase.plannedEnd)}`}
+                          title={`${t.storesList.phaseAbbrev}${phase.phaseNumber}: ${phase.name}\n${fmtDateShort(phase.plannedStart, intlCode)} → ${fmtDateShort(phase.plannedEnd, intlCode)}`}
                           style={{
                             position: "absolute",
                             left: `${left}%`, width: `${width}%`,
@@ -325,7 +336,7 @@ export default function PortfolioGanttPage() {
 
                     {/* Target opening diamond */}
                     {targetPct !== null && targetPct >= 0 && targetPct <= 100 && (
-                      <div title={`Khai trương: ${fmtDateShort(store.targetOpenDate)}`} style={{
+                      <div title={t.portfolio.openingTooltip.replace("{date}", fmtDateShort(store.targetOpenDate, intlCode))} style={{
                         position: "absolute", left: `${targetPct}%`,
                         top: 8, transform: "translateX(-50%)",
                       }}>
@@ -345,18 +356,18 @@ export default function PortfolioGanttPage() {
                     }}>
                       <div style={{
                         width: `${store.progress || 0}%`,
-                        height: "100%", background: stTheme.color, borderRadius: 1,
+                        height: "100%", background: stColor, borderRadius: 1,
                       }} />
                     </div>
                   </div>
 
                   {/* Right column: progress % */}
                   <div style={{ width: RIGHT_COL, flexShrink: 0, paddingLeft: 12, textAlign: "right" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: stTheme.color, lineHeight: 1 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: stColor, lineHeight: 1 }}>
                       {store.progress || 0}%
                     </div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                      {store.completedCount}/11 GĐ
+                      {t.portfolio.phaseCount.replace("{done}", String(store.completedCount))}
                     </div>
                   </div>
                 </Link>

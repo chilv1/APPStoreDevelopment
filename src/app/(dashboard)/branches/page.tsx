@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useT } from "@/lib/i18n/context";
 
 type BC = { id: string; name: string; code: string; description?: string; address?: string; _count: { stores: number } };
 type Branch = { id: string; name: string; code: string; description?: string; businessCenters: BC[]; _count: { users: number } };
@@ -17,6 +18,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function BranchesPage() {
+  const t = useT();
   const { data: session } = useSession();
   const user = (session?.user as any);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -53,7 +55,7 @@ export default function BranchesPage() {
       const url    = branchModal.edit ? `/api/branches/${branchModal.edit.id}` : "/api/branches";
       const method = branchModal.edit ? "PATCH" : "POST";
       const res    = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(branchForm) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Lỗi"); }
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || t.common.errorSave); }
       await load();
       setBranchModal({ open: false });
     } catch (e: any) { setBranchError(e.message); }
@@ -61,7 +63,7 @@ export default function BranchesPage() {
   };
 
   const deleteBranch = async (id: string, name: string) => {
-    if (!confirm(`Xoá chi nhánh "${name}"?`)) return;
+    if (!confirm(t.branchesPage.confirmDeleteBranch.replace("{name}", name))) return;
     const res = await fetch(`/api/branches/${id}`, { method: "DELETE" });
     if (!res.ok) { const e = await res.json(); alert(e.error); return; }
     await load();
@@ -77,7 +79,7 @@ export default function BranchesPage() {
       const url    = bcModal.edit ? `/api/business-centers/${bcModal.edit.id}` : "/api/business-centers";
       const method = bcModal.edit ? "PATCH" : "POST";
       const res    = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(bcForm) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Lỗi"); }
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || t.common.errorSave); }
       await load();
       setBcModal({ open: false });
     } catch (e: any) { setBcError(e.message); }
@@ -85,7 +87,7 @@ export default function BranchesPage() {
   };
 
   const deleteBC = async (id: string, name: string) => {
-    if (!confirm(`Xoá Business Center "${name}"?`)) return;
+    if (!confirm(t.branchesPage.confirmDeleteBC.replace("{name}", name))) return;
     const res = await fetch(`/api/business-centers/${id}`, { method: "DELETE" });
     if (!res.ok) { const e = await res.json(); alert(e.error); return; }
     await load();
@@ -94,7 +96,7 @@ export default function BranchesPage() {
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 16 }}>
       <div className="spinner" />
-      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Đang tải...</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.common.loading}</p>
     </div>
   );
 
@@ -103,23 +105,23 @@ export default function BranchesPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>🏢 Chi Nhánh & Business Center</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Quản lý cấu trúc tổ chức mạng lưới cửa hàng</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>{t.branchesPage.title}</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.branchesPage.subtitle}</p>
         </div>
         {isAdmin && (
           <button onClick={openCreateBranch} className="gradient-btn" style={{
             padding: "10px 20px", borderRadius: 10, border: "none",
             color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-          }}>+ Tạo chi nhánh</button>
+          }}>{t.branchesPage.createBranch}</button>
         )}
       </div>
 
       {/* Summary stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
         {[
-          { label: "Chi nhánh", value: branches.length, color: "#8b5cf6", icon: "🏢" },
-          { label: "Business Center", value: totalBCs, color: "#3b82f6", icon: "🏪" },
-          { label: "Cửa hàng", value: totalStores, color: "#10b981", icon: "🏬" },
+          { label: t.branchesPage.statBranches, value: branches.length, color: "#8b5cf6", icon: "🏢" },
+          { label: t.branchesPage.statBCs, value: totalBCs, color: "#3b82f6", icon: "🏪" },
+          { label: t.branchesPage.statStores, value: totalStores, color: "#10b981", icon: "🏬" },
         ].map(s => (
           <div key={s.label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 24 }}>{s.icon}</span>
@@ -136,8 +138,8 @@ export default function BranchesPage() {
         {branches.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: "var(--text-secondary)", background: "var(--bg-card)", borderRadius: 14, border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🏢</div>
-            <div style={{ marginBottom: 6 }}>Chưa có chi nhánh nào.</div>
-            {isAdmin && <div style={{ fontSize: 13 }}>Nhấn "+ Tạo chi nhánh" để bắt đầu.</div>}
+            <div style={{ marginBottom: 6 }}>{t.branchesPage.emptyTitle}</div>
+            {isAdmin && <div style={{ fontSize: 13 }}>{t.branchesPage.emptyHint}</div>}
           </div>
         ) : branches.map(branch => (
           <div key={branch.id} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
@@ -152,14 +154,16 @@ export default function BranchesPage() {
                 {branch.description && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{branch.description}</div>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginRight: 8 }}>
-                {branch.businessCenters.length} BC · {branch.businessCenters.reduce((s, bc) => s + bc._count.stores, 0)} cửa hàng
+                {t.branchesPage.branchHeaderInfo
+                  .replace("{n}", String(branch.businessCenters.length))
+                  .replace("{stores}", String(branch.businessCenters.reduce((s, bc) => s + bc._count.stores, 0)))}
               </div>
               {isAdmin && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => openCreateBC(branch.id)} style={{
                     padding: "5px 12px", borderRadius: 7, border: "1px solid rgba(59,130,246,0.4)",
                     background: "rgba(59,130,246,0.1)", color: "#60a5fa", fontSize: 12, cursor: "pointer",
-                  }}>+ BC</button>
+                  }}>{t.branchesPage.addBC}</button>
                   <button onClick={() => openEditBranch(branch)} style={{
                     padding: "5px 10px", borderRadius: 7, border: "1px solid var(--border)",
                     background: "transparent", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer",
@@ -175,7 +179,7 @@ export default function BranchesPage() {
             {/* BC list */}
             {branch.businessCenters.length === 0 ? (
               <div style={{ padding: "16px 20px", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
-                Chưa có Business Center. {isAdmin && 'Nhấn "+ BC" để thêm.'}
+                {t.branchesPage.emptyBC} {isAdmin && t.branchesPage.emptyBCHint}
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 1, padding: 1, background: "var(--border)" }}>
@@ -193,7 +197,7 @@ export default function BranchesPage() {
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>{bc.name}</div>
                         {bc.address && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {bc.address}</div>}
                         <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
-                          🏬 {bc._count.stores} cửa hàng
+                          {t.branchesPage.bcStoresCount.replace("{n}", String(bc._count.stores))}
                         </div>
                       </div>
                       {isAdmin && (
@@ -222,32 +226,32 @@ export default function BranchesPage() {
         <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setBranchModal({ open: false })}>
           <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>🏢 {branchModal.edit ? "Sửa" : "Tạo"} Chi Nhánh</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{branchModal.edit ? t.branchesPage.branchModalEdit : t.branchesPage.branchModalCreate}</h2>
               <button onClick={() => setBranchModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <form onSubmit={saveBranch}>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
-                  <Label>Tên chi nhánh *</Label>
-                  <input style={inputStyle} required value={branchForm.name} onChange={e => setBranchForm(f => ({ ...f, name: e.target.value }))} placeholder="VD: Chi Nhánh Hồ Chí Minh" />
+                  <Label>{t.branchesPage.branchName}</Label>
+                  <input style={inputStyle} required value={branchForm.name} onChange={e => setBranchForm(f => ({ ...f, name: e.target.value }))} placeholder={t.branchesPage.branchNamePh} />
                 </div>
                 <div>
-                  <Label>Mã chi nhánh * (đúng 3 ký tự, VD: AMA)</Label>
+                  <Label>{t.branchesPage.branchCode}</Label>
                   <input style={{ ...inputStyle, textTransform: "uppercase", letterSpacing: 3, fontWeight: 700 }}
                     required maxLength={3} value={branchForm.code}
                     onChange={e => setBranchForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    placeholder="AMA" />
+                    placeholder={t.branchesPage.branchCodePh} />
                 </div>
                 <div>
-                  <Label>Mô tả</Label>
-                  <input style={inputStyle} value={branchForm.description} onChange={e => setBranchForm(f => ({ ...f, description: e.target.value }))} placeholder="Mô tả ngắn về chi nhánh..." />
+                  <Label>{t.branchesPage.branchDescription}</Label>
+                  <input style={inputStyle} value={branchForm.description} onChange={e => setBranchForm(f => ({ ...f, description: e.target.value }))} placeholder={t.branchesPage.branchDescriptionPh} />
                 </div>
               </div>
               {branchError && <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", fontSize: 13 }}>⚠️ {branchError}</div>}
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button type="button" onClick={() => setBranchModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>Hủy</button>
+                <button type="button" onClick={() => setBranchModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
                 <button type="submit" disabled={branchSaving} className="gradient-btn" style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  {branchSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Đang lưu...</> : "✓ Lưu chi nhánh"}
+                  {branchSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.branchesPage.saveBranchBtn}
                 </button>
               </div>
             </form>
@@ -260,42 +264,42 @@ export default function BranchesPage() {
         <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setBcModal({ open: false })}>
           <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>🏪 {bcModal.edit ? "Sửa" : "Tạo"} Business Center</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{bcModal.edit ? t.branchesPage.bcModalEdit : t.branchesPage.bcModalCreate}</h2>
               <button onClick={() => setBcModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <form onSubmit={saveBC}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Tên Business Center *</Label>
-                  <input style={inputStyle} required value={bcForm.name} onChange={e => setBcForm(f => ({ ...f, name: e.target.value }))} placeholder="VD: BC Quận 1" />
+                  <Label>{t.branchesPage.bcName}</Label>
+                  <input style={inputStyle} required value={bcForm.name} onChange={e => setBcForm(f => ({ ...f, name: e.target.value }))} placeholder={t.branchesPage.bcNamePh} />
                 </div>
                 <div>
-                  <Label>Mã BC * (đúng 7 ký tự, VD: AMABC01)</Label>
+                  <Label>{t.branchesPage.bcCode}</Label>
                   <input style={{ ...inputStyle, textTransform: "uppercase", letterSpacing: 2, fontWeight: 700 }}
                     required maxLength={7} value={bcForm.code}
                     onChange={e => setBcForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    placeholder="AMABC01" />
+                    placeholder={t.branchesPage.bcCodePh} />
                 </div>
                 <div>
-                  <Label>Chi nhánh *</Label>
+                  <Label>{t.branchesPage.branchSelect}</Label>
                   <select style={inputStyle} value={bcForm.branchId} onChange={e => setBcForm(f => ({ ...f, branchId: e.target.value }))}>
                     {branches.map(b => <option key={b.id} value={b.id}>{b.code} — {b.name}</option>)}
                   </select>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Địa chỉ</Label>
-                  <input style={inputStyle} value={bcForm.address} onChange={e => setBcForm(f => ({ ...f, address: e.target.value }))} placeholder="Địa chỉ BC..." />
+                  <Label>{t.branchesPage.bcAddress}</Label>
+                  <input style={inputStyle} value={bcForm.address} onChange={e => setBcForm(f => ({ ...f, address: e.target.value }))} placeholder={t.branchesPage.bcAddressPh} />
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Mô tả</Label>
-                  <input style={inputStyle} value={bcForm.description} onChange={e => setBcForm(f => ({ ...f, description: e.target.value }))} placeholder="Mô tả BC..." />
+                  <Label>{t.branchesPage.bcDescription}</Label>
+                  <input style={inputStyle} value={bcForm.description} onChange={e => setBcForm(f => ({ ...f, description: e.target.value }))} placeholder={t.branchesPage.bcDescriptionPh} />
                 </div>
               </div>
               {bcError && <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", fontSize: 13 }}>⚠️ {bcError}</div>}
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button type="button" onClick={() => setBcModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>Hủy</button>
+                <button type="button" onClick={() => setBcModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
                 <button type="submit" disabled={bcSaving} className="gradient-btn" style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  {bcSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Đang lưu...</> : "✓ Lưu Business Center"}
+                  {bcSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.branchesPage.saveBCBtn}
                 </button>
               </div>
             </form>

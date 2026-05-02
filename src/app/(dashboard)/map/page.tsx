@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useT } from "@/lib/i18n/context";
 
 const StoreMapClient = dynamic(() => import("@/components/map/StoreMapClient"), {
   ssr: false,
@@ -9,13 +10,14 @@ const StoreMapClient = dynamic(() => import("@/components/map/StoreMapClient"), 
     <div style={{ height: 520, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.02)", borderRadius: 14, border: "1px solid var(--border)" }}>
       <div style={{ textAlign: "center" }}>
         <div className="spinner" style={{ margin: "0 auto 12px" }} />
-        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Đang tải bản đồ...</p>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Cargando mapa...</p>
       </div>
     </div>
   ),
 });
 
 export default function MapPage() {
+  const t = useT();
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,7 @@ export default function MapPage() {
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
       <div className="spinner" />
-      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Đang tải dữ liệu...</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.mapPage.loadingData}</p>
     </div>
   );
 
@@ -40,20 +42,20 @@ export default function MapPage() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
-          🗺️ Bản Đồ Mạng Lưới Cửa Hàng
+          {t.mapPage.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          Phân bổ địa lý và phân tích mật độ hệ thống cửa hàng Bitel
+          {t.mapPage.subtitle}
         </p>
       </div>
 
       {/* Quick stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Tổng cửa hàng", value: stores.length, color: "#3b82f6", icon: "🏪" },
-          { label: "Có tọa độ", value: withCoords, color: "#10b981", icon: "📍" },
-          { label: "Chưa có tọa độ", value: noCoords, color: "#f59e0b", icon: "⚠️" },
-          { label: "Số chi nhánh", value: new Set(stores.map(s => s.bc?.branch?.name || s.region || "—")).size, color: "#8b5cf6", icon: "🏢" },
+          { label: t.mapPage.statTotal, value: stores.length, color: "#3b82f6", icon: "🏪" },
+          { label: t.mapPage.statWithCoords, value: withCoords, color: "#10b981", icon: "📍" },
+          { label: t.mapPage.statNoCoords, value: noCoords, color: "#f59e0b", icon: "⚠️" },
+          { label: t.mapPage.statBranches, value: new Set(stores.map(s => s.bc?.branch?.name || s.region || "—")).size, color: "#8b5cf6", icon: "🏢" },
         ].map(stat => (
           <div key={stat.label} style={{
             background: "var(--bg-card)", border: "1px solid var(--border)",
@@ -72,7 +74,7 @@ export default function MapPage() {
       {/* Map */}
       {stores.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: "var(--text-secondary)" }}>
-          Không có cửa hàng nào.
+          {t.mapPage.emptyStores}
         </div>
       ) : withCoords === 0 ? (
         <div style={{
@@ -81,10 +83,10 @@ export default function MapPage() {
         }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📍</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: "#fcd34d", marginBottom: 8 }}>
-            Chưa có cửa hàng nào được nhập tọa độ
+            {t.mapPage.noCoordsTitle}
           </div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-            Vào <strong>Chi tiết cửa hàng → Chỉnh sửa</strong> để nhập Vĩ độ / Kinh độ
+            {t.mapPage.noCoordsHint}
           </div>
         </div>
       ) : (

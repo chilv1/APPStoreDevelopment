@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import Link from "next/link";
 import "leaflet/dist/leaflet.css";
+import { useT, useLocale } from "@/lib/i18n/context";
+import { getStatusLabel } from "@/lib/utils";
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6_371_000;
@@ -25,13 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
   ON_HOLD:     "#f59e0b",
   CANCELLED:   "#ef4444",
 };
-const STATUS_LABEL: Record<string, string> = {
-  PLANNING:    "Lên kế hoạch",
-  IN_PROGRESS: "Đang thực hiện",
-  COMPLETED:   "Hoàn thành",
-  ON_HOLD:     "Tạm dừng",
-  CANCELLED:   "Đã huỷ",
-};
+const STATUS_KEYS = ["PLANNING", "IN_PROGRESS", "COMPLETED", "ON_HOLD", "CANCELLED"];
 
 function FitBounds({ stores }: { stores: any[] }) {
   const map = useMap();
@@ -47,6 +43,8 @@ function FitBounds({ stores }: { stores: any[] }) {
 }
 
 export default function StoreMapClient({ stores }: { stores: any[] }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterBranch, setFilterBranch] = useState("ALL");
   const [threshold, setThreshold] = useState(500);
@@ -89,17 +87,19 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Lọc:</span>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t.mapPage.filterLabel}</span>
         <select style={inputStyle} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="ALL">Tất cả trạng thái</option>
-          {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <option value="ALL">{t.mapPage.filterAllStatus}</option>
+          {STATUS_KEYS.map(k => <option key={k} value={k}>{getStatusLabel(k, locale)}</option>)}
         </select>
         <select style={inputStyle} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
-          <option value="ALL">Tất cả chi nhánh</option>
+          <option value="ALL">{t.mapPage.filterAllBranch}</option>
           {branches.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--text-secondary)" }}>
-          Hiển thị <strong style={{ color: "#f0f4ff" }}>{filtered.length}</strong> / {withCoords.length} cửa hàng có tọa độ
+          {t.mapPage.showing
+            .replace("{n}", String(filtered.length))
+            .replace("{total}", String(withCoords.length))}
         </span>
       </div>
 
@@ -130,13 +130,13 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                   <div style={{ minWidth: 200 }}>
                     {isAlert && (
                       <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "4px 8px", marginBottom: 8, fontSize: 11, color: "#dc2626", fontWeight: 600 }}>
-                        ⚠️ Trong vùng cảnh báo gần {threshold}m
+                        {t.mapPage.alertWithinRange.replace("{m}", String(threshold))}
                       </div>
                     )}
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{store.name}</div>
                     <div style={{ fontSize: 12, color: "#555", marginBottom: 6 }}>{store.code} · {getBranch(store)}</div>
                     <div style={{ fontSize: 12, marginBottom: 4 }}>📍 {store.address}</div>
-                    {store.pm && <div style={{ fontSize: 12, marginBottom: 4 }}>👤 PM: {store.pm.name}</div>}
+                    {store.pm && <div style={{ fontSize: 12, marginBottom: 4 }}>👤 {t.modal.editPM}: {store.pm.name}</div>}
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                       <span style={{
                         background: STATUS_COLOR[store.status] + "33",
@@ -144,7 +144,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                         border: `1px solid ${STATUS_COLOR[store.status]}55`,
                         borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600,
                       }}>
-                        {STATUS_LABEL[store.status]}
+                        {getStatusLabel(store.status, locale)}
                       </span>
                       <span style={{ fontSize: 12, fontWeight: 600 }}>{store.progress}%</span>
                     </div>
@@ -153,7 +153,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                       background: "#3b82f6", color: "#fff", borderRadius: 6, fontSize: 12,
                       textDecoration: "none", fontWeight: 500,
                     }}>
-                      Xem chi tiết →
+                      {t.mapPage.viewDetail}
                     </a>
                   </div>
                 </Popup>
@@ -165,15 +165,15 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
 
       {/* Legend */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-        {Object.entries(STATUS_LABEL).map(([k, v]) => (
+        {STATUS_KEYS.map((k) => (
           <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)" }}>
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: STATUS_COLOR[k] }} />
-            {v}
+            {getStatusLabel(k, locale)}
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", marginLeft: 8 }}>
           <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px dashed #ef4444", background: "transparent" }} />
-          Cảnh báo gần
+          {t.mapPage.legendNearbyAlert}
         </div>
       </div>
 
@@ -189,10 +189,10 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
           {/* Header with threshold slider */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: proximityAlerts.length > 0 ? "#fca5a5" : "#6ee7b7", margin: 0 }}>
-              {proximityAlerts.length > 0 ? `⚠️ Cảnh báo quá gần (${proximityAlerts.length} cặp)` : "✓ Không có cửa hàng nào quá gần"}
+              {proximityAlerts.length > 0 ? t.mapPage.alertSomeTitle.replace("{n}", String(proximityAlerts.length)) : t.mapPage.alertNoneTitle}
             </h3>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)" }}>
-              <span>Ngưỡng:</span>
+              <span>{t.mapPage.thresholdLabel}</span>
               <input
                 type="range" min={100} max={2000} step={50} value={threshold}
                 onChange={e => setThreshold(Number(e.target.value))}
@@ -204,7 +204,9 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
 
           {proximityAlerts.length === 0 ? (
             <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-              Đã kiểm tra {withCoords.length} cửa hàng — không có cặp nào trong phạm vi {threshold}m.
+              {t.mapPage.alertNoneDesc
+                .replace("{total}", String(withCoords.length))
+                .replace("{m}", String(threshold))}
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 240, overflowY: "auto" }}>
@@ -218,7 +220,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "#fca5a5" }}>
-                      Khoảng cách: <strong>{p.dist}m</strong>
+                      {t.mapPage.alertDistance.replace("{m}", String(p.dist))}
                     </span>
                     <div style={{
                       height: 4, width: 80, borderRadius: 2,
@@ -238,7 +240,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
         {noCoords.length > 0 && (
           <div style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 12, padding: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "#fcd34d", marginBottom: 12 }}>
-              📍 Chưa có tọa độ ({noCoords.length} cửa hàng)
+              {t.mapPage.missingCoordsTitle.replace("{n}", String(noCoords.length))}
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
               {noCoords.map(store => (
@@ -255,7 +257,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                     padding: "4px 10px", border: "1px solid rgba(245,158,11,0.3)",
                     borderRadius: 6, whiteSpace: "nowrap",
                   }}>
-                    Cập nhật →
+                    {t.mapPage.updateAction}
                   </Link>
                 </div>
               ))}

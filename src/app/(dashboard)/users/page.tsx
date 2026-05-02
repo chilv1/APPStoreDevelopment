@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils";
+import { ROLE_COLORS, getRoleLabel } from "@/lib/utils";
+import { useT, useLocale } from "@/lib/i18n/context";
+import type { Dict } from "@/lib/i18n/types";
 
 const ROLES = ["ADMIN", "AREA_MANAGER", "PM", "SURVEY_STAFF"];
 
 const emptyForm = { name: "", email: "", password: "", role: "SURVEY_STAFF", branchId: "" };
 
 function UserModal({
-  title, form, setForm, branches, onSubmit, onClose, loading, error, isEdit,
+  title, form, setForm, branches, onSubmit, onClose, loading, error, isEdit, t,
 }: {
   title: string;
   form: typeof emptyForm;
@@ -20,7 +22,9 @@ function UserModal({
   loading: boolean;
   error: string;
   isEdit: boolean;
+  t: Dict;
 }) {
+  const { locale } = useLocale();
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
@@ -31,27 +35,27 @@ function UserModal({
         <form onSubmit={onSubmit} noValidate>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Họ tên *</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.usersPage.fieldName}</label>
               <input className="input" required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Nguyễn Văn A" />
+                placeholder={t.usersPage.fieldNamePh} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Email *</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.usersPage.fieldEmail}</label>
               <input className="input" required value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="user@telecom.vn" />
+                placeholder={t.usersPage.fieldEmailPh} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Vai trò</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.usersPage.fieldRole}</label>
               <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                {ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r, locale)}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>Chi nhánh phụ trách</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>{t.usersPage.fieldBranch}</label>
               <select className="input" value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
-                <option value="">— Không thuộc chi nhánh —</option>
+                <option value="">{t.usersPage.branchNoneOption}</option>
                 {branches.map((b: any) => (
                   <option key={b.id} value={b.id}>{b.code} — {b.name}</option>
                 ))}
@@ -59,12 +63,12 @@ function UserModal({
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 6 }}>
-                {isEdit ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu mặc định"}
+                {isEdit ? t.usersPage.fieldPwdNew : t.usersPage.fieldPwdDefault}
               </label>
               <input className="input" type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder={isEdit ? "Nhập mật khẩu mới..." : "123456"} />
+                placeholder={isEdit ? t.usersPage.fieldPwdNewPh : t.usersPage.fieldPwdDefaultPh} />
             </div>
           </div>
 
@@ -81,15 +85,15 @@ function UserModal({
               flex: 1, padding: "10px", borderRadius: 8,
               background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-            }}>Hủy</button>
+            }}>{t.common.cancel}</button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{
               flex: 2, padding: "10px", borderRadius: 8, border: "none",
               color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
               {loading
-                ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{isEdit ? "Đang lưu..." : "Đang tạo..."}</>
-                : isEdit ? "✓ Lưu thay đổi" : "✓ Tạo tài khoản"}
+                ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{isEdit ? t.usersPage.editing : t.usersPage.creating}</>
+                : isEdit ? t.usersPage.editBtn : t.usersPage.createBtn}
             </button>
           </div>
         </form>
@@ -99,6 +103,8 @@ function UserModal({
 }
 
 export default function UsersPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const { data: session } = useSession();
   const currentUser = session?.user as any;
   const [users, setUsers] = useState<any[]>([]);
@@ -134,7 +140,7 @@ export default function UsersPage() {
   if (currentUser?.role !== "ADMIN") return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 12 }}>
       <div style={{ fontSize: 40 }}>🔒</div>
-      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Chỉ Admin mới có quyền truy cập trang này</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.usersPage.adminOnly}</p>
     </div>
   );
 
@@ -154,7 +160,7 @@ export default function UsersPage() {
       setCreateForm({ ...emptyForm, password: "123456" });
     } else {
       const err = await res.json().catch(() => ({}));
-      setCreateError(err.error || "Lỗi tạo tài khoản");
+      setCreateError(err.error || t.usersPage.errorCreate);
     }
     setCreating(false);
   };
@@ -183,7 +189,7 @@ export default function UsersPage() {
       setEditTarget(null);
     } else {
       const err = await res.json().catch(() => ({}));
-      setEditError(err.error || "Lỗi cập nhật");
+      setEditError(err.error || t.usersPage.errorEdit);
     }
     setEditing(false);
   };
@@ -201,21 +207,21 @@ export default function UsersPage() {
 
   const getBranchLabel = (u: any) => {
     if (u.branch) return `${u.branch.code} — ${u.branch.name}`;
-    if (u.role === "ADMIN") return "Toàn hệ thống";
-    return "—";
+    if (u.role === "ADMIN") return t.usersPage.branchSystem;
+    return t.usersPage.branchNone;
   };
 
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>👥 Quản Lý User</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{users.length} tài khoản trong hệ thống</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>{t.usersPage.title}</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.usersPage.subtitle.replace("{n}", String(users.length))}</p>
         </div>
         <button onClick={() => { setCreateError(""); setShowCreate(true); }} className="gradient-btn" style={{
           padding: "10px 20px", borderRadius: 10, border: "none",
           color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-        }}>+ Thêm user mới</button>
+        }}>{t.usersPage.addUser}</button>
       </div>
 
       {loading ? (
@@ -225,11 +231,11 @@ export default function UsersPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Họ tên</th>
-                <th>Email</th>
-                <th>Vai trò</th>
-                <th>Chi nhánh phụ trách</th>
-                <th style={{ width: 100, textAlign: "center" }}>Thao tác</th>
+                <th>{t.usersPage.tableName}</th>
+                <th>{t.usersPage.tableEmail}</th>
+                <th>{t.usersPage.tableRole}</th>
+                <th>{t.usersPage.tableBranch}</th>
+                <th style={{ width: 100, textAlign: "center" }}>{t.usersPage.tableActions}</th>
               </tr>
             </thead>
             <tbody>
@@ -249,7 +255,7 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td style={{ fontSize: 13 }}>{u.email}</td>
-                  <td><span className={`badge ${ROLE_COLORS[u.role]}`}>{ROLE_LABELS[u.role]}</span></td>
+                  <td><span className={`badge ${ROLE_COLORS[u.role]}`}>{getRoleLabel(u.role, locale)}</span></td>
                   <td style={{ fontSize: 13, color: u.branch ? "#f0f4ff" : "var(--text-secondary)" }}>
                     {getBranchLabel(u)}
                   </td>
@@ -259,13 +265,13 @@ export default function UsersPage() {
                         padding: "5px 12px", borderRadius: 6, border: "1px solid var(--border)",
                         background: "rgba(59,130,246,0.1)", color: "#93c5fd",
                         fontSize: 12, fontWeight: 500, cursor: "pointer",
-                      }}>Sửa</button>
+                      }}>{t.usersPage.actionEdit}</button>
                       {u.id !== currentUser?.id && (
                         <button onClick={() => setDeleteTarget(u)} style={{
                           padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)",
                           background: "rgba(239,68,68,0.1)", color: "#fca5a5",
                           fontSize: 12, fontWeight: 500, cursor: "pointer",
-                        }}>Xóa</button>
+                        }}>{t.usersPage.actionDelete}</button>
                       )}
                     </div>
                   </td>
@@ -278,7 +284,7 @@ export default function UsersPage() {
 
       {showCreate && (
         <UserModal
-          title="➕ Thêm User Mới"
+          title={t.usersPage.createTitle}
           form={createForm}
           setForm={setCreateForm}
           branches={branches}
@@ -287,12 +293,13 @@ export default function UsersPage() {
           loading={creating}
           error={createError}
           isEdit={false}
+          t={t}
         />
       )}
 
       {editTarget && (
         <UserModal
-          title={`✏️ Chỉnh sửa: ${editTarget.name}`}
+          title={t.usersPage.editTitle.replace("{name}", editTarget.name)}
           form={editForm}
           setForm={setEditForm}
           branches={branches}
@@ -301,30 +308,32 @@ export default function UsersPage() {
           loading={editing}
           error={editError}
           isEdit={true}
+          t={t}
         />
       )}
 
       {deleteTarget && (
         <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setDeleteTarget(null)}>
           <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", marginBottom: 12 }}>Xác nhận xóa tài khoản</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", marginBottom: 12 }}>{t.usersPage.deleteConfirmTitle}</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
-              Bạn có chắc muốn xóa tài khoản <strong style={{ color: "#f0f4ff" }}>{deleteTarget.name}</strong> ({deleteTarget.email})?
-              <br />Hành động này không thể hoàn tác.
+              {t.usersPage.deleteConfirmDesc
+                .replace("{name}", deleteTarget.name)
+                .replace("{email}", deleteTarget.email)}
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={() => setDeleteTarget(null)} style={{
                 flex: 1, padding: "10px", borderRadius: 8,
                 background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
                 color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
-              }}>Hủy</button>
+              }}>{t.common.cancel}</button>
               <button onClick={handleDelete} disabled={deleting} style={{
                 flex: 1, padding: "10px", borderRadius: 8,
                 background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
                 color: "#fca5a5", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}>
-                {deleting ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Đang xóa...</> : "Xóa tài khoản"}
+                {deleting ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.usersPage.deletingBtn}</> : t.usersPage.deleteBtn}
               </button>
             </div>
           </div>
