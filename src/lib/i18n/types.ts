@@ -246,6 +246,77 @@ export type Dict = {
     notAssignedBranch: string;
     activePhaseFmt: string; // "Fase {n}: {name}"
     emptyProjects: string;
+
+    // ── Tab navigation ──
+    tabExecutive: string;     // "📊 Resumen Ejecutivo"
+    tabBranch: string;        // "🏢 Por Sucursal"
+    tabBC: string;            // "🏪 Por BC"
+    tabTrends: string;        // "📈 Tendencias"
+    tabRisks: string;         // "⚠️ Riesgos"
+    forbidden: string;        // "Sin permiso para ver esta sección"
+    loading: string;          // "Cargando reporte..."
+
+    // ── Executive Tab KPIs ──
+    kpiTotalStores: string;
+    kpiInProgress: string;
+    kpiCompleted: string;
+    kpiOnHold: string;
+    kpiOverdue: string;
+    kpiOpeningThisMonth: string;
+    kpiTotalCapex: string;
+    kpiAvgProgress: string;
+    kpiTotalBranches: string;
+    kpiTotalBCs: string;
+
+    // ── Executive Tab charts ──
+    chartStatusBreakdown: string;     // "Distribución por estado"
+    chartTopBranches: string;         // "Top sucursales por avance"
+    chartOpeningsTimeline: string;    // "Inauguraciones (12 meses)"
+    seriesMonthly: string;            // "Mensual"
+    seriesCumulative: string;         // "Acumulado"
+
+    // ── Executive Tab tables ──
+    sectionTopRisk: string;           // "🚨 Stores en riesgo"
+    sectionClosestOpening: string;    // "🎯 Próximas inauguraciones (30 días)"
+    colRiskScore: string;
+    colOverdueDays: string;
+    colOpenIssues: string;
+    colDaysToOpen: string;
+    emptyRisks: string;               // "Ninguna tienda en riesgo"
+    emptyOpening: string;             // "No hay aperturas en los próximos 30 días"
+
+    // ── Branch Tab ──
+    selectBranch: string;             // "Seleccionar sucursal"
+    branchOverview: string;           // "Resumen de la sucursal"
+    chartBCsInBranch: string;         // "Business Centers en esta sucursal"
+    chartPhasesInBranch: string;      // "Fases activas en stores"
+
+    // ── BC Tab ──
+    selectBC: string;                 // "Seleccionar Business Center"
+    bcOverview: string;
+    phaseMatrix: string;              // "Matriz de fases · stores × 11 fases"
+    phaseStatusDone: string;
+    phaseStatusInProgress: string;
+    phaseStatusBlocked: string;
+    phaseStatusNotStarted: string;
+
+    // ── Trends Tab ──
+    trendsOpeningsCumulative: string; // "Inauguraciones acumuladas"
+    trendsOpeningsMonthly: string;    // "Inauguraciones por mes"
+    trendsPhaseDuration: string;      // "Duración promedio de fases (planificado vs real)"
+    trendsTimeToOpen: string;         // "Tiempo de proyecto a inauguración (meses)"
+
+    // ── Risks Tab ──
+    risksAtRiskTitle: string;         // "Stores en riesgo"
+    risksOpenIssues: string;
+    risksByType: string;
+    risksBySeverity: string;
+    risksOverdueTasks: string;        // "{n} tareas vencidas"
+    risksBlockedPhases: string;       // "{n} fases bloqueadas"
+
+    // ── PDF export ──
+    exportPdf: string;                // "📄 Exportar PDF"
+    pdfGenerating: string;            // "Generando PDF..."
   };
 
   // Portfolio Gantt page
