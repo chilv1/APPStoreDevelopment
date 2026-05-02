@@ -71,6 +71,22 @@ export default function ExecutiveTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
+      {/* Export PDF button */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <a
+          href="/api/reports/executive/pdf"
+          download
+          style={{
+            padding: "8px 16px", borderRadius: 8,
+            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            color: "var(--text-secondary)", fontSize: 12, fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          {t.reportsPage.exportPdf}
+        </a>
+      </div>
+
       {/* KPI grid — 5 cols × 2 rows */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         <KPICard icon="🏪" label={t.reportsPage.kpiTotalStores} value={data.kpis.totalStores} color={COLORS.primary} />
