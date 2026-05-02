@@ -50,3 +50,6 @@ next-env.d.ts
 *.db
 *.db-shm
 *.db-wal
+
+# Local DB backup snapshots — large binaries, never commit
+/backups/
