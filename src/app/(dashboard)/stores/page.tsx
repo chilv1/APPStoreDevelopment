@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { formatDate, getStatusLabel, STATUS_COLORS } from "@/lib/utils";
-import CreateStoreModal from "@/components/stores/CreateStoreModal";
 import { useSession } from "next-auth/react";
 import { useT, useLocale } from "@/lib/i18n/context";
+
+// Lazy-load: only fetched when the user actually clicks "+ Crear tienda".
+const CreateStoreModal = dynamic(() => import("@/components/stores/CreateStoreModal"), { ssr: false });
 
 export default function StoresPage() {
   const { data: session } = useSession();

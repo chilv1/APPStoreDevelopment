@@ -3,13 +3,26 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { formatDate, formatCurrency, getStatusLabel, getPriorityLabel, STATUS_COLORS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import TaskModal from "@/components/stores/TaskModal";
-import IssueModal from "@/components/stores/IssueModal";
-import EditStoreModal from "@/components/stores/EditStoreModal";
-import GanttChart from "@/components/stores/GanttChart";
 import { useT, useLocale } from "@/lib/i18n/context";
+
+// Heavy components — lazy-load on demand to keep the initial bundle small.
+// The Gantt chart alone is ~1600 lines and embeds 4 sub-modals; loading it only when
+// the user clicks the Gantt tab cuts /stores/[id] decoded JS by hundreds of KB.
+const GanttChart = dynamic(() => import("@/components/stores/GanttChart"), {
+  ssr: false,
+  loading: () => (
+    <div style={{ padding: 60, textAlign: "center", color: "var(--text-secondary)" }}>
+      <div className="spinner" style={{ margin: "0 auto 12px" }} />
+      <p style={{ fontSize: 14 }}>Cargando Gantt...</p>
+    </div>
+  ),
+});
+const TaskModal = dynamic(() => import("@/components/stores/TaskModal"), { ssr: false });
+const IssueModal = dynamic(() => import("@/components/stores/IssueModal"), { ssr: false });
+const EditStoreModal = dynamic(() => import("@/components/stores/EditStoreModal"), { ssr: false });
 
 type Tab = "phases" | "gantt" | "issues" | "activity";
 
