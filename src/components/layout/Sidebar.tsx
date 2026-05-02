@@ -13,13 +13,15 @@ export default function Sidebar({ session }: { session: any }) {
   const role = user?.role || "SURVEY_STAFF";
   const t = useT();
 
+  // Reportes is the primary landing experience — pinned to top.
+  // /dashboard (Resumen) is intentionally hidden from the sidebar; the route
+  // still exists if anyone has the URL, but new users land directly on /reports.
   const NAV_ITEMS = [
-    { href: "/dashboard", icon: "📊", label: t.sidebar.overview },
+    { href: "/reports",   icon: "📈", label: t.sidebar.reports },
     { href: "/stores",    icon: "🏪", label: t.sidebar.stores },
     { href: "/gantt",     icon: "📅", label: t.sidebar.portfolioGantt },
     { href: "/branches",  icon: "🏢", label: t.sidebar.branches },
     { href: "/map",       icon: "🗺️", label: t.sidebar.map },
-    { href: "/reports",   icon: "📈", label: t.sidebar.reports },
   ];
 
   const ADMIN_ITEMS = [
@@ -58,7 +60,7 @@ export default function Sidebar({ session }: { session: any }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-item ${pathname === item.href || pathname.startsWith(item.href + "/") && item.href !== "/dashboard" ? "active" : pathname === "/dashboard" && item.href === "/dashboard" ? "active" : ""}`}
+              className={`nav-item ${pathname === item.href || pathname.startsWith(item.href + "/") ? "active" : ""}`}
               style={{ display: "flex", marginBottom: 2 }}
             >
               <span style={{ fontSize: 16 }}>{item.icon}</span>

@@ -29,7 +29,7 @@ export default function LoginPage() {
       setError(t.login.error);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push("/reports");
       router.refresh();
     }
   };
