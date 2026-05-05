@@ -25,6 +25,10 @@ interface Props {
   onScrollToday?: () => void;
   onLevelResources?: () => void;
   onStats?: () => void;
+  onShowPreferences?: () => void;
+  onShowColumns?: () => void;
+  onAddMilestone?: () => void;
+  visibleColumns?: Set<string>;
 }
 
 const VIEWS: { id: ViewMode; icon: string; label: string }[] = [
@@ -75,7 +79,12 @@ function Group({ children }: { children: React.ReactNode }) {
   return <div style={{ display:"flex", alignItems:"center", gap:2, padding:"0 8px", borderRight:"1px solid #21262d" }}>{children}</div>;
 }
 
-export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritical, onToggleBaseline, onToggleArrows, onToggleDetail, onSaveBaseline, onAddTask, onDelete, onLink, onFilter, onSearch, onCollapseAll, onExpandAll, onAutoSchedule, onNotify, onUnlink, onExport, onScrollToday, onLevelResources, onStats }: Props) {
+export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritical, onToggleBaseline, onToggleArrows, onToggleDetail, onSaveBaseline, onAddTask, onDelete, onLink, onFilter, onSearch, onCollapseAll, onExpandAll, onAutoSchedule, onNotify, onUnlink, onExport, onScrollToday, onLevelResources, onStats, onShowPreferences, onShowColumns, onAddMilestone }: Props) {
+  // Helper: open DetailPane with selected task (for % Avance, Info buttons)
+  const openDetailForSelected = () => {
+    if (!state.selectedId) return onNotify("Seleccione una tarea primero");
+    if (!state.detailOpen) onToggleDetail();
+  };
   const { ribbonTab: tab, viewMode, zoomMode, showCritical, showBaseline, showArrows, filterStatus } = state;
 
   return (
@@ -98,10 +107,11 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
         {tab === "task" && <>
           <Group>
             <RBtn icon="＋" label="Tarea"    onClick={onAddTask} />
-            <RBtn icon="◆" label="Hito"     onClick={onAddTask} />
+            <RBtn icon="◆" label="Hito"     onClick={() => (onAddMilestone ?? onAddTask)()} />
             <RBtn icon="🗑" label="Eliminar" danger onClick={onDelete} />
           </Group>
           <Group>
+            {/* Vincular: Sets FS to selected task — same as FS button below but more discoverable */}
             <RBtn icon="🔗" label="Vincular"    onClick={() => onLink("FS")} />
             <RBtn icon="✂"  label="Desvincular" onClick={() => onUnlink?.()} />
           </Group>
@@ -116,7 +126,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
             </div>
           </Group>
           <Group>
-            <RBtn icon="✔" label="% Avance"    onClick={() => onNotify("Seleccione una tarea y haga doble clic en la barra de progreso")} />
+            <RBtn icon="✔" label="% Avance"    onClick={openDetailForSelected} />
             <RBtn icon="⚡" label="Auto"        onClick={onAutoSchedule} />
             <RBtn icon="⚖" label="Nivelar"     onClick={() => onLevelResources?.()} />
           </Group>
@@ -169,7 +179,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
 
         {tab === "resource" && <>
           <Group>
-            <RBtn icon="👤" label="Recurso"    onClick={() => onNotify("Use la vista Recursos para gestionar asignaciones")} />
+            <RBtn icon="👤" label="Recurso"    onClick={() => onView("resource")} />
             <RBtn icon="⚠"  label="Sobreasig." onClick={() => {
               // Calculate real overallocation from state
               const resCounts = new Map<string, number>();
@@ -186,7 +196,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
 
         {tab === "project" && <>
           <Group>
-            <RBtn icon="ℹ"  label="Info"       onClick={() => onNotify(`${state.tasks.filter(t=>t.type==='summary').length} proyectos activos`)} />
+            <RBtn icon="ℹ"  label="Info"        onClick={openDetailForSelected} />
             <RBtn icon="📊" label="Estadísticas" onClick={() => onStats?.()} />
           </Group>
           <Group>
@@ -194,8 +204,8 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
             <RBtn icon="📗" label="Exportar"   onClick={() => onExport?.()} />
           </Group>
           <Group>
-            <RBtn icon="📆" label="Calendario" onClick={() => onNotify("Calendario actualizado")} />
-            <RBtn icon="⚙"  label="Config"     onClick={() => onNotify("Configuración guardada")} />
+            <RBtn icon="📆" label="Calendario" onClick={() => onView("calendar")} />
+            <RBtn icon="⚙"  label="Config"     onClick={() => onShowPreferences?.()} />
           </Group>
         </>}
 
@@ -206,8 +216,8 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
             <RBtn icon="🔴" label="R.Crítica"  active={showCritical} onClick={onToggleCritical} />
           </Group>
           <Group>
-            <RBtn icon="⊞" label="Columnas" onClick={() => onNotify("Personalización de columnas")} />
-            <RBtn icon="🎨" label="Colores"  onClick={() => onNotify("Editor de colores")} />
+            <RBtn icon="⊞" label="Columnas" onClick={() => onShowColumns?.()} />
+            {/* Colores button removed — theme system not implemented; would mislead users */}
           </Group>
         </>}
 

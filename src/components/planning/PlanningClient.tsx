@@ -15,6 +15,8 @@ import NetworkDiagram from "./views/NetworkDiagram";
 import TaskUsage from "./views/TaskUsage";
 import AddTaskModal from "./AddTaskModal";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import PreferencesModal, { type Preferences } from "./PreferencesModal";
+import ColumnsModal, { ALL_COLUMNS } from "./ColumnsModal";
 
 const DAY = 86_400_000;
 
@@ -205,10 +207,38 @@ function buildTasksFromStores(stores: ApiStore[]): PlanTask[] {
 }
 
 // ── COMPONENT ────────────────────────────────────────────────────────────────
+const DEFAULT_PREFS: Preferences = {
+  defaultZoom: "week",
+  defaultFilter: "active",
+  showWeekends: true,
+  autoSaveBaseline: false,
+};
+
+function loadPrefs(): Preferences {
+  if (typeof window === "undefined") return DEFAULT_PREFS;
+  try {
+    const raw = localStorage.getItem("planning-prefs");
+    if (raw) return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return DEFAULT_PREFS;
+}
+function loadColumns(): Set<string> {
+  if (typeof window === "undefined") return new Set(ALL_COLUMNS);
+  try {
+    const raw = localStorage.getItem("planning-columns");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Set(ALL_COLUMNS);
+}
+
 export default function PlanningClient() {
   const [state, dispatch] = useReducer(reducer, INIT);
   const [totalStores, setTotalStores] = useState(0);
   const [loadedLimit, setLoadedLimit] = useState(60);
+  const [prefs, setPrefs] = useState<Preferences>(() => loadPrefs());
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => loadColumns());
+  const [showPrefs, setShowPrefs] = useState(false);
+  const [showColumns, setShowColumns] = useState(false);
   const notifTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
 
@@ -239,6 +269,25 @@ export default function PlanningClient() {
   }, []);
 
   useEffect(() => { load(state.filterStatus); }, [state.filterStatus, load]);
+
+  // Apply prefs once on mount: zoom + initial filter
+  const prefsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (prefsAppliedRef.current) return;
+    prefsAppliedRef.current = true;
+    if (prefs.defaultZoom !== state.zoomMode) dispatch({ type:"SET_ZOOM", zoom: prefs.defaultZoom });
+    if (prefs.defaultFilter !== state.filterStatus) dispatch({ type:"FILTER", status: prefs.defaultFilter });
+  }, [prefs, state.zoomMode, state.filterStatus]);
+
+  // Persist prefs + columns
+  function savePrefs(next: Preferences) {
+    setPrefs(next);
+    try { localStorage.setItem("planning-prefs", JSON.stringify(next)); } catch {}
+  }
+  function saveColumns(next: Set<string>) {
+    setVisibleColumns(next);
+    try { localStorage.setItem("planning-columns", JSON.stringify([...next])); } catch {}
+  }
 
   // Recompute schedule + critical path whenever tasks change
   const processedTasks = useMemo(() => {
@@ -518,6 +567,10 @@ export default function PlanningClient() {
         onScrollToday={scrollToday}
         onLevelResources={levelResources}
         onStats={() => notify(`📊 ${stats.stores} proyectos · ${stats.tasks} fases · ${stats.done} completadas · Avance promedio: ${stats.avgPct}%`)}
+        onShowPreferences={() => setShowPrefs(true)}
+        onShowColumns={() => setShowColumns(true)}
+        onAddMilestone={openAddTask}
+        visibleColumns={visibleColumns}
         onNotify={notify}
       />
 
@@ -540,6 +593,7 @@ export default function PlanningClient() {
               onUpdateTask={updateTask}
               onOpenDetail={id => { dispatch({ type:"SELECT", id }); if (!state.detailOpen) dispatch({ type:"TOGGLE_DETAIL" }); }}
               showCritical={state.showCritical}
+              visibleColumns={visibleColumns}
             />
             <GanttPane
               tasks={visibleTasks}
@@ -627,6 +681,22 @@ export default function PlanningClient() {
           task={state.modal.task}
           onConfirm={() => confirmDelete(state.modal.type === "delete" ? state.modal.task : state.tasks[0])}
           onClose={() => dispatch({ type:"SET_MODAL", modal:{ type:"none" } })}
+        />
+      )}
+
+      {showPrefs && (
+        <PreferencesModal
+          prefs={prefs}
+          onSave={p => { savePrefs(p); notify("✅ Preferencias guardadas"); }}
+          onClose={() => setShowPrefs(false)}
+        />
+      )}
+
+      {showColumns && (
+        <ColumnsModal
+          visible={visibleColumns}
+          onChange={saveColumns}
+          onClose={() => setShowColumns(false)}
         />
       )}
     </div>
