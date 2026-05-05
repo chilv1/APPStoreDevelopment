@@ -17,11 +17,12 @@ export default function Sidebar({ session }: { session: any }) {
   // /dashboard (Resumen) is intentionally hidden from the sidebar; the route
   // still exists if anyone has the URL, but new users land directly on /reports.
   const NAV_ITEMS = [
-    { href: "/reports",   icon: "📈", label: t.sidebar.reports },
-    { href: "/stores",    icon: "🏪", label: t.sidebar.stores },
-    { href: "/gantt",     icon: "📅", label: t.sidebar.portfolioGantt },
-    { href: "/branches",  icon: "🏢", label: t.sidebar.branches },
-    { href: "/map",       icon: "🗺️", label: t.sidebar.map },
+    { href: "/reports",         icon: "📈", label: t.sidebar.reports },
+    { href: "/stores",          icon: "🏪", label: t.sidebar.stores },
+    { href: "/gantt",           icon: "📅", label: t.sidebar.portfolioGantt },
+    { href: "/planificacion",   icon: "📋", label: t.sidebar.planning },
+    { href: "/branches",        icon: "🏢", label: t.sidebar.branches },
+    { href: "/map",             icon: "🗺️", label: t.sidebar.map },
   ];
 
   const ADMIN_ITEMS = [

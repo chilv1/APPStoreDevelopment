@@ -14,7 +14,7 @@ export type StoreSessionUser = {
   region?: string | null;
 };
 
-function buildStoresWhere(user: StoreSessionUser) {
+export function buildStoresWhere(user: StoreSessionUser) {
   if (user.role === "PM" && user.email) {
     return { pm: { email: user.email } };
   }
