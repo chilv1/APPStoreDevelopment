@@ -93,12 +93,18 @@ model Phase {
   actualEnd   DateTime?
   order       Int
 
+  // Dependency tracking (FS = Finish-to-Start, SS = Start-to-Start)
+  dependencyType String  @default("FS")
+  dependsOnId    String?
+  lagDays        Int     @default(0)
+
   storeId String
   store   StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
   tasks   Task[]
   notes   PhaseNote[]
 
-  @@unique([storeId, phaseNumber])
+  dependsOn  Phase?  @relation("PhaseDep", fields: [dependsOnId], references: [id], onDelete: SetNull)
+  dependents Phase[] @relation("PhaseDep")
 }
 
 // Quick text notes attached to a specific phase (for daily logging like
@@ -142,16 +148,18 @@ model PhaseBaselineSnapshot {
   @@unique([baselineId, phaseNumber])
 }
 
-// Cấu hình mẫu cho 11 giai đoạn — admin có thể chỉnh độ dài + tên mặc định
-// 11 records cố định, mỗi record cho 1 phaseNumber 1..11
+// Cấu hình mẫu cho các giai đoạn — admin có thể thêm/xóa/sắp xếp lại
+// Áp dụng cho tất cả stores (cả cũ lẫn mới) khi thay đổi
 model PhaseTemplate {
-  phaseNumber  Int      @id          // 1..11
-  name         String
-  description  String?
-  durationDays Int                   // độ dài mặc định (ngày)
-  taskTitles   String                // JSON-encoded string[] — danh sách task mặc định
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  order          Int      @unique     // vị trí hiển thị (1-based, dynamic)
+  defaultDepType String   @default("FS")  // "FS" | "SS" — dep type mặc định khi tạo store
+  name           String
+  description    String?
+  durationDays   Int                  // độ dài mặc định (ngày)
+  taskTitles     String               // JSON-encoded string[] — danh sách task mặc định
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
 }
 
 model Task {

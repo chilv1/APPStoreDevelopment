@@ -5,18 +5,34 @@ import { PHASE_ICONS } from "@/lib/utils";
 import { useT, useLocale } from "@/lib/i18n/context";
 import type { Dict } from "@/lib/i18n/types";
 
-const PHASE_DURATIONS = [30, 14, 21, 14, 21, 60, 21, 21, 14, 14, 30];
 const DAY_MS = 1000 * 60 * 60 * 24;
-const CONTRACT_PHASE_NUMBER = 4;
+const CONTRACT_PHASE_NUMBER = 4; // order of contract phase (admin-configurable default)
 
-// Phase stage groups: 4 logical stages of store opening (label resolved via t.gantt.stage*)
+// Phase stage groups — built dynamically from total phase count
 type StageKey = "SEARCH" | "BUILD" | "PREPARE" | "LAUNCH";
-const PHASE_STAGES: { key: StageKey; icon: string; phases: number[]; color: string; bgColor: string; borderColor: string }[] = [
-  { key: "SEARCH",  icon: "🔍", phases: [1, 2, 3, 4], color: "#a78bfa", bgColor: "rgba(167, 139, 250, 0.06)", borderColor: "rgba(167, 139, 250, 0.2)" },
-  { key: "BUILD",   icon: "🔨", phases: [5, 6, 7],    color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.06)", borderColor: "rgba(251, 146, 60, 0.2)" },
-  { key: "PREPARE", icon: "📚", phases: [8, 9, 10],   color: "#60a5fa", bgColor: "rgba(96, 165, 250, 0.06)", borderColor: "rgba(96, 165, 250, 0.2)" },
-  { key: "LAUNCH",  icon: "🎉", phases: [11],         color: "#facc15", bgColor: "rgba(250, 204, 21, 0.06)", borderColor: "rgba(250, 204, 21, 0.2)" },
+const STAGE_CONFIGS: { key: StageKey; icon: string; color: string; bgColor: string; borderColor: string }[] = [
+  { key: "SEARCH",  icon: "🔍", color: "#a78bfa", bgColor: "rgba(167,139,250,0.06)", borderColor: "rgba(167,139,250,0.2)" },
+  { key: "BUILD",   icon: "🔨", color: "#fb923c", bgColor: "rgba(251,146,60,0.06)",  borderColor: "rgba(251,146,60,0.2)"  },
+  { key: "PREPARE", icon: "📚", color: "#60a5fa", bgColor: "rgba(96,165,250,0.06)",  borderColor: "rgba(96,165,250,0.2)"  },
+  { key: "LAUNCH",  icon: "🎉", color: "#facc15", bgColor: "rgba(250,204,21,0.06)",  borderColor: "rgba(250,204,21,0.2)"  },
 ];
+
+function buildPhaseStages(totalPhases: number) {
+  if (totalPhases <= 0) return [];
+  // Last phase is always LAUNCH, rest split roughly 40/40/20
+  const launchOrders = [totalPhases];
+  const rest = totalPhases - 1;
+  const searchCount = Math.ceil(rest * 0.4);
+  const buildCount  = Math.ceil(rest * 0.35);
+  const prepCount   = rest - searchCount - buildCount;
+  const groups: number[][] = [
+    Array.from({ length: searchCount }, (_, i) => i + 1),
+    Array.from({ length: buildCount  }, (_, i) => i + 1 + searchCount),
+    Array.from({ length: Math.max(prepCount, 0) }, (_, i) => i + 1 + searchCount + buildCount),
+    launchOrders,
+  ].filter((g) => g.length > 0);
+  return groups.map((phases, i) => ({ ...STAGE_CONFIGS[i % 4], phases }));
+}
 
 function getStageLabel(key: StageKey, t: Dict): string {
   switch (key) {
@@ -121,8 +137,9 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
   // Detect if plannedEnd has changed -> show cascade option
   const originalPlannedEnd = toDateInput(phase.plannedEnd);
   const plannedEndChanged = form.plannedEnd && form.plannedEnd !== originalPlannedEnd;
-  const isLastPhase = phase.phaseNumber >= 11;
-  const canCascade = plannedEndChanged && !isLastPhase;
+  // Cascade is now automatic server-side — no longer need the manual checkbox
+  const isLastPhase = false; // kept for type compat; cascade always auto-runs
+  const canCascade = false;
 
   const cascadeDeltaDays = (() => {
     if (!plannedEndChanged) return 0;
@@ -163,7 +180,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>
-            {PHASE_ICONS[phase.phaseNumber]} {t.storesList.phaseAbbrev}{phase.phaseNumber}: {phase.name}
+            {PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]} {t.storesList.phaseAbbrev}{phase.order}: {phase.name}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
@@ -226,7 +243,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
               </div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.5 }}>
                 {t.ganttModals.cascadeDesc
-                  .replace("{n}", String(11 - phase.phaseNumber))
+                  .replace("{n}", String(Math.max(0, (phase.totalPhases ?? 11) - phase.order)))
                   .replace("{dir}", cascadeDeltaDays > 0 ? t.ganttModals.cascadeForward : t.ganttModals.cascadeBackward)
                   .replace("{days}", `${cascadeDeltaDays > 0 ? "+" : ""}${cascadeDeltaDays}`)}
               </div>
@@ -547,7 +564,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f4ff" }}>
-          {PHASE_ICONS[phase.phaseNumber]} {t.storesList.phaseAbbrev}{phase.phaseNumber}: {phase.name}
+          {PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]} {t.storesList.phaseAbbrev}{phase.order}: {phase.name}
         </span>
       </div>
 
@@ -632,7 +649,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
     moved: boolean;
   } | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "info" | "success" | "warning" } | null>(null);
-  const [pendingCascade, setPendingCascade] = useState<{ phaseId: string; phaseNumber: number; deltaDays: number } | null>(null);
+  const [pendingCascade, setPendingCascade] = useState<{ phaseId: string; order: number; deltaDays: number } | null>(null);
 
   // === Baselines (Tier 2) ===
   const [baselines, setBaselines] = useState<any[]>([]);
@@ -664,16 +681,21 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
   const now = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
 
+  // Build dynamic stage groups based on actual phase count
+  const phaseStages = useMemo(() => buildPhaseStages(phases.length), [phases.length]);
+
   // Fill in fallback dates for phases that have none
-  const phasesWithDates = useMemo(() => phases.map((p, idx) => {
-    if (p.plannedStart && p.plannedEnd) return p;
-    const offset = PHASE_DURATIONS.slice(0, idx).reduce((a, b) => a + b, 0);
-    const dur = PHASE_DURATIONS[idx] ?? 14;
-    const base = new Date(now);
-    const s = new Date(base); s.setDate(s.getDate() + offset);
-    const e = new Date(s);    e.setDate(e.getDate() + dur);
-    return { ...p, plannedStart: s.toISOString(), plannedEnd: e.toISOString(), _fallback: true };
-  }), [phases, now]);
+  const phasesWithDates = useMemo(() => {
+    let cursor = 0;
+    return phases.map((p) => {
+      if (p.plannedStart && p.plannedEnd) { cursor = new Date(p.plannedEnd).getTime(); return p; }
+      const dur = (p as any).durationDays ?? 14;
+      const s = new Date(cursor || now.getTime());
+      const e = new Date(s.getTime() + dur * DAY_MS);
+      cursor = e.getTime();
+      return { ...p, plannedStart: s.toISOString(), plannedEnd: e.toISOString(), _fallback: true };
+    });
+  }, [phases, now]);
 
   const target = targetDate ? new Date(targetDate) : null;
 
@@ -712,7 +734,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
   const targetPct = target ? pctFromDate(target) : null;
 
   // Contract milestone (GĐ 4 plannedEnd)
-  const contractPhase = phasesWithDates.find((p: any) => p.phaseNumber === CONTRACT_PHASE_NUMBER);
+  const contractPhase = phasesWithDates.find((p: any) => p.order === CONTRACT_PHASE_NUMBER);
   const contractDate = contractPhase ? new Date(contractPhase.plannedEnd) : null;
   const contractPct = contractDate ? pctFromDate(contractDate) : null;
 
@@ -798,8 +820,10 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
         onUpdated?.();
         // Offer cascade if not the last phase and dates shifted
         const phase = phasesWithDates.find((p: any) => p.id === ds.phaseId);
-        if (phase && phase.phaseNumber < 11 && ds.deltaDays !== 0) {
-          setPendingCascade({ phaseId: ds.phaseId, phaseNumber: phase.phaseNumber, deltaDays: ds.deltaDays });
+        // Cascade is now automatic (server-side dependency graph). Show toast if dates shifted.
+        if (phase && ds.deltaDays !== 0) {
+          setToast({ msg: `GĐ ${phase.order} "${phase.name}" đã dịch ${ds.deltaDays > 0 ? "+" : ""}${ds.deltaDays} ngày — cascade tự động`, type: "info" });
+          setTimeout(() => setToast(null), 3000);
         }
       } catch { /* ignore */ }
       setDragState(null);
@@ -857,7 +881,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
     const m = new Map<number, { plannedStart: Date; plannedEnd: Date }>();
     for (const s of activeBaseline.snapshots || []) {
       if (s.plannedStart && s.plannedEnd) {
-        m.set(s.phaseNumber, { plannedStart: new Date(s.plannedStart), plannedEnd: new Date(s.plannedEnd) });
+        m.set(s.phaseNumber, { plannedStart: new Date(s.plannedStart), plannedEnd: new Date(s.plannedEnd) }); // phaseNumber kept for baseline compat
       }
     }
     return m;
@@ -1113,8 +1137,8 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               }} />
             )}
 
-            {PHASE_STAGES.map((stage) => {
-              const stagePhases = phasesWithDates.filter((p: any) => stage.phases.includes(p.phaseNumber));
+            {phaseStages.map((stage) => {
+              const stagePhases = phasesWithDates.filter((p: any) => stage.phases.includes(p.order));
               if (stagePhases.length === 0) return null;
               return (
                 <div key={stage.key} style={{ background: stage.bgColor, borderTop: `1px solid ${stage.borderColor}` }}>
@@ -1157,10 +1181,13 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                     width: LEFT_COL, flexShrink: 0, paddingRight: 10,
                     display: "flex", alignItems: "center", gap: 8,
                   }}>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>{PHASE_ICONS[phase.phaseNumber]}</span>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]}</span>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: "#f0f4ff", fontWeight: 600, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {t.storesList.phaseAbbrev}{phase.phaseNumber}
+                        {t.storesList.phaseAbbrev}{phase.order}
+                        {(phase as any).dependencyType === "SS" && (
+                          <span title="Start-to-Start" style={{ marginLeft: 4, fontSize: 9, background: "rgba(16,185,129,0.2)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 3, padding: "0 3px", fontWeight: 700 }}>SS</span>
+                        )}
                       </div>
                       <div style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {phase.name}
@@ -1180,7 +1207,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
                     {/* Baseline ghost bar (rendered FIRST so the current bar overlays it) */}
                     {activeBaseline && (() => {
-                      const bs = baselineByPhase.get(phase.phaseNumber);
+                      const bs = baselineByPhase.get(phase.order);
                       if (!bs) return null;
                       const bLeft = pctFromDate(bs.plannedStart);
                       const bWidth = widthFromRange(bs.plannedStart, bs.plannedEnd);
@@ -1456,71 +1483,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
           }} />
       )}
 
-      {/* Cascade prompt — appears after drag changes plannedEnd */}
-      {pendingCascade && (() => {
-        const phase = phasesWithDates.find((p: any) => p.id === pendingCascade.phaseId);
-        if (!phase) { setPendingCascade(null); return null; }
-        const remaining = 11 - pendingCascade.phaseNumber;
-        const titleParts = t.ganttModals.pendingCascadeTitle
-          .replace("{n}", String(pendingCascade.phaseNumber))
-          .replace("{prefix}", pendingCascade.deltaDays > 0 ? "+" : "")
-          .replace("{days}", String(pendingCascade.deltaDays));
-        return (
-          <div style={{
-            position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-            background: "rgba(15, 23, 42, 0.98)", border: "1px solid rgba(59,130,246,0.4)",
-            borderRadius: 12, padding: "14px 18px",
-            boxShadow: "0 12px 32px rgba(0,0,0,0.5)", zIndex: 60,
-            display: "flex", alignItems: "center", gap: 14, maxWidth: 560,
-          }}>
-            <div style={{ fontSize: 22 }}>⚡</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", marginBottom: 2 }}>
-                {titleParts}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                {t.ganttModals.pendingCascadeAsk.replace("{n}", String(remaining))}
-              </div>
-            </div>
-            <button onClick={() => setPendingCascade(null)} style={{
-              padding: "6px 12px", borderRadius: 6, fontSize: 12,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
-              color: "var(--text-secondary)", cursor: "pointer",
-            }}>{t.ganttModals.dismiss}</button>
-            <button onClick={async () => {
-              const pc = pendingCascade;
-              setPendingCascade(null);
-              // Send a no-op PATCH with cascade flag to push subsequent phases
-              const phase = phasesWithDates.find((p: any) => p.id === pc.phaseId);
-              if (!phase) return;
-              const origEnd = new Date(phase.plannedEnd);
-              // Compute "previous" end so the API sees a delta
-              const prevEnd = new Date(origEnd.getTime() - pc.deltaDays * DAY_MS);
-              // Trick: pretend original was prevEnd by sending current plannedEnd unchanged with cascade=true
-              // The API computes delta from DB original vs new. Since we already saved new, we manually shift:
-              try {
-                await fetch(`/api/phases/cascade-shift`, {
-                  method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ phaseId: pc.phaseId, deltaDays: pc.deltaDays }),
-                });
-                onUpdated?.();
-                setToast({
-                  msg: t.ganttModals.cascadedOk
-                    .replace("{n}", String(11 - pc.phaseNumber))
-                    .replace("{prefix}", pc.deltaDays > 0 ? "+" : "")
-                    .replace("{days}", String(pc.deltaDays)),
-                  type: "success",
-                });
-                setTimeout(() => setToast(null), 4000);
-              } catch { /* ignore */ }
-            }} style={{
-              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-              border: "none", color: "#fff", cursor: "pointer",
-            }}>{t.ganttModals.applyCascade}</button>
-          </div>
-        );
-      })()}
+      {/* pendingCascade removed — cascade is now automatic via dependency graph */}
 
       {/* Toast notification */}
       {toast && (

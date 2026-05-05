@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { cascadeDependents } from "@/lib/phase-scheduler";
 
-const DAY_MS = 1000 * 60 * 60 * 24;
-
-// Push subsequent phases of a store by N days (without changing the source phase)
+// Trigger dependency-graph cascade from a specific phase
 export async function POST(request: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,40 +15,46 @@ export async function POST(request: Request) {
 
   const sourcePhase = await prisma.phase.findUnique({
     where: { id: phaseId },
-    select: { storeId: true, phaseNumber: true, name: true },
+    select: { storeId: true, order: true, name: true, plannedStart: true, plannedEnd: true },
   });
   if (!sourcePhase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
 
-  const subsequent = await prisma.phase.findMany({
-    where: { storeId: sourcePhase.storeId, phaseNumber: { gt: sourcePhase.phaseNumber } },
-    orderBy: { phaseNumber: "asc" },
+  // Shift source phase dates by deltaDays first
+  const DAY_MS = 1000 * 60 * 60 * 24;
+  const deltaMs = deltaDays * DAY_MS;
+  await prisma.phase.update({
+    where: { id: phaseId },
+    data: {
+      ...(sourcePhase.plannedStart && {
+        plannedStart: new Date(new Date(sourcePhase.plannedStart).getTime() + deltaMs),
+      }),
+      ...(sourcePhase.plannedEnd && {
+        plannedEnd: new Date(new Date(sourcePhase.plannedEnd).getTime() + deltaMs),
+      }),
+    },
   });
 
-  const deltaMs = deltaDays * DAY_MS;
-  await prisma.$transaction(
-    subsequent.map((p) => {
-      const data: any = {};
-      if (p.plannedStart) data.plannedStart = new Date(new Date(p.plannedStart).getTime() + deltaMs);
-      if (p.plannedEnd)   data.plannedEnd   = new Date(new Date(p.plannedEnd).getTime() + deltaMs);
-      return prisma.phase.update({ where: { id: p.id }, data });
-    })
-  );
+  // Cascade to all dependents via dependency graph
+  const cascadedCount = await cascadeDependents(phaseId, prisma as any);
 
   // Activity log
   const user = session.user as any;
-  const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
+  const dbUser = await prisma.user.findFirst({
+    where: { OR: [{ email: user.email }, { id: user.id }] },
+    select: { id: true },
+  });
   try {
     await prisma.activity.create({
       data: {
-        userId:   dbUser?.id ?? null,
-        storeId:  sourcePhase.storeId,
-        action:   "PHASE_CASCADE",
-        entity:   "Phase",
+        userId: dbUser?.id ?? null,
+        storeId: sourcePhase.storeId,
+        action: "PHASE_CASCADE",
+        entity: "Phase",
         entityId: phaseId,
-        details:  `Đẩy ${subsequent.length} giai đoạn sau GĐ ${sourcePhase.phaseNumber} ${deltaDays > 0 ? "+" : ""}${deltaDays} ngày`,
+        details: `Dịch GĐ ${sourcePhase.order} "${sourcePhase.name}" ${deltaDays > 0 ? "+" : ""}${deltaDays} ngày → cascade ${cascadedCount} GĐ phụ thuộc`,
       },
     });
   } catch { /* non-critical */ }
 
-  return NextResponse.json({ ok: true, count: subsequent.length, deltaDays });
+  return NextResponse.json({ ok: true, count: cascadedCount, deltaDays });
 }

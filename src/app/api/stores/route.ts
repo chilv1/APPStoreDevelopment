@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getOrInitPhaseTemplates } from "@/lib/phase-templates";
+import { computePhaseSchedule } from "@/lib/phase-scheduler";
 import { getStoresForUser } from "@/lib/queries/stores";
 
 export async function GET() {
@@ -39,11 +40,9 @@ export async function POST(request: Request) {
   }
 
   // === Pull phase templates from DB (admin-configurable) ===
-  const templates = await getOrInitPhaseTemplates(); // 11 records, sorted by phaseNumber
-  const tplByNumber = new Map(templates.map(t => [t.phaseNumber, t]));
+  const templates = await getOrInitPhaseTemplates(); // sorted by order
 
-  // Compute planned dates: start from body.projectStartDate (or today), accumulate durationDays
-  // Parse YYYY-MM-DD as LOCAL (not UTC) to avoid timezone shifts that desync FE preview from BE storage.
+  // Parse YYYY-MM-DD as LOCAL (not UTC) to avoid timezone shifts
   const parseLocalDate = (s: string): Date | null => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
     if (!m) return null;
@@ -51,18 +50,23 @@ export async function POST(request: Request) {
   };
   const projectStart = (body.projectStartDate && parseLocalDate(body.projectStartDate)) || new Date();
   projectStart.setHours(0, 0, 0, 0);
-  let cursor = new Date(projectStart);
-  const plannedDates = templates.map((t) => {
-    const plannedStart = new Date(cursor);
-    const plannedEnd = new Date(cursor);
-    plannedEnd.setDate(plannedEnd.getDate() + t.durationDays);
-    cursor = new Date(plannedEnd);
-    return { plannedStart, plannedEnd };
-  });
 
-  // Server-authoritative targetOpenDate: end of last phase (= projectStart + total durations)
-  const computedTargetOpenDate = plannedDates.length > 0
-    ? plannedDates[plannedDates.length - 1].plannedEnd
+  // Build temporary phase inputs for schedule computation (with synthetic IDs)
+  const phaseInputs = templates.map((t, idx) => ({
+    id: `tpl-${t.id}`,
+    order: t.order,
+    dependencyType: t.defaultDepType ?? "FS",
+    dependsOnId: idx > 0 ? `tpl-${templates[idx - 1].id}` : null,
+    lagDays: 0,
+    durationDays: t.durationDays,
+  }));
+
+  const schedule = computePhaseSchedule(phaseInputs, projectStart);
+
+  // Server-authoritative targetOpenDate: end of last phase
+  const lastInput = phaseInputs[phaseInputs.length - 1];
+  const computedTargetOpenDate = lastInput
+    ? schedule.get(lastInput.id)?.end ?? null
     : null;
 
   try { const store = await prisma.storeProject.create({
@@ -85,18 +89,22 @@ export async function POST(request: Request) {
           const taskTitles: string[] = (() => {
             try { return JSON.parse(tpl.taskTitles); } catch { return []; }
           })();
+          const sched = schedule.get(`tpl-${tpl.id}`);
           return {
-            phaseNumber: tpl.phaseNumber,
-            name:        tpl.name,
-            description: tpl.description ?? "",
-            status:      "NOT_STARTED",
-            order:       tpl.phaseNumber,
-            plannedStart: plannedDates[idx].plannedStart,
-            plannedEnd:   plannedDates[idx].plannedEnd,
+            phaseNumber:   tpl.order,
+            name:          tpl.name,
+            description:   tpl.description ?? "",
+            status:        "NOT_STARTED",
+            order:         tpl.order,
+            dependencyType: tpl.defaultDepType ?? "FS",
+            lagDays:       0,
+            // dependsOnId is set after creation via a second pass (can't reference sibling IDs here)
+            plannedStart:  sched?.start ?? null,
+            plannedEnd:    sched?.end   ?? null,
             tasks: {
               create: taskTitles.filter(Boolean).map((title, i) => ({
                 title,
-                status: "TODO",
+                status:   "TODO",
                 priority: i < 2 ? "HIGH" : "MEDIUM",
               })),
             },
@@ -104,8 +112,21 @@ export async function POST(request: Request) {
         }),
       },
     },
-    include: { phases: true, pm: true },
+    include: { phases: { orderBy: { order: "asc" } }, pm: true },
   });
+
+  // Wire dependsOnId between phases (each phase points to its predecessor)
+  const sortedPhases = store.phases.sort((a, b) => a.order - b.order);
+  if (sortedPhases.length > 1) {
+    await prisma.$transaction(
+      sortedPhases.slice(1).map((phase, idx) =>
+        prisma.phase.update({
+          where: { id: phase.id },
+          data: { dependsOnId: sortedPhases[idx].id },
+        })
+      )
+    );
+  }
 
   // Verify user exists in DB (session might have stale ID after re-seed)
   const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });

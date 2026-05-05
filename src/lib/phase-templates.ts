@@ -5,14 +5,15 @@
 // Content is in SPANISH (Peru) — primary language of the app.
 
 export const DEFAULT_PHASE_TEMPLATES: {
-  phaseNumber: number;
+  order: number;
+  defaultDepType: string;
   name: string;
   description: string;
   durationDays: number;
   taskTitles: string[];
 }[] = [
   {
-    phaseNumber: 1, name: "Búsqueda de Local", durationDays: 30,
+    order: 1, defaultDepType: "FS", name: "Búsqueda de Local", durationDays: 30,
     description: "Inspección, anuncios, coordinación con brokers e inmobiliarias",
     taskTitles: [
       "Definir criterios del local (área, ubicación, densidad poblacional)",
@@ -26,7 +27,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 2, name: "Evaluación del Local", durationDays: 14,
+    order: 2, defaultDepType: "FS", name: "Evaluación del Local", durationDays: 14,
     description: "Verificación legal, técnica y comercial",
     taskTitles: [
       "Verificación legal (título de propiedad, licencias)",
@@ -38,7 +39,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 3, name: "Negociación", durationDays: 21,
+    order: 3, defaultDepType: "FS", name: "Negociación", durationDays: 21,
     description: "Negociar precio de alquiler, términos y anexos del contrato",
     taskTitles: [
       "Propuesta inicial de alquiler al propietario",
@@ -50,7 +51,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 4, name: "Firma del Contrato", durationDays: 14,
+    order: 4, defaultDepType: "FS", name: "Firma del Contrato", durationDays: 14,
     description: "Redacción, revisión legal, notarización",
     taskTitles: [
       "Redacción del contrato de alquiler",
@@ -62,7 +63,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 5, name: "Diseño de la Tienda", durationDays: 21,
+    order: 5, defaultDepType: "FS", name: "Diseño de la Tienda", durationDays: 21,
     description: "Brief de diseño, selección de empresa, aprobación de planos",
     taskTitles: [
       "Elaborar brief de diseño (brand guideline, área, concepto)",
@@ -74,7 +75,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 6, name: "Construcción y Remodelación", durationDays: 60,
+    order: 6, defaultDepType: "FS", name: "Construcción y Remodelación", durationDays: 60,
     description: "Licitación, inicio de obra, supervisión, recepción",
     taskTitles: [
       "Licitación / asignación de constructor",
@@ -87,7 +88,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 7, name: "Equipamiento y Mobiliario", durationDays: 21,
+    order: 7, defaultDepType: "FS", name: "Equipamiento y Mobiliario", durationDays: 21,
     description: "Compra de equipos, instalación TI, letreros",
     taskTitles: [
       "Listar equipos a comprar (POS, computadoras, cámaras, mobiliario)",
@@ -100,7 +101,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 8, name: "Reclutamiento de Personal", durationDays: 21,
+    order: 8, defaultDepType: "FS", name: "Reclutamiento de Personal", durationDays: 21,
     description: "Convocatoria, entrevistas, contratos, onboarding",
     taskTitles: [
       "Definir estructura de personal (Store Manager, vendedores, seguridad)",
@@ -111,7 +112,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 9, name: "Capacitación", durationDays: 14,
+    order: 9, defaultDepType: "FS", name: "Capacitación", durationDays: 14,
     description: "Capacitación de productos, procesos, sistemas",
     taskTitles: [
       "Capacitación de productos y servicios",
@@ -122,7 +123,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 10, name: "Preparación para Apertura", durationDays: 14,
+    order: 10, defaultDepType: "FS", name: "Preparación para Apertura", durationDays: 14,
     description: "Recepción de mercadería, exhibición, dry run, marketing",
     taskTitles: [
       "Recepción inicial de mercadería (SIM, equipos, accesorios)",
@@ -135,7 +136,7 @@ export const DEFAULT_PHASE_TEMPLATES: {
     ],
   },
   {
-    phaseNumber: 11, name: "Inauguración y Operación", durationDays: 30,
+    order: 11, defaultDepType: "FS", name: "Inauguración y Operación", durationDays: 30,
     description: "Grand Opening, monitoreo de KPI, reportes",
     taskTitles: [
       "Organizar la ceremonia oficial de apertura (Grand Opening)",
@@ -149,24 +150,222 @@ export const DEFAULT_PHASE_TEMPLATES: {
 
 import { prisma } from "@/lib/db";
 
-// Lazy-init helper: ensures the 11 default rows exist, then returns them sorted.
+// Lazy-init helper: ensures default rows exist, then returns them sorted by order.
 export async function getOrInitPhaseTemplates() {
-  const existing = await prisma.phaseTemplate.findMany({ orderBy: { phaseNumber: "asc" } });
-  if (existing.length === 11) return existing;
+  const existing = await prisma.phaseTemplate.findMany({ orderBy: { order: "asc" } });
+  if (existing.length > 0) return existing;
 
-  // Upsert any missing rows from defaults (preserves any admin edits that exist)
-  const existingNumbers = new Set(existing.map(t => t.phaseNumber));
-  const missing = DEFAULT_PHASE_TEMPLATES.filter(t => !existingNumbers.has(t.phaseNumber));
-  if (missing.length > 0) {
-    await prisma.phaseTemplate.createMany({
-      data: missing.map(t => ({
-        phaseNumber: t.phaseNumber,
-        name: t.name,
-        description: t.description,
-        durationDays: t.durationDays,
-        taskTitles: JSON.stringify(t.taskTitles),
-      })),
+  // Seed defaults when DB is empty
+  await prisma.phaseTemplate.createMany({
+    data: DEFAULT_PHASE_TEMPLATES.map((t) => ({
+      order: t.order,
+      defaultDepType: t.defaultDepType,
+      name: t.name,
+      description: t.description,
+      durationDays: t.durationDays,
+      taskTitles: JSON.stringify(t.taskTitles),
+    })),
+  });
+
+  return prisma.phaseTemplate.findMany({ orderBy: { order: "asc" } });
+}
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+/**
+ * Add a new phase (from a newly created template) to ALL existing stores.
+ * Inserts the phase at `templateOrder`, shifts later phases up.
+ */
+export async function addTemplateToAllStores(
+  templateOrder: number,
+  templateId: string,
+  templateName: string,
+  templateDescription: string | null,
+  durationDays: number,
+  taskTitles: string[],
+  defaultDepType: string
+): Promise<number> {
+  const allStores = await prisma.storeProject.findMany({ select: { id: true } });
+  if (allStores.length === 0) return 0;
+
+  let affectedStores = 0;
+
+  for (const store of allStores) {
+    // Load all phases for this store sorted by order
+    const phases = await prisma.phase.findMany({
+      where: { storeId: store.id },
+      orderBy: { order: "asc" },
     });
+
+    // Shift phases at order >= templateOrder upward (high-to-low to avoid conflicts)
+    const toShift = phases.filter((p) => p.order >= templateOrder).sort((a, b) => b.order - a.order);
+    for (const p of toShift) {
+      await prisma.phase.update({
+        where: { id: p.id },
+        data: { order: p.order + 1, phaseNumber: p.phaseNumber + 1 },
+      });
+    }
+
+    // Find predecessor (order = templateOrder - 1)
+    const predecessor = phases.find((p) => p.order === templateOrder - 1);
+
+    // Compute dates for the new phase
+    let plannedStart: Date | null = null;
+    let plannedEnd: Date | null = null;
+    let dependsOnId: string | null = null;
+
+    if (predecessor?.plannedEnd) {
+      if (defaultDepType === "SS" && predecessor.plannedStart) {
+        plannedStart = new Date(predecessor.plannedStart);
+      } else {
+        plannedStart = new Date(predecessor.plannedEnd);
+      }
+      plannedEnd = new Date(plannedStart.getTime() + durationDays * DAY_MS);
+      dependsOnId = predecessor.id;
+    }
+
+    // Re-fetch the shifted phase at new templateOrder to get its updated id for linkage
+    const newPhase = await prisma.phase.create({
+      data: {
+        phaseNumber: templateOrder,
+        order: templateOrder,
+        name: templateName,
+        description: templateDescription ?? "",
+        status: "NOT_STARTED",
+        dependencyType: defaultDepType,
+        dependsOnId,
+        lagDays: 0,
+        plannedStart,
+        plannedEnd,
+        storeId: store.id,
+        tasks: {
+          create: taskTitles.filter(Boolean).map((title, i) => ({
+            title,
+            status: "TODO",
+            priority: i < 2 ? "HIGH" : "MEDIUM",
+          })),
+        },
+      },
+    });
+
+    // Update the phase that was previously at templateOrder (now templateOrder+1)
+    // so its dependsOnId points to the new phase instead of the predecessor
+    const nextPhase = await prisma.phase.findFirst({
+      where: { storeId: store.id, order: templateOrder + 1 },
+    });
+    if (nextPhase) {
+      await prisma.phase.update({
+        where: { id: nextPhase.id },
+        data: { dependsOnId: newPhase.id },
+      });
+    }
+
+    // Update store's targetOpenDate = end of last phase
+    const lastPhase = await prisma.phase.findFirst({
+      where: { storeId: store.id },
+      orderBy: { order: "desc" },
+    });
+    if (lastPhase?.plannedEnd) {
+      await prisma.storeProject.update({
+        where: { id: store.id },
+        data: { targetOpenDate: lastPhase.plannedEnd },
+      });
+    }
+
+    affectedStores++;
   }
-  return prisma.phaseTemplate.findMany({ orderBy: { phaseNumber: "asc" } });
+
+  return affectedStores;
+}
+
+/**
+ * Remove a phase at `templateOrder` from ALL existing stores.
+ * Shifts later phases down and re-links dependencies.
+ * Returns { storesAffected, phasesDeleted, tasksDeleted }.
+ */
+export async function removeTemplateFromAllStores(templateOrder: number): Promise<{
+  storesAffected: number;
+  phasesDeleted: number;
+}> {
+  const allStores = await prisma.storeProject.findMany({ select: { id: true } });
+  let phasesDeleted = 0;
+
+  for (const store of allStores) {
+    const phases = await prisma.phase.findMany({
+      where: { storeId: store.id },
+      orderBy: { order: "asc" },
+    });
+
+    const target = phases.find((p) => p.order === templateOrder);
+    if (!target) continue;
+
+    // Re-link phases that depended on the target to skip over it
+    const dependents = phases.filter((p) => p.dependsOnId === target.id);
+    for (const dep of dependents) {
+      await prisma.phase.update({
+        where: { id: dep.id },
+        data: { dependsOnId: target.dependsOnId ?? null },
+      });
+    }
+
+    // Delete the target phase (cascade: tasks, notes)
+    await prisma.phase.delete({ where: { id: target.id } });
+    phasesDeleted++;
+
+    // Shift later phases down (low-to-high to avoid conflicts)
+    const toShift = phases
+      .filter((p) => p.order > templateOrder && p.id !== target.id)
+      .sort((a, b) => a.order - b.order);
+
+    for (const p of toShift) {
+      await prisma.phase.update({
+        where: { id: p.id },
+        data: { order: p.order - 1, phaseNumber: p.phaseNumber - 1 },
+      });
+    }
+
+    // Update store targetOpenDate
+    const lastPhase = await prisma.phase.findFirst({
+      where: { storeId: store.id },
+      orderBy: { order: "desc" },
+    });
+    if (lastPhase?.plannedEnd) {
+      await prisma.storeProject.update({
+        where: { id: store.id },
+        data: { targetOpenDate: lastPhase.plannedEnd },
+      });
+    }
+  }
+
+  return { storesAffected: allStores.length, phasesDeleted };
+}
+
+/**
+ * Apply a name/description change from a template to all existing stores.
+ */
+export async function applyNameChangeToAllStores(
+  templateOrder: number,
+  name: string,
+  description: string | null
+): Promise<number> {
+  const result = await prisma.phase.updateMany({
+    where: { order: templateOrder },
+    data: { name, description: description ?? "" },
+  });
+  return result.count;
+}
+
+/**
+ * Apply a dependency type / lag change from a template to all existing stores.
+ */
+export async function applyDepTypeToAllStores(
+  templateOrder: number,
+  dependencyType: string,
+  lagDays: number
+): Promise<number> {
+  const result = await prisma.phase.updateMany({
+    where: { order: templateOrder },
+    data: { dependencyType, lagDays },
+  });
+  return result.count;
 }
