@@ -54,8 +54,10 @@ export async function GET(request: Request) {
     phases: store.phases.map((ph) => {
       const total = ph.tasks.length;
       const done  = ph.tasks.filter((t) => t.status === "DONE").length;
+      // Task-based progress takes priority when tasks exist; fall back to stored progressPct
       const pct = ph.status === "COMPLETED" ? 100
         : total > 0 ? Math.round((done / total) * 100)
+        : (ph as any).progressPct > 0 ? (ph as any).progressPct
         : ph.status === "IN_PROGRESS" ? 30
         : 0;
       return {
@@ -72,6 +74,7 @@ export async function GET(request: Request) {
         dependsOnId: ph.dependsOnId,
         lagDays: ph.lagDays,
         pct,
+        progressPct: (ph as any).progressPct ?? 0,
         taskCount: total,
       };
     }),

@@ -71,7 +71,8 @@ export interface ApiPhase {
   dependencyType: string;
   dependsOnId: string | null;
   lagDays: number;
-  pct: number;
+  pct: number;          // computed: task-based or progressPct override
+  progressPct: number;  // stored manual override
   taskCount: number;
 }
 

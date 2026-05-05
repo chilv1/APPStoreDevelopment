@@ -284,8 +284,9 @@ export default function PlanningClient() {
         body.plannedEnd   = new Date(currentStart.getTime() + Math.max(1, patch.dur) * DAY).toISOString();
       }
     }
-    // pct: update phase status based on progress
+    // pct: persist manual progress and sync status
     if (patch.pct !== undefined) {
+      body.progressPct = patch.pct;
       body.status = patch.pct >= 100 ? "COMPLETED" : patch.pct > 0 ? "IN_PROGRESS" : "NOT_STARTED";
     }
 
@@ -519,6 +520,7 @@ export default function PlanningClient() {
           <>
             <WBSGrid
               tasks={visibleTasks}
+              allTasks={processedTasks}
               selectedId={state.selectedId}
               onSelect={id => dispatch({ type:"SELECT", id })}
               onToggleExpand={id => dispatch({ type:"TOGGLE_EXPAND", id })}

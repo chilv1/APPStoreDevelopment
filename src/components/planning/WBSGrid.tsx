@@ -15,7 +15,8 @@ function fmtD(d: Date | null) {
 }
 
 interface Props {
-  tasks: PlanTask[];
+  tasks: PlanTask[];       // visible tasks (respects collapse/filter)
+  allTasks: PlanTask[];    // all tasks (for pred resolution regardless of collapse)
   selectedId: string | null;
   showCritical: boolean;
   onSelect: (id: string) => void;
@@ -24,7 +25,9 @@ interface Props {
   onOpenDetail: (id: string) => void;
 }
 
-export default function WBSGrid({ tasks, selectedId, showCritical, onSelect, onToggleExpand, onUpdateTask, onOpenDetail }: Props) {
+export default function WBSGrid({ tasks, allTasks, selectedId, showCritical, onSelect, onToggleExpand, onUpdateTask, onOpenDetail }: Props) {
+  // Non-summary tasks in absolute order — used for stable pred numbering
+  const allPhases = allTasks.filter(t => t.type !== "summary");
   const [editing, setEditing] = useState<{ id: string; field: string } | null>(null);
   const [editVal, setEditVal] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
@@ -41,7 +44,8 @@ export default function WBSGrid({ tasks, selectedId, showCritical, onSelect, onT
     else if (field === "dur") onUpdateTask(id, { dur: Math.max(0, parseInt(editVal) || 0) });
     else if (field === "pred") {
       const idx = parseInt(editVal) - 1;
-      const target = tasks[idx];
+      // Resolve from allPhases (stable index regardless of collapse/filter)
+      const target = allPhases[idx];
       onUpdateTask(id, { pred: target?.id ?? null });
     }
     else if (field === "pct") onUpdateTask(id, { pct: Math.min(100, Math.max(0, parseInt(editVal)||0)) });
@@ -125,12 +129,12 @@ export default function WBSGrid({ tasks, selectedId, showCritical, onSelect, onT
               {/* Fin */}
               <div style={{ textAlign:"center", fontSize:10, color:"#8b949e" }}>{fmtD(t.fin)}</div>
 
-              {/* Pred */}
+              {/* Pred — absolute index in allPhases (stable even when stores collapsed) */}
               <div style={{ textAlign:"center", fontSize:10, color:"#8b949e" }}
-                onDoubleClick={()=>startEdit(t.id,"pred",t.pred ? String(tasks.findIndex(x=>x.id===t.pred)+1) : "")}>
+                onDoubleClick={()=>startEdit(t.id,"pred",t.pred ? String(allPhases.findIndex(x=>x.id===t.pred)+1) : "")}>
                 {editing?.id===t.id&&editing.field==="pred"
                   ? <input autoFocus type="number" value={editVal} onChange={e=>setEditVal(e.target.value)} onBlur={commitEdit} onKeyDown={e=>{if(e.key==="Enter")commitEdit();if(e.key==="Escape")setEditing(null);}} style={{ width:28, background:"rgba(56,139,253,.1)", border:"1px solid #388bfd", color:"#e6edf3", fontSize:11, textAlign:"center", borderRadius:2, outline:"none", height:18 }} />
-                  : (t.pred ? tasks.findIndex(x=>x.id===t.pred)+1 || "" : "")}
+                  : (() => { const idx = allPhases.findIndex(x => x.id === t.pred); return idx >= 0 ? idx + 1 : t.pred ? "↑" : ""; })()}
               </div>
 
               {/* Progress bar */}

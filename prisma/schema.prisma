@@ -93,10 +93,11 @@ model Phase {
   actualEnd   DateTime?
   order       Int
 
-  // Dependency tracking (FS = Finish-to-Start, SS = Start-to-Start)
+  // Dependency tracking (FS | SS | FF | SF)
   dependencyType String  @default("FS")
   dependsOnId    String?
   lagDays        Int     @default(0)
+  progressPct    Int     @default(0)
 
   storeId String
   store   StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)

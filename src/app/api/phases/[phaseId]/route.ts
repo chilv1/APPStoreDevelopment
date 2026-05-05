@@ -22,10 +22,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   if (body.dependsOnId     !== undefined) data.dependsOnId     = body.dependsOnId ?? null;
   if (body.lagDays         !== undefined) data.lagDays         = Number(body.lagDays) || 0;
   if (body.name            !== undefined) data.name            = body.name;
+  if (body.progressPct     !== undefined) data.progressPct     = Math.min(100, Math.max(0, Number(body.progressPct) || 0));
 
-  if (data.plannedStart && data.plannedEnd && data.plannedEnd < data.plannedStart) {
+  // Cross-validate dates: fetch existing values when only one date is in the request
+  const onlyStart = data.plannedStart !== undefined && data.plannedEnd === undefined;
+  const onlyEnd   = data.plannedEnd   !== undefined && data.plannedStart === undefined;
+  if (onlyStart || onlyEnd) {
+    const existing = await prisma.phase.findUnique({ where: { id: phaseId }, select: { plannedStart: true, plannedEnd: true } });
+    if (existing) {
+      const effectiveStart = data.plannedStart ?? existing.plannedStart;
+      const effectiveEnd   = data.plannedEnd   ?? existing.plannedEnd;
+      if (effectiveStart && effectiveEnd && effectiveEnd < effectiveStart) {
+        return NextResponse.json({ error: "Ngày kết thúc phải sau ngày bắt đầu" }, { status: 400 });
+      }
+    }
+  } else if (data.plannedStart && data.plannedEnd && data.plannedEnd < data.plannedStart) {
     return NextResponse.json({ error: "Ngày kết thúc phải sau ngày bắt đầu" }, { status: 400 });
   }
+
   if (data.actualStart && data.actualEnd && data.actualEnd < data.actualStart) {
     return NextResponse.json({ error: "Ngày thực tế kết thúc phải sau ngày thực tế bắt đầu" }, { status: 400 });
   }
