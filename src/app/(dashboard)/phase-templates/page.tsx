@@ -7,7 +7,9 @@ import { useT, useLocale } from "@/lib/i18n/context";
 type Template = {
   id: string;
   order: number;
-  defaultDepType: string;
+  defaultDepType: string;        // FS | SS | FF | SF
+  defaultPredOrder: number | null;
+  defaultLagDays: number;
   name: string;
   description: string | null;
   durationDays: number;
@@ -126,6 +128,8 @@ export default function PhaseTemplatesPage() {
         durationDays: 7,
         taskTitles: [],
         defaultDepType: "FS",
+        defaultPredOrder: null,
+        defaultLagDays: 0,
         insertAfterOrder: lastOrder,
       }),
     });
@@ -213,7 +217,7 @@ export default function PhaseTemplatesPage() {
         {/* Header */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "40px 1fr 100px 200px 80px 100px 36px",
+          gridTemplateColumns: "40px 1fr 90px 180px 290px 90px 36px",
           gap: 10, padding: "8px 16px",
           background: "rgba(255,255,255,0.03)",
           borderBottom: "1px solid var(--border)",
@@ -238,7 +242,7 @@ export default function PhaseTemplatesPage() {
               {/* Phase row */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: "40px 1fr 100px 200px 80px 100px 36px",
+                gridTemplateColumns: "40px 1fr 90px 180px 290px 90px 36px",
                 gap: 10, padding: "10px 16px",
                 borderBottom: isExpanded ? "none" : "1px solid rgba(255,255,255,0.04)",
                 alignItems: "center",
@@ -283,17 +287,45 @@ export default function PhaseTemplatesPage() {
                   style={{ padding: "6px 10px", fontSize: 12 }}
                 />
 
-                {/* Dependency type */}
-                <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                {/* Dependency config: predecessor + type + lag */}
+                <div style={{ display: "flex", gap: 4, alignItems: "center", justifyContent: "center" }}>
+                  {/* Predecessor selector */}
+                  <select
+                    className="input"
+                    value={tpl.defaultPredOrder ?? ""}
+                    onChange={(e) => update(tpl.id, { defaultPredOrder: e.target.value === "" ? null : Number(e.target.value) })}
+                    disabled={idx === 0}
+                    title={idx === 0 ? "Primera fase: sin predecesor" : "Predecesor (— = anterior automático)"}
+                    style={{ padding: "4px 4px", fontSize: 10, cursor: idx === 0 ? "not-allowed" : "pointer", flex: 1, minWidth: 0, opacity: idx === 0 ? 0.4 : 1 }}
+                  >
+                    <option value="">— F.{idx}</option>
+                    {templates.filter((_, i) => i !== idx).map((p, i) => (
+                      <option key={p.id} value={p.order}>F.{p.order}</option>
+                    ))}
+                  </select>
+                  {/* Type selector */}
                   <select
                     className="input"
                     value={tpl.defaultDepType}
                     onChange={(e) => update(tpl.id, { defaultDepType: e.target.value })}
-                    style={{ padding: "4px 6px", fontSize: 11, cursor: "pointer" }}
+                    title="Tipo: FS (Fin→Inicio), SS (Inicio→Inicio), FF (Fin→Fin), SF (Inicio→Fin)"
+                    style={{ padding: "4px 4px", fontSize: 10, cursor: "pointer", width: 50 }}
                   >
                     <option value="FS">FS</option>
-                    <option value="SS">SS ⚡</option>
+                    <option value="SS">SS</option>
+                    <option value="FF">FF</option>
+                    <option value="SF">SF</option>
                   </select>
+                  {/* Lag days */}
+                  <input
+                    className="input"
+                    type="number" min={0} max={365}
+                    value={tpl.defaultLagDays}
+                    onChange={(e) => update(tpl.id, { defaultLagDays: Math.max(0, Number(e.target.value) || 0) })}
+                    title="Lag (días de retraso)"
+                    style={{ padding: "4px 4px", fontSize: 10, textAlign: "center", width: 44 }}
+                  />
+                  <span style={{ fontSize: 9, color: "var(--text-muted)" }}>d</span>
                 </div>
 
                 {/* Task expand button */}

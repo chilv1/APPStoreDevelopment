@@ -152,15 +152,17 @@ model PhaseBaselineSnapshot {
 // Cấu hình mẫu cho các giai đoạn — admin có thể thêm/xóa/sắp xếp lại
 // Áp dụng cho tất cả stores (cả cũ lẫn mới) khi thay đổi
 model PhaseTemplate {
-  id             String   @id @default(cuid())
-  order          Int      @unique     // vị trí hiển thị (1-based, dynamic)
-  defaultDepType String   @default("FS")  // "FS" | "SS" — dep type mặc định khi tạo store
-  name           String
-  description    String?
-  durationDays   Int                  // độ dài mặc định (ngày)
-  taskTitles     String               // JSON-encoded string[] — danh sách task mặc định
-  updatedAt      DateTime @updatedAt
-  createdAt      DateTime @default(now())
+  id               String   @id @default(cuid())
+  order            Int      @unique     // vị trí hiển thị (1-based, dynamic)
+  defaultDepType   String   @default("FS")  // "FS" | "SS" | "FF" | "SF"
+  defaultPredOrder Int?                     // null = auto (phase order-1); else explicit predecessor order
+  defaultLagDays   Int      @default(0)
+  name             String
+  description      String?
+  durationDays     Int                      // độ dài mặc định (ngày)
+  taskTitles       String                   // JSON-encoded string[]
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
 }
 
 model Task {

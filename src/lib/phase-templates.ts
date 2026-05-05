@@ -183,7 +183,9 @@ export async function addTemplateToAllStores(
   templateDescription: string | null,
   durationDays: number,
   taskTitles: string[],
-  defaultDepType: string
+  defaultDepType: string,
+  defaultPredOrder: number | null = null,
+  defaultLagDays: number = 0,
 ): Promise<number> {
   const allStores = await prisma.storeProject.findMany({ select: { id: true } });
   if (allStores.length === 0) return 0;
@@ -191,7 +193,6 @@ export async function addTemplateToAllStores(
   let affectedStores = 0;
 
   for (const store of allStores) {
-    // Load all phases for this store sorted by order
     const phases = await prisma.phase.findMany({
       where: { storeId: store.id },
       orderBy: { order: "asc" },
@@ -206,25 +207,30 @@ export async function addTemplateToAllStores(
       });
     }
 
-    // Find predecessor (order = templateOrder - 1)
-    const predecessor = phases.find((p) => p.order === templateOrder - 1);
+    // Resolve predecessor: explicit defaultPredOrder, or auto = templateOrder - 1
+    const predOrder = defaultPredOrder ?? templateOrder - 1;
+    const predecessor = phases.find((p) => p.order === predOrder);
 
-    // Compute dates for the new phase
+    // Compute dates for the new phase based on dep type + lag
     let plannedStart: Date | null = null;
-    let plannedEnd: Date | null = null;
-    let dependsOnId: string | null = null;
+    let plannedEnd:   Date | null = null;
+    let dependsOnId:  string | null = null;
+    const lagMs = defaultLagDays * DAY_MS;
+    const durMs = durationDays * DAY_MS;
 
-    if (predecessor?.plannedEnd) {
-      if (defaultDepType === "SS" && predecessor.plannedStart) {
-        plannedStart = new Date(predecessor.plannedStart);
-      } else {
-        plannedStart = new Date(predecessor.plannedEnd);
-      }
-      plannedEnd = new Date(plannedStart.getTime() + durationDays * DAY_MS);
-      dependsOnId = predecessor.id;
+    if (predecessor?.plannedEnd && predecessor?.plannedStart) {
+      const ps = new Date(predecessor.plannedStart).getTime();
+      const pe = new Date(predecessor.plannedEnd).getTime();
+      let startMs: number;
+      if      (defaultDepType === "SS") startMs = ps + lagMs;
+      else if (defaultDepType === "FF") startMs = pe + lagMs - durMs;
+      else if (defaultDepType === "SF") startMs = ps + lagMs - durMs;
+      else                              startMs = pe + lagMs; // FS
+      plannedStart = new Date(startMs);
+      plannedEnd   = new Date(startMs + durMs);
+      dependsOnId  = predecessor.id;
     }
 
-    // Re-fetch the shifted phase at new templateOrder to get its updated id for linkage
     const newPhase = await prisma.phase.create({
       data: {
         phaseNumber: templateOrder,
@@ -234,7 +240,7 @@ export async function addTemplateToAllStores(
         status: "NOT_STARTED",
         dependencyType: defaultDepType,
         dependsOnId,
-        lagDays: 0,
+        lagDays: defaultLagDays,
         plannedStart,
         plannedEnd,
         storeId: store.id,
@@ -356,16 +362,71 @@ export async function applyNameChangeToAllStores(
 }
 
 /**
- * Apply a dependency type / lag change from a template to all existing stores.
+ * Apply a dependency CONFIG (type + predecessor + lag) change from a template to all existing stores.
+ * For each store: find phase at templateOrder, set its dependsOnId to phase at predOrder
+ * (or order-1 if predOrder is null), then cascade dates downstream.
  */
-export async function applyDepTypeToAllStores(
+export async function applyDepConfigToAllStores(
   templateOrder: number,
   dependencyType: string,
-  lagDays: number
+  defaultPredOrder: number | null,
+  lagDays: number,
 ): Promise<number> {
-  const result = await prisma.phase.updateMany({
-    where: { order: templateOrder },
-    data: { dependencyType, lagDays },
-  });
-  return result.count;
+  const { cascadeDependents } = await import("@/lib/phase-scheduler");
+  const stores = await prisma.storeProject.findMany({ select: { id: true } });
+  let touched = 0;
+
+  for (const store of stores) {
+    const target = await prisma.phase.findFirst({
+      where: { storeId: store.id, order: templateOrder },
+      select: { id: true },
+    });
+    if (!target) continue;
+
+    // Resolve predecessor by order (auto = templateOrder - 1)
+    const predOrder = defaultPredOrder ?? templateOrder - 1;
+    let dependsOnId: string | null = null;
+    if (predOrder >= 1) {
+      const pred = await prisma.phase.findFirst({
+        where: { storeId: store.id, order: predOrder },
+        select: { id: true },
+      });
+      dependsOnId = pred?.id ?? null;
+    }
+
+    await prisma.phase.update({
+      where: { id: target.id },
+      data: { dependencyType, dependsOnId, lagDays },
+    });
+
+    // Recompute target phase's own dates from its predecessor (if any)
+    if (dependsOnId) {
+      const updated = await prisma.phase.findUnique({
+        where: { id: target.id },
+        select: { plannedStart: true, plannedEnd: true },
+      });
+      const pred = await prisma.phase.findUnique({
+        where: { id: dependsOnId },
+        select: { plannedStart: true, plannedEnd: true },
+      });
+      if (pred?.plannedStart && pred?.plannedEnd && updated?.plannedStart && updated?.plannedEnd) {
+        const lagMs = lagDays * DAY_MS;
+        const durMs = new Date(updated.plannedEnd).getTime() - new Date(updated.plannedStart).getTime();
+        let startMs: number;
+        if      (dependencyType === "SS") startMs = new Date(pred.plannedStart).getTime() + lagMs;
+        else if (dependencyType === "FF") startMs = new Date(pred.plannedEnd).getTime()   + lagMs - durMs;
+        else if (dependencyType === "SF") startMs = new Date(pred.plannedStart).getTime() + lagMs - durMs;
+        else                              startMs = new Date(pred.plannedEnd).getTime()   + lagMs;
+        await prisma.phase.update({
+          where: { id: target.id },
+          data: { plannedStart: new Date(startMs), plannedEnd: new Date(startMs + durMs) },
+        });
+      }
+    }
+
+    // Cascade downstream phases
+    await cascadeDependents(target.id, prisma as any);
+    touched++;
+  }
+  return touched;
 }

@@ -5,7 +5,7 @@ import {
   getOrInitPhaseTemplates,
   addTemplateToAllStores,
   applyNameChangeToAllStores,
-  applyDepTypeToAllStores,
+  applyDepConfigToAllStores,
 } from "@/lib/phase-templates";
 
 export async function GET() {
@@ -13,8 +13,10 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const templates = await getOrInitPhaseTemplates();
-  const data = templates.map((t) => ({
+  const data = templates.map((t: any) => ({
     ...t,
+    defaultPredOrder: t.defaultPredOrder ?? null,
+    defaultLagDays:   t.defaultLagDays ?? 0,
     taskTitles: (() => { try { return JSON.parse(t.taskTitles); } catch { return []; } })(),
   }));
 
@@ -39,12 +41,16 @@ export async function PUT(request: Request) {
     for (const t of body) {
       if (!t.id) continue;
 
-      const current = await prisma.phaseTemplate.findUnique({ where: { id: t.id } });
+      const current = await prisma.phaseTemplate.findUnique({ where: { id: t.id } }) as any;
       if (!current) continue;
 
       const nameChanged = t.name !== current.name || (t.description ?? null) !== current.description;
-      const depChanged =
-        t.defaultDepType !== current.defaultDepType;
+      const newPredOrder: number | null = t.defaultPredOrder ?? null;
+      const newLagDays   = Math.max(0, Number(t.defaultLagDays) || 0);
+      const depConfigChanged =
+            t.defaultDepType   !== current.defaultDepType
+         || newPredOrder       !== (current.defaultPredOrder ?? null)
+         || newLagDays          !== (current.defaultLagDays ?? 0);
 
       await prisma.phaseTemplate.update({
         where: { id: t.id },
@@ -54,8 +60,10 @@ export async function PUT(request: Request) {
           durationDays: Math.max(1, Math.round(Number(t.durationDays) || 1)),
           taskTitles: JSON.stringify(Array.isArray(t.taskTitles) ? t.taskTitles : []),
           defaultDepType: t.defaultDepType ?? "FS",
+          defaultPredOrder: newPredOrder,
+          defaultLagDays:   newLagDays,
           order: t.order,
-        },
+        } as any,
       });
 
       // Propagate name/desc changes to all stores
@@ -63,9 +71,9 @@ export async function PUT(request: Request) {
         await applyNameChangeToAllStores(current.order, t.name, t.description ?? null);
       }
 
-      // Propagate dep type changes to all stores
-      if (depChanged) {
-        await applyDepTypeToAllStores(current.order, t.defaultDepType, 0);
+      // Propagate dep config (type + pred + lag) to all stores
+      if (depConfigChanged) {
+        await applyDepConfigToAllStores(current.order, t.defaultDepType ?? "FS", newPredOrder, newLagDays);
       }
     }
 
@@ -83,7 +91,7 @@ export async function POST(request: Request) {
   if (user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { name, description, durationDays, taskTitles, defaultDepType, insertAfterOrder } = body;
+  const { name, description, durationDays, taskTitles, defaultDepType, defaultPredOrder, defaultLagDays, insertAfterOrder } = body;
 
   if (!name?.trim()) return NextResponse.json({ error: "Tên phase là bắt buộc" }, { status: 400 });
 
@@ -107,7 +115,9 @@ export async function POST(request: Request) {
   }
 
   const titles: string[] = Array.isArray(taskTitles) ? taskTitles.filter(Boolean) : [];
-  const depType = defaultDepType ?? "FS";
+  const depType  = defaultDepType ?? "FS";
+  const predOrd: number | null = defaultPredOrder ?? null;
+  const lagDays  = Math.max(0, Number(defaultLagDays) || 0);
 
   const newTemplate = await prisma.phaseTemplate.create({
     data: {
@@ -117,7 +127,9 @@ export async function POST(request: Request) {
       durationDays: Math.max(1, Math.round(Number(durationDays) || 7)),
       taskTitles: JSON.stringify(titles),
       defaultDepType: depType,
-    },
+      defaultPredOrder: predOrd,
+      defaultLagDays:   lagDays,
+    } as any,
   });
 
   // Propagate to all stores
@@ -128,7 +140,9 @@ export async function POST(request: Request) {
     newTemplate.description,
     newTemplate.durationDays,
     titles,
-    depType
+    depType,
+    predOrd,
+    lagDays,
   );
 
   return NextResponse.json({ ok: true, template: newTemplate, storesAffected }, { status: 201 });
