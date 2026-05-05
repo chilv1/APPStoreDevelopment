@@ -1137,26 +1137,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
               }} />
             )}
 
-            {phaseStages.map((stage) => {
-              const stagePhases = phasesWithDates.filter((p: any) => stage.phases.includes(p.order));
-              if (stagePhases.length === 0) return null;
-              return (
-                <div key={stage.key} style={{ background: stage.bgColor, borderTop: `1px solid ${stage.borderColor}` }}>
-                  {/* Stage header banner */}
-                  <div style={{
-                    display: "flex", alignItems: "center",
-                    padding: "6px 12px 4px",
-                    fontSize: 10, fontWeight: 800, color: stage.color,
-                    letterSpacing: 0.8, textTransform: "uppercase",
-                    borderBottom: `1px solid ${stage.borderColor}`,
-                  }}>
-                    <span style={{ fontSize: 13, marginRight: 6 }}>{stage.icon}</span>
-                    {getStageLabel(stage.key, t)}
-                    <span style={{ marginLeft: 10, fontSize: 9, color: "var(--text-muted)", fontWeight: 500, letterSpacing: 0, textTransform: "none" }}>
-                      {t.gantt.phaseCount.replace("{n}", String(stagePhases.length))}
-                    </span>
-                  </div>
-                  {stagePhases.map((phase: any) => {
+            {phasesWithDates.map((phase: any) => {
               const status = deriveStatus(phase, now);
               const theme = STATUS_THEME[status];
               const progress = getProgress(phase);
@@ -1413,9 +1394,6 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                     <StatusBadgeDropdown phase={phase} theme={theme} status={status}
                       onChange={(newStatus: string) => handleStatusChange(phase.id, newStatus)} />
                   </div>
-                </div>
-              );
-            })}
                 </div>
               );
             })}
