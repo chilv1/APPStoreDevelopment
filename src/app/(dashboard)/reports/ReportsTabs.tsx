@@ -13,15 +13,17 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useT } from "@/lib/i18n/context";
 
+const MilestonesTab = dynamic(() => import("./tabs/MilestonesTab"), { ssr: false });
 const ExecutiveTab = dynamic(() => import("./tabs/ExecutiveTab"), { ssr: false });
 const BranchTab = dynamic(() => import("./tabs/BranchTab"), { ssr: false });
 const BCTab = dynamic(() => import("./tabs/BCTab"), { ssr: false });
 const TrendsTab = dynamic(() => import("./tabs/TrendsTab"), { ssr: false });
 const RisksTab = dynamic(() => import("./tabs/RisksTab"), { ssr: false });
 
-type TabId = "executive" | "branch" | "bc" | "trends" | "risks";
+type TabId = "milestones" | "executive" | "branch" | "bc" | "trends" | "risks";
 
 const TAB_PERMS: Record<TabId, string[]> = {
+  milestones: ["ADMIN", "AREA_MANAGER", "PM"],
   executive: ["ADMIN"],
   branch:    ["ADMIN", "AREA_MANAGER"],
   bc:        ["ADMIN", "AREA_MANAGER", "PM"],
@@ -32,13 +34,14 @@ const TAB_PERMS: Record<TabId, string[]> = {
 export default function ReportsTabs({ userRole }: { userRole: string }) {
   const t = useT();
 
-  // List of tabs visible to this user
-  const TABS: { id: TabId; labelKey: keyof typeof t.reportsPage }[] = [
-    { id: "executive", labelKey: "tabExecutive" },
-    { id: "branch",    labelKey: "tabBranch" },
-    { id: "bc",        labelKey: "tabBC" },
-    { id: "trends",    labelKey: "tabTrends" },
-    { id: "risks",     labelKey: "tabRisks" },
+  // List of tabs visible to this user — Phase Milestones is first (high-priority)
+  const TABS: { id: TabId; labelKey?: keyof typeof t.reportsPage; literal?: string }[] = [
+    { id: "milestones", literal: "📅 Phase Milestones" },
+    { id: "executive",  labelKey: "tabExecutive" },
+    { id: "branch",     labelKey: "tabBranch" },
+    { id: "bc",         labelKey: "tabBC" },
+    { id: "trends",     labelKey: "tabTrends" },
+    { id: "risks",      labelKey: "tabRisks" },
   ];
   const visible = TABS.filter((tab) => TAB_PERMS[tab.id].includes(userRole));
 
@@ -71,7 +74,7 @@ export default function ReportsTabs({ userRole }: { userRole: string }) {
                 top: isActive ? 1 : 0,
               }}
             >
-              {t.reportsPage[tab.labelKey] as string}
+              {tab.literal ?? (tab.labelKey ? (t.reportsPage[tab.labelKey] as string) : tab.id)}
             </button>
           );
         })}
@@ -79,11 +82,12 @@ export default function ReportsTabs({ userRole }: { userRole: string }) {
 
       {/* Active tab content */}
       <div>
-        {activeTab === "executive" && <ExecutiveTab />}
-        {activeTab === "branch"    && <BranchTab />}
-        {activeTab === "bc"        && <BCTab />}
-        {activeTab === "trends"    && <TrendsTab />}
-        {activeTab === "risks"     && <RisksTab />}
+        {activeTab === "milestones" && <MilestonesTab />}
+        {activeTab === "executive"  && <ExecutiveTab />}
+        {activeTab === "branch"     && <BranchTab />}
+        {activeTab === "bc"         && <BCTab />}
+        {activeTab === "trends"     && <TrendsTab />}
+        {activeTab === "risks"      && <RisksTab />}
       </div>
     </>
   );

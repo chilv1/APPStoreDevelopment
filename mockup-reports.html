@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Mockup Reports — Telecom Store Manager</title>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --card2: #1c2128; --border: #30363d;
+  --text: #e6edf3; --text2: #8b949e; --muted: #484f58;
+  --blue: #388bfd; --green: #3fb950; --red: #f85149; --yellow: #d29922; --purple: #a371f7;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+header { background: var(--card2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+header h1 { font-size: 16px; font-weight: 700; }
+header .subtitle { color: var(--text2); font-size: 11px; }
+nav.tabs { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 4px; position: sticky; top: 0; z-index: 100; }
+nav.tabs button { background: none; border: none; color: var(--text2); padding: 12px 18px; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; }
+nav.tabs button.active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(56,139,253,.06); }
+nav.tabs button:hover:not(.active) { color: var(--text); }
+main { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.kpi .label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; font-weight: 600; }
+.kpi .value { font-size: 24px; font-weight: 800; line-height: 1; }
+.kpi .delta { font-size: 11px; margin-top: 6px; }
+.kpi .delta.up { color: var(--green); } .kpi .delta.down { color: var(--red); }
+.kpi.green .value { color: var(--green); } .kpi.blue .value { color: var(--blue); }
+.kpi.red .value { color: var(--red); } .kpi.yellow .value { color: var(--yellow); } .kpi.purple .value { color: var(--purple); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.card h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.card h3 .badge { background: var(--blue); color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+.subtabs { display: flex; gap: 2px; background: var(--card2); border-radius: 6px; padding: 3px; margin-bottom: 14px; width: fit-content; }
+.subtabs button { background: none; border: none; color: var(--text2); padding: 6px 14px; font-size: 11px; cursor: pointer; border-radius: 4px; font-weight: 600; }
+.subtabs button.active { background: var(--blue); color: #fff; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; padding: 8px 10px; background: var(--card2); border-bottom: 1px solid var(--border); color: var(--text2); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; cursor: pointer; user-select: none; }
+th:hover { color: var(--text); }
+td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.04); }
+tr:hover td { background: rgba(56,139,253,.04); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.tag.red { background: rgba(248,81,73,.15); color: var(--red); }
+.tag.green { background: rgba(63,185,80,.15); color: var(--green); }
+.tag.yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
+.tag.blue { background: rgba(56,139,253,.15); color: var(--blue); }
+.tag.gray { background: rgba(139,148,158,.15); color: var(--text2); }
+.bar { height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; min-width: 60px; }
+.bar > div { height: 100%; border-radius: 3px; }
+.row-flex { display: flex; gap: 14px; align-items: stretch; }
+.row-flex > * { flex: 1; }
+.heatmap { display: grid; grid-template-columns: 110px repeat(13, 1fr); gap: 2px; font-size: 10px; }
+.heatmap .h { padding: 6px 8px; background: var(--card2); color: var(--text2); text-align: center; font-weight: 600; }
+.heatmap .h.row { text-align: left; padding-left: 10px; }
+.heatmap .cell { padding: 8px; text-align: center; cursor: pointer; border-radius: 3px; font-weight: 600; transition: transform .1s; }
+.heatmap .cell:hover { transform: scale(1.1); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.scroll { overflow-x: auto; }
+.gantt-mini { display: flex; gap: 2px; align-items: center; height: 18px; min-width: 200px; }
+.gantt-mini .seg { height: 14px; border-radius: 2px; flex: 1; }
+.gantt-mini .seg.done { background: var(--green); }
+.gantt-mini .seg.active { background: var(--blue); }
+.gantt-mini .seg.todo { background: var(--card2); }
+.gantt-mini .seg.crit { background: var(--red); }
+.gantt-mini .seg.block { background: var(--yellow); }
+.legend { display: flex; gap: 14px; margin-top: 8px; font-size: 10px; color: var(--text2); }
+.legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.btn { background: var(--blue); border: none; color: #fff; padding: 6px 14px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: 600; }
+.btn.outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+.btn:hover { opacity: .85; }
+input.search { background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 5px; font-size: 12px; outline: none; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 200; }
+.modal.show { display: flex; }
+.modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; min-width: 400px; max-width: 600px; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.notice { background: rgba(56,139,253,.1); border: 1px solid rgba(56,139,253,.3); border-radius: 6px; padding: 10px 14px; font-size: 11px; color: var(--text2); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size: 22px;">📊</span>
+  <div>
+    <h1>Reports & Analytics — Mockup</h1>
+    <div class="subtitle">Đề xuất 4 reports mới cho Telecom Store Manager — click các tab để xem</div>
+  </div>
+  <span style="margin-left: auto; font-size: 11px; color: var(--text2);">Sample data: 50 stores × 13 phases × 25 branches</span>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="milestones">📅 Phase Milestones (NEW)</button>
+  <button class="tab-btn" data-tab="task">🎯 Task Intelligence</button>
+  <button class="tab-btn" data-tab="heatmap">🌡️ Operations Heatmap</button>
+  <button class="tab-btn" data-tab="store">🏪 Store Health Card</button>
+  <button class="tab-btn" data-tab="leaderboard">🏆 Branch Leaderboard + EVM</button>
+</nav>
+
+<main>
+
+<!-- ========================================================================== -->
+<!-- 0. PHASE MILESTONES — NEW (answer to "khi nào XD/thuê/vị trí xong hết?") -->
+<!-- ========================================================================== -->
+<section id="milestones" class="section active">
+  <div class="notice">
+    💡 <strong>Portfolio Milestones</strong>: Trả lời các câu hỏi "Khi nào tất cả 50 stores hoàn thành phase X?" — thuê xong, vị trí xong, xây dựng xong, khai trương xong.
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="label">Vị trí xong (F.1)</div><div class="value">50/50</div><div class="delta up">✓ Last: 5/4/2026</div></div>
+    <div class="kpi yellow"><div class="label">Thuê xong (F.6)</div><div class="value">18/50</div><div class="delta">ETA all: 15/8/2026 ⚠</div></div>
+    <div class="kpi red"><div class="label">XD xong (F.8)</div><div class="value">5/50</div><div class="delta down">ETA all: 25/9/2026 🔴</div></div>
+    <div class="kpi blue"><div class="label">Khai trương (F.13)</div><div class="value">10/50</div><div class="delta">ETA all: 30/9/2026</div></div>
+    <div class="kpi yellow"><div class="label">Bottleneck</div><div class="value">F.7</div><div class="delta">14 stores stuck</div></div>
+  </div>
+
+  <!-- Filter bar — multi-dimension -->
+  <div class="card" style="padding: 12px 16px; margin-bottom: 12px;">
+    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+      <div style="font-size: 11px; color: var(--text2); font-weight: 600;">FILTROS:</div>
+      <label style="font-size: 11px; color: var(--text2); display:flex; align-items:center; gap:6px;">
+        Branch
+        <select class="search" id="filter-branch" onchange="renderMilestones()">
+          <option value="">Tất cả 25 branches</option>
+          <option>PE_LIM (Lima)</option><option>PE_ARE (Arequipa)</option><option>PE_CUS (Cusco)</option>
+          <option>PE_HVC (Huancavelica)</option><option>PE_TUM (Tumbes)</option><option>PE_PIU (Piura)</option>
+        </select>
+      </label>
+      <label style="font-size: 11px; color: var(--text2); display:flex; align-items:center; gap:6px;">
+        BC
+        <select class="search" id="filter-bc">
+          <option>Tất cả 81 BCs</option>
+          <option>PE_BC_0001 (TTKD Oeste Amazonas)</option>
+          <option>PE_BC_0047 (TTKD Plaza Mayor Lima)</option>
+          <option>PE_BC_0011 (TTKD Lite Arequipa)</option>
+        </select>
+      </label>
+      <label style="font-size: 11px; color: var(--text2); display:flex; align-items:center; gap:6px;">
+        PM
+        <select class="search" id="filter-pm">
+          <option>Tất cả 50 PMs</option>
+          <option>Juan Pérez (PM Lima)</option>
+          <option>María García (PM Arequipa)</option>
+          <option>Carlos López (PM Cusco)</option>
+        </select>
+      </label>
+      <label style="font-size: 11px; color: var(--text2); display:flex; align-items:center; gap:6px;">
+        Status
+        <select class="search">
+          <option>Active stores</option><option>All stores</option><option>Behind schedule</option><option>On track</option>
+        </select>
+      </label>
+      <button class="btn outline" style="margin-left: auto;" onclick="document.querySelectorAll('#filter-branch,#filter-bc,#filter-pm').forEach(s=>s.selectedIndex=0); renderMilestones();">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- View toggle -->
+  <div class="subtabs" style="margin-bottom: 0;">
+    <button class="view-btn active" data-view="phase">📅 By Phase (across portfolio)</button>
+    <button class="view-btn" data-view="bc">🏢 By BC (Business Center)</button>
+    <button class="view-btn" data-view="pm">👤 By PM (Project Manager)</button>
+  </div>
+
+  <!-- View: By Phase (default) -->
+  <div class="view-pane view-phase">
+    <div class="card">
+      <h3>📅 Milestone Timeline — When will each phase be done across the portfolio?</h3>
+      <p style="font-size: 11px; color: var(--text2); margin-bottom: 14px;">💡 <strong>Click vào hàng phase</strong> để xem list stores đang ở phase đó. ETA = forecast khi nào store cuối cùng xong.</p>
+      <table style="font-size: 12px;">
+        <thead>
+          <tr>
+            <th style="width: 50px;">Phase</th>
+            <th style="width: 280px;">Câu hỏi quản lý</th>
+            <th style="width: 60px;">✓ Done</th>
+            <th style="width: 60px;">▶ Active</th>
+            <th style="width: 60px;">○ Todo</th>
+            <th style="width: 110px;">Earliest done</th>
+            <th style="width: 110px;">Latest planned</th>
+            <th style="width: 110px;">ETA all done</th>
+            <th>At-risk stores</th>
+            <th style="width: 80px;">Health</th>
+          </tr>
+        </thead>
+        <tbody id="milestones-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- View: By BC -->
+  <div class="view-pane view-bc" style="display:none;">
+    <div class="card">
+      <h3>🏢 Phase Milestones theo Business Center</h3>
+      <p style="font-size: 11px; color: var(--text2); margin-bottom: 14px;">Mỗi hàng = 1 BC. Click để xem stores trong BC. Cột "F.6 Thuê", "F.8 XD", "F.13 Mở" hiện trạng thái cụ thể.</p>
+      <table style="font-size: 11px;">
+        <thead>
+          <tr>
+            <th>BC Code</th>
+            <th>Branch</th>
+            <th>Stores</th>
+            <th>Avg Progress</th>
+            <th>F.1 Vị trí</th>
+            <th>F.6 Thuê</th>
+            <th>F.8 XD</th>
+            <th>F.13 Mở</th>
+            <th>ETA all open</th>
+            <th>Health</th>
+          </tr>
+        </thead>
+        <tbody id="bc-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- View: By PM -->
+  <div class="view-pane view-pm" style="display:none;">
+    <div class="card">
+      <h3>👤 Phase Milestones theo Project Manager (Workload)</h3>
+      <p style="font-size: 11px; color: var(--text2); margin-bottom: 14px;">Mỗi hàng = 1 PM. Click để xem stores PM đó quản lý. Capacity % = active phases / 5 (soft limit).</p>
+      <table style="font-size: 11px;">
+        <thead>
+          <tr>
+            <th>PM</th>
+            <th>Branch</th>
+            <th>Stores</th>
+            <th>Avg Progress</th>
+            <th>Active phases</th>
+            <th>Capacity</th>
+            <th>Overdue tasks</th>
+            <th>F.6 Thuê (xong)</th>
+            <th>F.8 XD (xong)</th>
+            <th>ETA all open</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="pm-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 2;">
+      <h3>📊 Burnup Chart — Stores hoàn thành mỗi phase qua thời gian</h3>
+      <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Click 1 phase ở trên để xem burnup chi tiết. Đường ngang đỏ = 50 stores (target).</p>
+      <svg id="burnup-svg" viewBox="0 0 700 320" style="width: 100%;"></svg>
+      <div class="legend">
+        <span><span class="dot" style="background: var(--green);"></span>F.1 Vị trí (DONE)</span>
+        <span><span class="dot" style="background: var(--blue);"></span>F.4 Firma</span>
+        <span><span class="dot" style="background: var(--yellow);"></span>F.6 Thuê (lease)</span>
+        <span><span class="dot" style="background: var(--red);"></span>F.8 XD</span>
+        <span><span class="dot" style="background: var(--purple);"></span>F.13 Khai trương</span>
+        <span><span class="dot" style="background: var(--text2); border-radius:50%;"></span>Today</span>
+      </div>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>🎯 Custom Deadline Tracker</h3>
+      <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Đặt deadline cho 1 phase — hệ thống tính có kịp hay không.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <label style="font-size: 11px; color: var(--text2);">Phase
+          <select class="search" style="display:block; width:100%; margin-top:4px;">
+            <option>F.6 Pago de la garantía de alquiler (Thuê)</option>
+            <option>F.8 Construcción y remodelación (XD)</option>
+            <option>F.1 Ubicación encontrada</option>
+            <option>F.13 Inicio de operaciones</option>
+          </select>
+        </label>
+        <label style="font-size: 11px; color: var(--text2);">Deadline mong muốn
+          <input type="date" class="search" value="2026-08-30" style="display:block; width:100%; margin-top:4px;">
+        </label>
+        <button class="btn" style="margin-top:6px;">⚡ Tính ngay</button>
+      </div>
+      <div style="margin-top:14px; padding:12px; background: rgba(248,81,73,.1); border-left: 3px solid var(--red); border-radius: 4px;">
+        <div style="font-size: 11px; color: var(--text2); margin-bottom: 6px;">Kết quả phân tích:</div>
+        <div style="font-size: 12px; line-height: 1.7;">
+          <div>📊 Pace hiện tại: <strong>0.5 stores/tuần</strong></div>
+          <div>🎯 Pace cần thiết: <strong>1.2 stores/tuần</strong></div>
+          <div style="color: var(--red);">⚠ GAP: <strong>-0.7 stores/tuần</strong> (chậm)</div>
+          <div style="margin-top: 6px;">⏱ Theo pace này sẽ xong: <strong>25/9/2026</strong> (chậm 4 tuần)</div>
+          <div style="font-size: 10px; color: var(--text2); margin-top: 6px;">💡 Cần thêm <strong>2 vendor xây dựng</strong> hoặc giãn deadline 4 tuần.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 1;">
+      <h3>⚠ Stores có nguy cơ trễ deadline (filter: F.8 XD trước 30/8/2026)</h3>
+      <table style="font-size: 11px;">
+        <thead><tr><th>#</th><th>Store</th><th>Branch</th><th>F.8 Planned End</th><th>Days late</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>PE_S_HVC_01</td><td>PE_HVC</td><td>15/9/2026</td><td><span class="tag red">+16d</span></td><td>Reassign vendor</td></tr>
+          <tr><td>2</td><td>PE_S_TUM_01</td><td>PE_TUM</td><td>10/9/2026</td><td><span class="tag red">+11d</span></td><td>Add resources</td></tr>
+          <tr><td>3</td><td>PE_S_AYA_01</td><td>PE_AYA</td><td>5/9/2026</td><td><span class="tag yellow">+6d</span></td><td>Monitor</td></tr>
+          <tr><td>4</td><td>PE_S_LIM_01</td><td>PE_LIM</td><td>2/9/2026</td><td><span class="tag yellow">+3d</span></td><td>OK with overtime</td></tr>
+          <tr><td>5</td><td>PE_S_PUN_01</td><td>PE_PUN</td><td>1/9/2026</td><td><span class="tag yellow">+2d</span></td><td>Monitor</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>📅 Phase Velocity — stores hoàn thành mỗi tuần (last 12W)</h3>
+      <svg id="phase-velocity-svg" viewBox="0 0 500 280" style="width: 100%;"></svg>
+      <p style="font-size: 11px; color: var(--text2); margin-top: 8px;">F.6 (thuê) đang chậm dần · F.8 (XD) ổn định · F.13 (khai trương) tăng</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================== -->
+<!-- 1. TASK INTELLIGENCE -->
+<!-- ========================================================================== -->
+<section id="task" class="section">
+  <div class="notice">
+    💡 <strong>Trả lời câu hỏi B4 của bạn</strong>: Tasks nào chậm xuyên suốt portfolio? Quá hạn nhiều? Cần replan?
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi red"><div class="label">Tasks quá hạn</div><div class="value">87</div><div class="delta down">▲ +12 vs tuần trước</div></div>
+    <div class="kpi yellow"><div class="label">Cần replan</div><div class="value">23</div><div class="delta">running >1.5× expected</div></div>
+    <div class="kpi blue"><div class="label">Avg cycle time</div><div class="value">4.2d</div><div class="delta up">▼ -0.3d cải thiện</div></div>
+    <div class="kpi green"><div class="label">Tasks DONE tuần này</div><div class="value">142</div><div class="delta up">▲ +18%</div></div>
+    <div class="kpi purple"><div class="label">Velocity tuần</div><div class="value">28.4</div><div class="delta">tasks/day, 7d MA</div></div>
+  </div>
+
+  <div class="subtabs">
+    <button class="sub-btn active" data-sub="slowest">🐌 Slowest Tasks</button>
+    <button class="sub-btn" data-sub="overdue">⏰ Overdue Tasks</button>
+    <button class="sub-btn" data-sub="replan">🔄 Replan Needed</button>
+    <button class="sub-btn" data-sub="velocity">📈 Velocity Trends</button>
+  </div>
+
+  <!-- Sub: Slowest -->
+  <div class="sub-pane sub-slowest">
+    <div class="row-flex">
+      <div class="card" style="flex: 2;">
+        <h3>🐌 Top 10 Task Title chậm nhất (Pareto Analysis)</h3>
+        <p style="color: var(--text2); font-size: 11px; margin-bottom: 10px;">80% delay đến từ 20% task types — focus vào những task này để đạt impact cao nhất</p>
+        <table>
+          <thead>
+            <tr><th>Rank</th><th>Task Title</th><th>Avg Days</th><th>Planned</th><th>Variance</th><th>Occurrences</th><th>Trend</th></tr>
+          </thead>
+          <tbody id="slowest-table"></tbody>
+        </table>
+      </div>
+      <div class="card" style="flex: 1;">
+        <h3>📊 Pareto Chart (Top 10)</h3>
+        <svg id="pareto-svg" viewBox="0 0 400 280" style="width: 100%;"></svg>
+        <div style="font-size: 10px; color: var(--text2); margin-top: 8px;">Bars: avg days · Đường cam: cumulative %</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub: Overdue -->
+  <div class="sub-pane sub-overdue" style="display:none;">
+    <div class="card">
+      <div class="flex-between" style="margin-bottom: 12px;">
+        <h3>⏰ 87 Overdue Tasks</h3>
+        <div style="display: flex; gap: 8px;">
+          <select class="search"><option>Tất cả PM</option><option>PM Lima</option><option>PM Arequipa</option><option>PM Cusco</option></select>
+          <select class="search"><option>Tất cả Branch</option><option>PE_LIM</option><option>PE_ARE</option></select>
+          <select class="search"><option>Tất cả Phase</option><option>F.7 Inspección</option><option>F.8 Construcción</option></select>
+          <input class="search" placeholder="🔎 Tìm task...">
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Task</th><th>Store</th><th>PM</th><th>Phase</th><th>Due Date</th><th>Days Overdue</th><th>Severity</th><th>Action</th></tr></thead>
+        <tbody id="overdue-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sub: Replan -->
+  <div class="sub-pane sub-replan" style="display:none;">
+    <div class="card">
+      <h3>🔄 Tasks Cần Replan <span style="font-size: 11px; color: var(--text2); font-weight: 400;">(running >1.5× expected duration)</span></h3>
+      <table>
+        <thead><tr><th>Task</th><th>Store</th><th>Started</th><th>Expected</th><th>Actual So Far</th><th>Overrun</th><th>Health</th><th>Recommended</th></tr></thead>
+        <tbody id="replan-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sub: Velocity -->
+  <div class="sub-pane sub-velocity" style="display:none;">
+    <div class="row-flex">
+      <div class="card" style="flex: 1;">
+        <h3>📈 Task Completion Velocity (12 tuần)</h3>
+        <svg id="velocity-svg" viewBox="0 0 500 250" style="width: 100%;"></svg>
+        <div class="legend"><span><span class="dot" style="background: var(--green);"></span>DONE</span><span><span class="dot" style="background: var(--blue);"></span>In Progress</span><span><span class="dot" style="background: var(--text2);"></span>TODO</span></div>
+      </div>
+      <div class="card" style="flex: 1;">
+        <h3>📉 Burndown Chart (Portfolio)</h3>
+        <svg id="burndown-svg" viewBox="0 0 500 250" style="width: 100%;"></svg>
+        <div class="legend"><span><span class="dot" style="background: var(--blue);"></span>Actual remaining</span><span><span class="dot" style="background: var(--text2);"></span>Ideal</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🚧 Recurring Blockers <span style="font-size: 11px; color: var(--text2); font-weight: 400;">(blocking ≥3 stores cùng lúc)</span></h3>
+      <table>
+        <thead><tr><th>Task Title</th><th>Stores đang Block</th><th>Avg Days Blocked</th><th>Affected Branches</th><th>Pattern</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TTR aprueba la ubicación</strong></td><td><span class="tag red">8 stores</span></td><td>21 days</td><td>PE_LIM, PE_ARE, PE_CUS, PE_PIU</td><td>🔴 Bottleneck phòng TTR — escalate</td></tr>
+          <tr><td><strong>Inspección municipal</strong></td><td><span class="tag yellow">5 stores</span></td><td>14 days</td><td>PE_AYA, PE_HVC, PE_PUN</td><td>🟡 Vendor delay</td></tr>
+          <tr><td><strong>Pago de garantía</strong></td><td><span class="tag yellow">3 stores</span></td><td>9 days</td><td>PE_LAM, PE_TUM</td><td>🟡 Approval pending</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================== -->
+<!-- 2. OPERATIONS HEATMAP -->
+<!-- ========================================================================== -->
+<section id="heatmap" class="section">
+  <div class="notice">
+    💡 <strong>Heatmap 25 Branches × 13 Phases</strong>: Phát hiện bottleneck hệ thống. Ô đỏ = nhiều store kẹt phase đó. Click ô để drill-down.
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="label">Phase ổn nhất</div><div class="value">F.1</div><div class="delta">98% completion rate</div></div>
+    <div class="kpi red"><div class="label">Bottleneck hệ thống</div><div class="value">F.7</div><div class="delta">Inspección — 14 stores stuck</div></div>
+    <div class="kpi yellow"><div class="label">Branch chậm nhất</div><div class="value">PE_HVC</div><div class="delta">avg progress 18%</div></div>
+    <div class="kpi blue"><div class="label">Branch tốt nhất</div><div class="value">PE_LIM</div><div class="delta">avg progress 78%</div></div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between" style="margin-bottom: 12px;">
+      <h3>🌡️ Operations Heatmap — % Completion by Branch × Phase</h3>
+      <div style="display: flex; gap: 8px; font-size: 11px;">
+        <span><span class="dot" style="background: #f85149;"></span>0-25%</span>
+        <span><span class="dot" style="background: #d29922;"></span>26-50%</span>
+        <span><span class="dot" style="background: #58a6ff;"></span>51-75%</span>
+        <span><span class="dot" style="background: #3fb950;"></span>76-100%</span>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="heatmap" id="heatmap-grid"></div>
+    </div>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 1;">
+      <h3>🚨 Top 5 Bottlenecks (most blocked phases)</h3>
+      <table>
+        <thead><tr><th>Phase</th><th>Stores stuck</th><th>Avg days blocked</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>F.7 Inspección (SS)</td><td><span class="tag red">14</span></td><td>21d</td><td>Escalate vendor team</td></tr>
+          <tr><td>F.8 Construcción</td><td><span class="tag yellow">9</span></td><td>15d</td><td>Add construction capacity</td></tr>
+          <tr><td>F.2 TTR aprueba</td><td><span class="tag yellow">7</span></td><td>12d</td><td>TTR queue overload</td></tr>
+          <tr><td>F.12 Licencia municipal</td><td><span class="tag blue">5</span></td><td>9d</td><td>Government processing</td></tr>
+          <tr><td>F.6 Pago garantía</td><td><span class="tag blue">3</span></td><td>5d</td><td>Finance approval</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>📊 Completion Rate by Phase Type (across all branches)</h3>
+      <svg id="phase-bar-svg" viewBox="0 0 500 320" style="width: 100%;"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================== -->
+<!-- 3. STORE HEALTH CARD -->
+<!-- ========================================================================== -->
+<section id="store" class="section">
+  <div class="notice">
+    💡 <strong>Store Health Card</strong>: 1 trang summary cho 1 store với 6 widgets. Demo store: <strong>PE_S_LIM_01 — Tienda Centro Lima</strong>.
+  </div>
+
+  <div class="card" style="border-left: 4px solid var(--blue);">
+    <div class="flex-between">
+      <div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="tag blue">PE_S_LIM_01</span>
+          <h3 style="font-size: 18px; margin: 0;">Tienda Centro Lima</h3>
+          <span class="tag yellow">⚠️ AT RISK</span>
+        </div>
+        <div style="color: var(--text2); font-size: 12px; margin-top: 4px;">Sucursal Lima · TTKD Plaza Mayor Lima · PM: Juan Pérez</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 11px; color: var(--text2);">Target Open Date</div>
+        <div style="font-size: 16px; font-weight: 700; color: var(--yellow);">7/7/2026</div>
+        <div style="font-size: 11px; color: var(--red);">⚠️ +5 days behind original</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi blue"><div class="label">Progress</div><div class="value">62%</div><div class="delta up">▲ +8% tuần qua</div></div>
+    <div class="kpi yellow"><div class="label">Days to Open</div><div class="value">42</div><div class="delta">target: 7/7/2026</div></div>
+    <div class="kpi yellow"><div class="label">SPI</div><div class="value">0.87</div><div class="delta down">behind schedule</div></div>
+    <div class="kpi red"><div class="label">Risk Score</div><div class="value">68</div><div class="delta down">▲ +12 (worsening)</div></div>
+    <div class="kpi green"><div class="label">Phases Done</div><div class="value">8/13</div><div class="delta">5 remaining</div></div>
+    <div class="kpi red"><div class="label">Open Issues</div><div class="value">3</div><div class="delta">2 HIGH severity</div></div>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 2;">
+      <h3>📅 Mini Gantt — 13 Phases (critical path đỏ)</h3>
+      <table style="font-size: 11px;">
+        <thead><tr><th style="width: 40px;">F.</th><th>Phase</th><th style="width: 70px;">Status</th><th style="width: 60px;">Days</th><th style="width: 80px;">Variance</th><th>Timeline</th></tr></thead>
+        <tbody id="store-gantt-rows"></tbody>
+      </table>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>📈 Variance: Planned vs Actual per Phase</h3>
+      <svg id="variance-svg" viewBox="0 0 400 320" style="width: 100%;"></svg>
+      <div style="font-size: 10px; color: var(--text2); margin-top: 6px;">Trục Y: ngày · Xanh = planned · Vàng = actual</div>
+    </div>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 1;">
+      <h3>🚨 Top Risks & Issues (3 open)</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: rgba(248,81,73,.1); border-left: 3px solid var(--red); padding: 10px 12px; border-radius: 6px;">
+          <div class="flex-between"><strong>Vendor delay — Inspección</strong><span class="tag red">HIGH</span></div>
+          <div style="font-size: 11px; color: var(--text2); margin-top: 4px;">Phase F.7 stuck 14 days — vendor cancelled appointment</div>
+          <div style="font-size: 10px; color: var(--muted); margin-top: 4px;">Reported 14 days ago by PM Juan</div>
+        </div>
+        <div style="background: rgba(248,81,73,.1); border-left: 3px solid var(--red); padding: 10px 12px; border-radius: 6px;">
+          <div class="flex-between"><strong>Permit pending — Licencia</strong><span class="tag red">HIGH</span></div>
+          <div style="font-size: 11px; color: var(--text2); margin-top: 4px;">Government processing delayed — 21 days</div>
+          <div style="font-size: 10px; color: var(--muted); margin-top: 4px;">Reported 21 days ago</div>
+        </div>
+        <div style="background: rgba(210,153,34,.1); border-left: 3px solid var(--yellow); padding: 10px 12px; border-radius: 6px;">
+          <div class="flex-between"><strong>Material shortage — Construcción</strong><span class="tag yellow">MED</span></div>
+          <div style="font-size: 11px; color: var(--text2); margin-top: 4px;">Tile delivery delayed 5 days</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>🕐 Activity Feed (14 ngày qua)</h3>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
+        <div style="display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05);"><span style="color: var(--green);">✓</span><div style="flex:1;"><strong>F.6 Pago COMPLETED</strong><div style="color: var(--muted); font-size: 10px;">PM Juan · 2 days ago</div></div></div>
+        <div style="display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05);"><span style="color: var(--blue);">▶</span><div style="flex:1;"><strong>F.8 Construcción IN_PROGRESS</strong><div style="color: var(--muted); font-size: 10px;">PM Juan · 3 days ago</div></div></div>
+        <div style="display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05);"><span style="color: var(--yellow);">📝</span><div style="flex:1;"><strong>Note added: vendor confirmed</strong><div style="color: var(--muted); font-size: 10px;">PM Juan · 5 days ago</div></div></div>
+        <div style="display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05);"><span style="color: var(--red);">⚠️</span><div style="flex:1;"><strong>Issue raised: Permit delay</strong><div style="color: var(--muted); font-size: 10px;">PM Juan · 21 days ago</div></div></div>
+        <div style="display: flex; gap: 10px; padding: 6px 0;"><span style="color: var(--purple);">🔄</span><div style="flex:1;"><strong>F.4 dates shifted +5 days</strong><div style="color: var(--muted); font-size: 10px;">PM Juan · 23 days ago — cascade affected 7 phases</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================== -->
+<!-- 4. BRANCH LEADERBOARD + EVM -->
+<!-- ========================================================================== -->
+<section id="leaderboard" class="section">
+  <div class="notice">
+    💡 <strong>Branch Leaderboard với KPIs chuẩn PMI</strong>: SPI, OTD, Velocity, Risk Score. Use case: <em>Monthly Business Review</em>.
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi green"><div class="label">Portfolio SPI</div><div class="value">0.92</div><div class="delta down">below 1.0 (slightly behind)</div></div>
+    <div class="kpi blue"><div class="label">On-Time Delivery</div><div class="value">76%</div><div class="delta up">▲ +4% vs last month</div></div>
+    <div class="kpi purple"><div class="label">Stores opened YTD</div><div class="value">10/50</div><div class="delta">20% complete</div></div>
+    <div class="kpi yellow"><div class="label">Schedule Variance</div><div class="value">-3.2d</div><div class="delta">avg behind plan</div></div>
+    <div class="kpi red"><div class="label">At-risk count</div><div class="value">12</div><div class="delta down">24% of portfolio</div></div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between" style="margin-bottom: 12px;">
+      <h3>🏆 Branch Leaderboard — 25 Branches (sortable)</h3>
+      <div style="display: flex; gap: 8px;">
+        <select class="search">
+          <option>Sort: Composite Score</option><option>Sort: SPI</option><option>Sort: OTD</option><option>Sort: Velocity</option><option>Sort: Risk</option>
+        </select>
+        <button class="btn outline">📥 Export CSV</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Branch</th><th>Stores</th><th>Avg Progress</th><th>SPI</th><th>OTD %</th><th>Velocity</th><th>Risk Score</th><th>Δ vs last month</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-table"></tbody>
+    </table>
+  </div>
+
+  <div class="row-flex">
+    <div class="card" style="flex: 1;">
+      <h3>📊 SPI Distribution (25 branches)</h3>
+      <svg id="spi-dist-svg" viewBox="0 0 500 280" style="width: 100%;"></svg>
+      <div style="font-size: 10px; color: var(--text2); margin-top: 6px;">Đường đỏ = baseline 1.0 (on-track)</div>
+    </div>
+    <div class="card" style="flex: 1;">
+      <h3>📈 EVM: Earned Value vs Planned vs Actual ($)</h3>
+      <svg id="evm-svg" viewBox="0 0 500 280" style="width: 100%;"></svg>
+      <div class="legend"><span><span class="dot" style="background: var(--blue);"></span>PV (Planned)</span><span><span class="dot" style="background: var(--green);"></span>EV (Earned)</span><span><span class="dot" style="background: var(--yellow);"></span>AC (Actual cost)</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎯 EVM Forecast Summary (Portfolio Level)</h3>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Planned Value (PV)</div><div class="value" style="font-size: 18px;">$2.1M</div></div>
+      <div class="kpi"><div class="label">Earned Value (EV)</div><div class="value" style="font-size: 18px; color: var(--green);">$1.9M</div></div>
+      <div class="kpi"><div class="label">Actual Cost (AC)</div><div class="value" style="font-size: 18px; color: var(--yellow);">$2.0M</div></div>
+      <div class="kpi"><div class="label">CPI</div><div class="value" style="font-size: 18px; color: var(--yellow);">0.95</div></div>
+      <div class="kpi"><div class="label">SPI</div><div class="value" style="font-size: 18px; color: var(--yellow);">0.92</div></div>
+      <div class="kpi"><div class="label">EAC</div><div class="value" style="font-size: 18px;">$5.3M</div></div>
+      <div class="kpi"><div class="label">VAC</div><div class="value" style="font-size: 18px; color: var(--red);">-$0.3M</div></div>
+    </div>
+    <p style="font-size: 11px; color: var(--text2); margin-top: 10px;">⚠️ Dự báo: Hoàn thành chậm hơn ~8% và vượt budget ~$300K nếu xu hướng hiện tại tiếp tục.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- Modal for cell click -->
+<div class="modal" id="modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box">
+    <div class="flex-between" style="margin-bottom: 14px;">
+      <h3 id="modal-title">Drill-down</h3>
+      <button class="btn outline" onclick="document.getElementById('modal').classList.remove('show')">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ========== Tab switching ==========
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(b.dataset.tab).classList.add('active');
+  };
+});
+document.querySelectorAll('.sub-btn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.sub-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.sub-pane').forEach(p => p.style.display = 'none');
+    document.querySelector('.sub-' + b.dataset.sub).style.display = 'block';
+  };
+});
+
+// ========== PHASE MILESTONES DATA ==========
+const PHASES_MILESTONE = [
+  { n:1,  name:"Ubicación encontrada y aprobada", q:"Khi nào tất cả vị trí xong?", done:50, active:0, todo:0, earliest:"1/3", latest:"5/4", eta:"5/4/2026 ✓", risk:0, health:"green" },
+  { n:2,  name:"TTR aprueba la ubicación", q:"Khi nào TTR duyệt xong tất cả?", done:24, active:18, todo:8, earliest:"5/3", latest:"15/6", eta:"30/6/2026", risk:18, health:"yellow" },
+  { n:3,  name:"Legal aprueba el contrato", q:"Khi nào Legal duyệt xong tất cả?", done:18, active:6, todo:26, earliest:"10/4", latest:"20/6", eta:"5/7/2026", risk:5, health:"yellow" },
+  { n:4,  name:"Firma del contrato (LEASE)", q:"Khi nào ký HĐ thuê xong tất cả?", done:18, active:5, todo:27, earliest:"15/4", latest:"25/6", eta:"10/7/2026", risk:5, health:"yellow" },
+  { n:5,  name:"Creación del código de canal", q:"Khi nào tất cả có code bán hàng?", done:12, active:8, todo:30, earliest:"20/4", latest:"30/6", eta:"15/7/2026", risk:8, health:"yellow" },
+  { n:6,  name:"Pago de la garantía (THUÊ)", q:"⭐ Khi nào THUÊ XONG hết?", done:18, active:8, todo:24, earliest:"5/4", latest:"20/7", eta:"15/8/2026", risk:5, health:"yellow" },
+  { n:7,  name:"Inspección (SS — parallel)", q:"Khi nào tất cả store đã được khảo sát?", done:6, active:14, todo:30, earliest:"15/4", latest:"25/8", eta:"5/9/2026", risk:14, health:"red" },
+  { n:8,  name:"Construcción y remodelación", q:"⭐ Khi nào XD XONG hết?", done:5, active:3, todo:42, earliest:"1/5", latest:"30/8", eta:"25/9/2026", risk:12, health:"red" },
+  { n:9,  name:"Reclutamiento personal", q:"Khi nào nhân sự sẵn sàng hết?", done:4, active:2, todo:44, earliest:"10/5", latest:"5/9", eta:"30/9/2026", risk:8, health:"yellow" },
+  { n:10, name:"TTR realiza recepción", q:"Khi nào TTR nhận bàn giao xong?", done:3, active:2, todo:45, earliest:"15/5", latest:"10/9", eta:"5/10/2026", risk:7, health:"yellow" },
+  { n:11, name:"Emisión SUNAT", q:"Khi nào hoá đơn SUNAT xong?", done:3, active:1, todo:46, earliest:"20/5", latest:"15/9", eta:"10/10/2026", risk:6, health:"yellow" },
+  { n:12, name:"Obtención licencia municipal", q:"Khi nào có giấy phép tất cả?", done:2, active:1, todo:47, earliest:"25/5", latest:"20/9", eta:"15/10/2026", risk:8, health:"red" },
+  { n:13, name:"Inicio de operaciones (KHAI TRƯƠNG)", q:"⭐ Khi nào TẤT CẢ KHAI TRƯƠNG?", done:10, active:0, todo:40, earliest:"1/4", latest:"25/9", eta:"30/9/2026", risk:5, health:"yellow" },
+];
+// View toggle
+document.querySelectorAll('.view-btn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.view-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.view-pane').forEach(p => p.style.display = 'none');
+    document.querySelector('.view-' + b.dataset.view).style.display = 'block';
+  };
+});
+
+// Render Phase view (with click-to-drill-down)
+function renderMilestones() {
+  const branchFilter = document.getElementById('filter-branch')?.value || '';
+  const milestoneBody = document.getElementById('milestones-table');
+  milestoneBody.innerHTML = '';
+  PHASES_MILESTONE.forEach(p => {
+    const isStarred = p.q.includes("⭐");
+    const rowBg = isStarred ? 'background: rgba(56,139,253,.05);' : '';
+    const healthIcon = p.health === 'green' ? '🟢' : p.health === 'yellow' ? '🟡' : '🔴';
+    const healthLabel = p.health === 'green' ? 'ON-TRACK' : p.health === 'yellow' ? 'AT-RISK' : 'CRITICAL';
+    const etaTag = p.eta.includes('✓') ? 'green' : p.health === 'yellow' ? 'yellow' : 'red';
+    // Note: filter just shows visual indicator; real impl will filter Done/Active/Todo counts
+    const filterNote = branchFilter ? ` · filtered: ${branchFilter}` : '';
+    milestoneBody.innerHTML += `<tr style="${rowBg} cursor: pointer;" onclick="showPhaseStores(${p.n}, '${p.name}', '${p.q.replace(/'/g, '')}')">
+      <td><strong>F.${p.n}</strong></td>
+      <td><div style="font-weight:600;">${p.name}</div><div style="font-size:10px;color:var(--text2);">${p.q}${filterNote}</div></td>
+      <td><span style="color:var(--green);font-weight:700;">${p.done}</span></td>
+      <td><span style="color:var(--blue);font-weight:700;">${p.active}</span></td>
+      <td><span style="color:var(--text2);">${p.todo}</span></td>
+      <td>${p.earliest}</td>
+      <td>${p.latest}</td>
+      <td><span class="tag ${etaTag}">${p.eta}</span></td>
+      <td>${p.risk > 0 ? `<span class="tag red">${p.risk} stores ▸</span>` : '<span class="tag green">0</span>'}</td>
+      <td>${healthIcon} ${healthLabel}</td>
+    </tr>`;
+  });
+}
+renderMilestones();
+
+// Click drill-down: show stores in a phase (with clickable filter chips)
+let _currentPhaseStores = []; // cached stores for active filter
+let _currentPhaseFilter = 'all';
+
+function showPhaseStores(n, name, q) {
+  _currentPhaseStores = generateStoresForPhase(n);
+  _currentPhaseFilter = 'all';
+  document.getElementById('modal-title').textContent = `F.${n} — ${name}`;
+  renderPhaseModal(q);
+  document.getElementById('modal').classList.add('show');
+}
+
+function setPhaseFilter(filter, q) {
+  _currentPhaseFilter = filter;
+  renderPhaseModal(q);
+}
+
+function renderPhaseModal(q) {
+  const stores = _currentPhaseStores;
+  const counts = {
+    all: stores.length,
+    done: stores.filter(s => s.status === 'done').length,
+    active: stores.filter(s => s.status === 'active').length,
+    todo: stores.filter(s => s.status === 'todo').length,
+    late: stores.filter(s => s.late).length,
+  };
+  const filter = _currentPhaseFilter;
+  const filtered = filter === 'all' ? stores
+                 : filter === 'late' ? stores.filter(s => s.late)
+                 : stores.filter(s => s.status === filter);
+
+  // Active chip styling
+  function chip(key, color, label, count) {
+    const isActive = filter === key;
+    const baseStyle = isActive
+      ? `background: var(--${color}); color: #000; box-shadow: 0 0 0 2px var(--${color});`
+      : '';
+    return `<span class="tag ${color}" style="cursor: pointer; padding: 4px 10px; font-size: 11px; ${baseStyle}" onclick="setPhaseFilter('${key}', '${q.replace(/'/g, '')}')">${label}: ${count}</span>`;
+  }
+
+  let html = `<div style="font-size: 11px; color: var(--text2); margin-bottom: 12px; padding: 8px 10px; background: rgba(56,139,253,.1); border-radius: 6px;">📌 ${q}</div>`;
+  html += `<div style="font-size: 10px; color: var(--text2); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;">Filter (click để lọc):</div>`;
+  html += `<div style="display: flex; gap: 8px; margin-bottom: 14px; font-size: 11px; flex-wrap: wrap; align-items: center;">
+    ${chip('all',    'blue',  '◐ Tất cả',  counts.all)}
+    ${chip('done',   'green', '✓ Done',    counts.done)}
+    ${chip('active', 'blue',  '▶ Active',  counts.active)}
+    ${chip('todo',   'gray',  '○ Todo',    counts.todo)}
+    ${chip('late',   'red',   '⚠ Late',    counts.late)}
+    <span style="margin-left: auto; font-size: 11px; color: var(--text2);">Hiển thị <strong style="color: var(--text);">${filtered.length}</strong>/${counts.all} stores</span>
+  </div>`;
+  html += `<div style="max-height: 400px; overflow-y: auto;"><table style="font-size: 11px;">
+    <thead><tr><th>Store</th><th>BC</th><th>PM</th><th>Status</th><th>Planned End</th><th>Actual</th><th>Variance</th><th>Action</th></tr></thead><tbody>`;
+  if (filtered.length === 0) {
+    html += `<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text2);">Không có store nào phù hợp</td></tr>`;
+  } else {
+    filtered.forEach(s => {
+      const stTag = s.status === 'done' ? '<span class="tag green">✓ DONE</span>' :
+                    s.status === 'active' ? '<span class="tag blue">▶ ACTIVE</span>' :
+                    '<span class="tag gray">○ TODO</span>';
+      const varTag = s.late ? `<span class="tag red">+${s.lateDays}d ⚠</span>` :
+                     s.status === 'done' ? '<span class="tag green">on time</span>' :
+                     '<span style="color: var(--text2);">—</span>';
+      const action = s.late ? '<button class="btn outline" style="font-size: 10px; padding: 2px 8px;">📧 Notify PM</button>' :
+                     '<button class="btn outline" style="font-size: 10px; padding: 2px 8px;">→ View</button>';
+      html += `<tr><td><strong>${s.code}</strong></td><td>${s.bc}</td><td>${s.pm}</td><td>${stTag}</td><td>${s.planned}</td><td>${s.actual || '—'}</td><td>${varTag}</td><td>${action}</td></tr>`;
+    });
+  }
+  html += '</tbody></table></div>';
+  const exportLabel = filter === 'all' ? 'tất cả' :
+                     filter === 'late' ? `${counts.late} stores trễ` :
+                     `${filtered.length} stores ${filter.toUpperCase()}`;
+  html += `<div style="margin-top: 14px; display: flex; gap: 8px; align-items: center;">
+    <button class="btn">📧 Notify ${filter === 'late' ? 'late' : 'all'} PMs</button>
+    <button class="btn outline">📥 Export CSV (${exportLabel})</button>
+    <span style="margin-left: auto; font-size: 10px; color: var(--text2);">💡 Click chip ở trên để đổi filter</span>
+  </div>`;
+  document.getElementById('modal-body').innerHTML = html;
+}
+
+function generateStoresForPhase(phaseNum) {
+  const branches = ['LIM','ARE','CUS','PIU','HVC','TUM','LAM'];
+  const pms = ['Juan Pérez','María García','Carlos López','Ana Torres','Luis Vega','Diego Ruiz','Rosa Díaz'];
+  const phaseData = PHASES_MILESTONE.find(p => p.n === phaseNum);
+  const stores = [];
+  let idx = 0;
+  for (let i = 0; i < phaseData.done; i++) {
+    stores.push({ code: `PE_S_${branches[idx % 7]}_0${(idx % 9)+1}`, bc: `PE_BC_00${idx+1}`, pm: pms[idx % 7], status: 'done', planned: '15/4/26', actual: '12/4/26', late: false });
+    idx++;
+  }
+  for (let i = 0; i < phaseData.active; i++) {
+    const isLate = i < Math.min(phaseData.risk, phaseData.active);
+    stores.push({ code: `PE_S_${branches[idx % 7]}_0${(idx % 9)+1}`, bc: `PE_BC_00${idx+1}`, pm: pms[idx % 7], status: 'active', planned: '20/5/26', actual: null, late: isLate, lateDays: isLate ? Math.floor(Math.random()*15+5) : 0 });
+    idx++;
+  }
+  for (let i = 0; i < Math.min(8, phaseData.todo); i++) {
+    stores.push({ code: `PE_S_${branches[idx % 7]}_0${(idx % 9)+1}`, bc: `PE_BC_00${idx+1}`, pm: pms[idx % 7], status: 'todo', planned: '15/7/26', actual: null, late: false });
+    idx++;
+  }
+  return stores;
+}
+
+// ========== BY BC VIEW ==========
+const BC_DATA = [
+  { code:"PE_BC_0047", branch:"PE_LIM", name:"TTKD Plaza Mayor Lima", stores:4, prog:78, f1:"4/4 ✓", f6:"3/4", f8:"2/4", f13:"1/4", eta:"15/8/2026", health:"green" },
+  { code:"PE_BC_0011", branch:"PE_ARE", name:"TTKD Lite Arequipa", stores:1, prog:72, f1:"1/1 ✓", f6:"1/1 ✓", f8:"0/1", f13:"0/1", eta:"30/8/2026", health:"green" },
+  { code:"PE_BC_0001", branch:"PE_AMA", name:"TTKD Oeste Amazonas", stores:4, prog:65, f1:"4/4 ✓", f6:"2/4", f8:"1/4", f13:"0/4", eta:"5/9/2026", health:"yellow" },
+  { code:"PE_BC_0014", branch:"PE_ARE", name:"TTKD Mall Premium Arequipa", stores:4, prog:60, f1:"4/4 ✓", f6:"2/4", f8:"1/4", f13:"0/4", eta:"15/9/2026", health:"yellow" },
+  { code:"PE_BC_0023", branch:"PE_CAJ", name:"TTKD Comercial Cajamarca", stores:5, prog:55, f1:"5/5 ✓", f6:"2/5", f8:"0/5", f13:"0/5", eta:"25/9/2026", health:"yellow" },
+  { code:"PE_BC_0050", branch:"PE_LOR", name:"TTKD Lite Loreto", stores:2, prog:48, f1:"2/2 ✓", f6:"1/2", f8:"0/2", f13:"0/2", eta:"30/9/2026", health:"yellow" },
+  { code:"PE_BC_0031", branch:"PE_HVC", name:"TTKD Comercial Huancavelica", stores:5, prog:18, f1:"4/5", f6:"1/5", f8:"0/5", f13:"0/5", eta:"15/10/2026", health:"red" },
+  { code:"PE_BC_0077", branch:"PE_TUM", name:"TTKD Lite Tumbes", stores:2, prog:15, f1:"1/2", f6:"0/2", f8:"0/2", f13:"0/2", eta:"20/10/2026", health:"red" },
+];
+const bcBody = document.getElementById('bc-table');
+BC_DATA.forEach((bc, i) => {
+  const healthIcon = bc.health === 'green' ? '🟢 ON-TRACK' : bc.health === 'yellow' ? '🟡 AT-RISK' : '🔴 CRITICAL';
+  const etaTag = bc.health === 'green' ? 'green' : bc.health === 'yellow' ? 'yellow' : 'red';
+  bcBody.innerHTML += `<tr style="cursor: pointer;" onclick="showBCStores('${bc.code}','${bc.name}')">
+    <td><span class="tag blue">${bc.code}</span></td>
+    <td>${bc.branch}</td>
+    <td><strong>${bc.stores}</strong></td>
+    <td><div style="display:flex;align-items:center;gap:6px;"><div class="bar" style="flex:1;"><div style="width:${bc.prog}%;background:var(--green);"></div></div><span>${bc.prog}%</span></div></td>
+    <td>${bc.f1}</td>
+    <td>${bc.f6}</td>
+    <td>${bc.f8}</td>
+    <td>${bc.f13}</td>
+    <td><span class="tag ${etaTag}">${bc.eta}</span></td>
+    <td>${healthIcon}</td>
+  </tr>`;
+});
+
+function showBCStores(code, name) {
+  document.getElementById('modal-title').textContent = `${code} — ${name}`;
+  let html = `<div style="font-size: 11px; color: var(--text2); margin-bottom: 12px;">Stores trong BC này và phase hiện tại của từng store:</div>`;
+  html += `<table style="font-size: 11px;"><thead><tr><th>Store</th><th>PM</th><th>Progress</th><th>Phase đang làm</th><th>Target Open</th><th>Status</th></tr></thead><tbody>`;
+  const samples = [
+    { code: code.replace('BC_00','S_LIM_'), pm: 'Juan Pérez', prog: 78, phase: 'F.8 Construcción', target: '15/8/2026', st: 'IN_PROGRESS' },
+    { code: code.replace('BC_00','S_LIM_').replace('S_LIM','S_AME'), pm: 'María García', prog: 65, phase: 'F.6 Pago garantía', target: '20/8/2026', st: 'IN_PROGRESS' },
+    { code: code.replace('BC_00','S_LIM_').replace('LIM','CAL'), pm: 'Carlos López', prog: 100, phase: '✓ Khai trương', target: '5/4/2026', st: 'COMPLETED' },
+  ];
+  samples.forEach(s => {
+    const stTag = s.st === 'COMPLETED' ? '<span class="tag green">✓ DONE</span>' : '<span class="tag blue">▶ IN_PROGRESS</span>';
+    html += `<tr><td><strong>${s.code}</strong></td><td>${s.pm}</td><td><div class="bar"><div style="width:${s.prog}%;background:var(--green);"></div></div></td><td>${s.phase}</td><td>${s.target}</td><td>${stTag}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+}
+
+// ========== BY PM VIEW ==========
+const PM_DATA = [
+  { name:"Juan Pérez", branch:"PE_LIM", stores:2, prog:78, active:5, capacity:100, overdue:3, f6:"2/2 ✓", f8:"1/2", eta:"15/8/2026", status:"green" },
+  { name:"María García", branch:"PE_ARE", stores:2, prog:72, active:4, capacity:80, overdue:2, f6:"2/2 ✓", f8:"1/2", eta:"30/8/2026", status:"green" },
+  { name:"Carlos López", branch:"PE_CUS", stores:2, prog:68, active:5, capacity:100, overdue:4, f6:"1/2", f8:"0/2", eta:"5/9/2026", status:"yellow" },
+  { name:"Ana Torres", branch:"PE_PIU", stores:2, prog:58, active:6, capacity:120, overdue:8, f6:"1/2", f8:"0/2", eta:"15/9/2026", status:"red" },
+  { name:"Luis Vega", branch:"PE_LAM", stores:2, prog:48, active:3, capacity:60, overdue:1, f6:"0/2", f8:"0/2", eta:"30/9/2026", status:"yellow" },
+  { name:"Diego Ruiz", branch:"PE_TUM", stores:2, prog:15, active:7, capacity:140, overdue:12, f6:"0/2", f8:"0/2", eta:"20/10/2026", status:"red" },
+  { name:"Rosa Díaz", branch:"PE_HVC", stores:2, prog:18, active:4, capacity:80, overdue:6, f6:"0/2", f8:"0/2", eta:"15/10/2026", status:"red" },
+  { name:"Pedro Mendoza", branch:"PE_CAJ", stores:2, prog:62, active:5, capacity:100, overdue:3, f6:"1/2", f8:"1/2", eta:"25/9/2026", status:"yellow" },
+];
+const pmBody = document.getElementById('pm-table');
+PM_DATA.forEach(p => {
+  const statusIcon = p.status === 'green' ? '🟢 OK' : p.status === 'yellow' ? '🟡 BUSY' : '🔴 OVERLOAD';
+  const capColor = p.capacity > 100 ? 'red' : p.capacity > 80 ? 'yellow' : 'green';
+  const etaTag = p.status;
+  pmBody.innerHTML += `<tr style="cursor: pointer;" onclick="showPMStores('${p.name}','${p.branch}')">
+    <td><strong>${p.name}</strong></td>
+    <td>${p.branch}</td>
+    <td>${p.stores}</td>
+    <td><div style="display:flex;align-items:center;gap:6px;"><div class="bar" style="flex:1;"><div style="width:${p.prog}%;background:var(--green);"></div></div><span>${p.prog}%</span></div></td>
+    <td><strong>${p.active}</strong></td>
+    <td><span class="tag ${capColor}">${p.capacity}%</span></td>
+    <td>${p.overdue > 5 ? `<span class="tag red">${p.overdue}</span>` : p.overdue > 0 ? `<span class="tag yellow">${p.overdue}</span>` : '<span class="tag green">0</span>'}</td>
+    <td>${p.f6}</td>
+    <td>${p.f8}</td>
+    <td><span class="tag ${etaTag}">${p.eta}</span></td>
+    <td>${statusIcon}</td>
+  </tr>`;
+});
+
+function showPMStores(name, branch) {
+  document.getElementById('modal-title').textContent = `👤 ${name} — ${branch}`;
+  let html = `<div style="font-size: 11px; color: var(--text2); margin-bottom: 12px;">Stores PM ${name} đang quản lý + workload chi tiết:</div>`;
+  html += `<table style="font-size: 11px;"><thead><tr><th>Store</th><th>BC</th><th>Progress</th><th>Active phase</th><th>Active tasks</th><th>Overdue</th><th>Action</th></tr></thead><tbody>
+    <tr><td><strong>${branch.replace('PE_','PE_S_')}_01</strong></td><td>PE_BC_0047</td><td><div class="bar"><div style="width:78%;background:var(--green);"></div></div></td><td>F.8 Construcción</td><td>5</td><td><span class="tag red">2</span></td><td><button class="btn outline">View detail</button></td></tr>
+    <tr><td><strong>${branch.replace('PE_','PE_S_')}_02</strong></td><td>PE_BC_0048</td><td><div class="bar"><div style="width:62%;background:var(--green);"></div></div></td><td>F.6 Pago garantía</td><td>3</td><td><span class="tag yellow">1</span></td><td><button class="btn outline">View detail</button></td></tr>
+  </tbody></table>`;
+  html += '<div style="margin-top: 14px; padding: 10px; background: rgba(56,139,253,.08); border-radius: 6px; font-size: 11px;">📊 Workload summary: PM này có <strong>5 active phases</strong> đang chạy (capacity 100%). 3 tasks quá hạn — đề xuất escalate cho Area Manager.</div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+}
+
+// Burnup chart
+(function(){
+  const W=680, H=280, P=40;
+  const weeks = 24;
+  // Simulate burnup curves for 5 phases — F.1 already done, F.6/F.8/F.13 in progress
+  const series = [
+    { color:"#3fb950", values: [], target: 50, name: "F.1" }, // done
+    { color:"#388bfd", values: [], target: 50, name: "F.4" },
+    { color:"#d29922", values: [], target: 50, name: "F.6" },
+    { color:"#f85149", values: [], target: 50, name: "F.8" },
+    { color:"#a371f7", values: [], target: 50, name: "F.13" },
+  ];
+  // F.1 - reaches 50 by week 12
+  for (let i = 0; i <= weeks; i++) series[0].values.push(Math.min(50, i * 5));
+  // F.4 - slower, currently at ~18
+  for (let i = 0; i <= weeks; i++) series[1].values.push(Math.min(50, Math.max(0, i * 2.5 - 5)));
+  // F.6 - currently at 18, projected to reach 50 by week 22
+  for (let i = 0; i <= weeks; i++) series[2].values.push(Math.min(50, Math.max(0, i * 2 - 6)));
+  // F.8 - lagging, currently at 5, may reach 50 by week 26 (over forecast)
+  for (let i = 0; i <= weeks; i++) series[3].values.push(Math.min(50, Math.max(0, i * 1.5 - 8)));
+  // F.13 - tip phase, lagging
+  for (let i = 0; i <= weeks; i++) series[4].values.push(Math.min(50, Math.max(0, i * 1.3 - 10)));
+
+  let svg = '';
+  // Target line
+  const targetY = P + (1 - 50/55) * (H - 2*P);
+  svg += `<line x1="${P}" y1="${targetY}" x2="${W-P}" y2="${targetY}" stroke="#f85149" stroke-dasharray="4,4" opacity=".7"/>`;
+  svg += `<text x="${W-P-4}" y="${targetY-4}" font-size="9" fill="#f85149" text-anchor="end">Target: 50 stores</text>`;
+  // Today line (week 12)
+  const todayX = P + (12/weeks) * (W - 2*P);
+  svg += `<line x1="${todayX}" y1="${P}" x2="${todayX}" y2="${H-P}" stroke="#8b949e" stroke-dasharray="2,2" opacity=".5"/>`;
+  svg += `<text x="${todayX+4}" y="${P-4}" font-size="9" fill="#8b949e">Today (W12)</text>`;
+  // Series lines
+  series.forEach(s => {
+    let prev = null;
+    s.values.forEach((v, i) => {
+      const x = P + (i/weeks) * (W - 2*P);
+      const y = H - P - (v / 55) * (H - 2*P);
+      if (prev) svg += `<line x1="${prev.x}" y1="${prev.y}" x2="${x}" y2="${y}" stroke="${s.color}" stroke-width="2" opacity="${i <= 12 ? 1 : 0.5}" stroke-dasharray="${i > 12 ? '4,3' : ''}"/>`;
+      prev = { x, y };
+    });
+  });
+  // Axes
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  svg += `<line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="#30363d"/>`;
+  // Y axis labels
+  for (let i = 0; i <= 5; i++) {
+    const y = H - P - (i/5) * (H - 2*P);
+    const v = i * 11;
+    svg += `<text x="${P-6}" y="${y+3}" font-size="9" fill="#8b949e" text-anchor="end">${v}</text>`;
+  }
+  // X axis labels (weeks)
+  for (let i = 0; i <= weeks; i += 4) {
+    const x = P + (i/weeks) * (W - 2*P);
+    svg += `<text x="${x}" y="${H-P+12}" font-size="9" fill="#8b949e" text-anchor="middle">W${i}</text>`;
+  }
+  document.getElementById('burnup-svg').innerHTML = svg;
+})();
+
+// Phase Velocity SVG (stacked bars)
+(function(){
+  const W=480, H=240, P=30;
+  const weeks = 12;
+  const data = [];
+  for (let i = 0; i < weeks; i++) {
+    data.push({
+      f6: Math.max(0, 2 + Math.floor(Math.random()*3) - (i > 8 ? 1 : 0)), // declining
+      f8: 1 + Math.floor(Math.random()*2),
+      f13: i < 6 ? 0 : 1 + Math.floor(Math.random()*2), // increasing
+    });
+  }
+  const max = 8;
+  const bw = (W - 2*P) / weeks - 2;
+  let svg = '';
+  data.forEach((d, i) => {
+    const x = P + i * ((W - 2*P) / weeks);
+    let y = H - P;
+    [['f6','#d29922'],['f8','#f85149'],['f13','#a371f7']].forEach(([k, c]) => {
+      const h = (d[k] / max) * (H - 2*P);
+      y -= h;
+      if (h > 0) svg += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${c}"/>`;
+    });
+    svg += `<text x="${x + bw/2}" y="${H-P+12}" font-size="8" fill="#8b949e" text-anchor="middle">W${i+1}</text>`;
+  });
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  // Legend
+  ['F.6 (thuê)','F.8 (XD)','F.13 (mở)'].forEach((l, i) => {
+    const c = ['#d29922','#f85149','#a371f7'][i];
+    svg += `<rect x="${P + i*100}" y="8" width="10" height="10" fill="${c}"/>`;
+    svg += `<text x="${P + i*100 + 14}" y="17" font-size="9" fill="#8b949e">${l}</text>`;
+  });
+  document.getElementById('phase-velocity-svg').innerHTML = svg;
+})();
+
+// ========== Sample data ==========
+const SLOWEST_TASKS = [
+  { rank:1, title:"Excavación de cimientos", avg:14, planned:7, var:"+100%", count:23, trend:"▲" },
+  { rank:2, title:"Inspección municipal", avg:12, planned:5, var:"+140%", count:31, trend:"▲" },
+  { rank:3, title:"TTR aprueba ubicación", avg:11, planned:5, var:"+120%", count:42, trend:"▲" },
+  { rank:4, title:"Aprobación de Legal", avg:9, planned:4, var:"+125%", count:38, trend:"→" },
+  { rank:5, title:"Pago de garantía", avg:8, planned:3, var:"+167%", count:29, trend:"▼" },
+  { rank:6, title:"Recepción TTR", avg:7, planned:3, var:"+133%", count:25, trend:"→" },
+  { rank:7, title:"Capacitación personal", avg:6, planned:3, var:"+100%", count:20, trend:"▼" },
+  { rank:8, title:"Firma del contrato", avg:5, planned:3, var:"+67%", count:35, trend:"→" },
+  { rank:9, title:"Creación código canal", avg:4, planned:2, var:"+100%", count:28, trend:"→" },
+  { rank:10, title:"Configuración SUNAT", avg:3, planned:2, var:"+50%", count:22, trend:"▼" },
+];
+const tbody1 = document.getElementById('slowest-table');
+SLOWEST_TASKS.forEach(t => {
+  const tag = t.var.startsWith('+') && parseInt(t.var) >= 100 ? 'red' : parseInt(t.var) >= 50 ? 'yellow' : 'gray';
+  const tcolor = t.trend === '▲' ? 'var(--red)' : t.trend === '▼' ? 'var(--green)' : 'var(--text2)';
+  tbody1.innerHTML += `<tr><td><strong>${t.rank}</strong></td><td>${t.title}</td><td>${t.avg}d</td><td>${t.planned}d</td><td><span class="tag ${tag}">${t.var}</span></td><td>${t.count}</td><td style="color:${tcolor}">${t.trend}</td></tr>`;
+});
+
+// Pareto chart
+(function(){
+  const data = SLOWEST_TASKS.slice(0, 10);
+  const sum = data.reduce((s, t) => s + t.avg, 0);
+  let cum = 0;
+  const W=400, H=240, P=30;
+  const bw = (W - 2*P) / data.length;
+  let svg = '';
+  data.forEach((t, i) => {
+    const h = (t.avg / 14) * (H - 2*P);
+    const x = P + i * bw + 2;
+    const y = H - P - h;
+    cum += t.avg;
+    const cumPct = cum / sum * 100;
+    const cx = P + i * bw + bw/2;
+    const cy = (H - P) - (cumPct / 100) * (H - 2*P);
+    svg += `<rect x="${x}" y="${y}" width="${bw - 4}" height="${h}" fill="#388bfd" opacity=".7"/>`;
+    if (i > 0) {
+      const px = P + (i-1) * bw + bw/2;
+      const prevCum = cum - t.avg;
+      const py = (H - P) - (prevCum / sum * 100 / 100) * (H - 2*P);
+      svg += `<line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="#d29922" stroke-width="2"/>`;
+    }
+    svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="#d29922"/>`;
+    svg += `<text x="${cx}" y="${H - P + 12}" font-size="8" fill="#8b949e" text-anchor="middle">${t.rank}</text>`;
+  });
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  svg += `<line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="#30363d"/>`;
+  document.getElementById('pareto-svg').innerHTML = svg;
+})();
+
+// Overdue
+const OVERDUE = [
+  { task:"Inspección municipal", store:"PE_S_LIM_01", pm:"Juan", phase:"F.7", due:"23/4/26", days:14, sev:"HIGH" },
+  { task:"TTR aprueba ubicación", store:"PE_S_ARE_02", pm:"María", phase:"F.2", due:"15/4/26", days:21, sev:"CRITICAL" },
+  { task:"Aprobación Legal", store:"PE_S_CUS_01", pm:"Carlos", phase:"F.3", due:"28/4/26", days:8, sev:"MED" },
+  { task:"Pago garantía", store:"PE_S_PIU_01", pm:"Ana", phase:"F.6", due:"30/4/26", days:6, sev:"MED" },
+  { task:"Construcción - Excavación", store:"PE_S_ARE_01", pm:"Luis", phase:"F.8", due:"20/4/26", days:16, sev:"HIGH" },
+  { task:"Inspección municipal", store:"PE_S_TUM_07", pm:"Diego", phase:"F.7", due:"25/4/26", days:12, sev:"HIGH" },
+  { task:"Recepción TTR", store:"PE_S_HVC_01", pm:"Rosa", phase:"F.10", due:"2/5/26", days:3, sev:"LOW" },
+  { task:"Excavación", store:"PE_S_CAJ_02", pm:"Pedro", phase:"F.8", due:"19/4/26", days:17, sev:"HIGH" },
+];
+const ovBody = document.getElementById('overdue-table');
+OVERDUE.forEach(o => {
+  const sev = o.sev === 'CRITICAL' ? 'red' : o.sev === 'HIGH' ? 'red' : o.sev === 'MED' ? 'yellow' : 'gray';
+  ovBody.innerHTML += `<tr><td>${o.task}</td><td><span class="tag blue">${o.store}</span></td><td>PM ${o.pm}</td><td>${o.phase}</td><td>${o.due}</td><td><strong style="color: var(--red);">${o.days}d</strong></td><td><span class="tag ${sev}">${o.sev}</span></td><td><button class="btn outline">📧 Notify PM</button></td></tr>`;
+});
+
+// Replan
+const REPLAN = [
+  { task:"Inspección municipal", store:"PE_S_LIM_01", started:"15/4", expect:5, actual:14, recommend:"Extend by 7d, escalate" },
+  { task:"Construcción", store:"PE_S_ARE_01", started:"10/4", expect:7, actual:18, recommend:"Add resources, +5d" },
+  { task:"Pago garantía", store:"PE_S_PIU_01", started:"22/4", expect:3, actual:6, recommend:"Quick win, push today" },
+  { task:"TTR aprueba", store:"PE_S_HVC_01", started:"5/4", expect:5, actual:23, recommend:"Critical — escalate to TTR director" },
+];
+const rpBody = document.getElementById('replan-table');
+REPLAN.forEach(r => {
+  const overrun = ((r.actual / r.expect - 1) * 100).toFixed(0) + '%';
+  const health = r.actual / r.expect > 3 ? 'red' : r.actual / r.expect > 2 ? 'yellow' : 'blue';
+  const hLabel = health === 'red' ? '🔴 CRITICAL' : health === 'yellow' ? '🟡 WARNING' : '🔵 ATTENTION';
+  rpBody.innerHTML += `<tr><td><strong>${r.task}</strong></td><td><span class="tag blue">${r.store}</span></td><td>${r.started}</td><td>${r.expect}d</td><td><strong>${r.actual}d</strong></td><td><span class="tag red">+${overrun}</span></td><td><span class="tag ${health}">${hLabel}</span></td><td>${r.recommend}</td></tr>`;
+});
+
+// Velocity SVG
+(function(){
+  const W=480, H=220, P=30;
+  const weeks = 12;
+  const data = [];
+  for (let i = 0; i < weeks; i++) {
+    data.push({
+      todo: 60 - i*3 + Math.floor(Math.random()*8),
+      inProg: 20 + Math.floor(Math.random()*5),
+      done: i*5 + Math.floor(Math.random()*4),
+    });
+  }
+  let svg = '';
+  data.forEach((d, i) => {
+    const x = P + i * ((W - 2*P) / weeks);
+    const total = d.todo + d.inProg + d.done;
+    const bw = (W - 2*P) / weeks - 2;
+    let y = H - P;
+    [['done','#3fb950'],['inProg','#388bfd'],['todo','#484f58']].forEach(([k, c]) => {
+      const h = d[k] / 100 * (H - 2*P);
+      y -= h;
+      svg += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${c}"/>`;
+    });
+    svg += `<text x="${x + bw/2}" y="${H - P + 12}" font-size="8" fill="#8b949e" text-anchor="middle">W${i+1}</text>`;
+  });
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  document.getElementById('velocity-svg').innerHTML = svg;
+})();
+
+// Burndown
+(function(){
+  const W=480, H=220, P=30;
+  const days = 30;
+  let svg = '';
+  // Ideal line
+  svg += `<line x1="${P}" y1="${P}" x2="${W-P}" y2="${H-P}" stroke="#484f58" stroke-dasharray="4,4"/>`;
+  // Actual line (slower than ideal)
+  let prev = { x: P, y: P };
+  for (let i = 1; i <= days; i++) {
+    const x = P + (i / days) * (W - 2*P);
+    const ratio = Math.min(1, i / days * 0.8 + Math.sin(i/3) * 0.05);
+    const y = P + ratio * (H - 2*P);
+    svg += `<line x1="${prev.x}" y1="${prev.y}" x2="${x}" y2="${y}" stroke="#388bfd" stroke-width="2"/>`;
+    prev = { x, y };
+  }
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  svg += `<text x="${P}" y="${P-8}" font-size="9" fill="#8b949e">100 tasks</text>`;
+  svg += `<text x="${W-P}" y="${H-P+12}" font-size="9" fill="#8b949e" text-anchor="end">Day ${days}</text>`;
+  document.getElementById('burndown-svg').innerHTML = svg;
+})();
+
+// ========== Heatmap ==========
+const BRANCHES = ["LIM","ARE","CUS","ICA","PIU","CAJ","LAM","TRU","CHM","HVC","HUC","TUM","UCA","MDD","MOQ","TAC","PUN","JUN","ANC","APU","AYA","CAL","LAL","LOR","SMA"];
+const heatmapEl = document.getElementById('heatmap-grid');
+let html = '<div class="h">Branch \\ Phase</div>';
+for (let i = 1; i <= 13; i++) html += `<div class="h">F.${i}</div>`;
+BRANCHES.forEach(b => {
+  html += `<div class="h row">PE_${b}</div>`;
+  for (let i = 1; i <= 13; i++) {
+    let pct;
+    // Bottleneck pattern: F.7 và F.8 hay bị stuck
+    if (i === 7) pct = Math.floor(Math.random() * 40);
+    else if (i === 8) pct = Math.floor(Math.random() * 50 + 10);
+    else if (i <= 4) pct = Math.floor(Math.random() * 30 + 70);
+    else if (i >= 11) pct = Math.floor(Math.random() * 50);
+    else pct = Math.floor(Math.random() * 60 + 30);
+    const color = pct < 25 ? '#f85149' : pct < 50 ? '#d29922' : pct < 75 ? '#58a6ff' : '#3fb950';
+    html += `<div class="cell" style="background: ${color}; color: #000;" onclick="showCell('${b}', ${i}, ${pct})">${pct}%</div>`;
+  }
+});
+heatmapEl.innerHTML = html;
+
+function showCell(branch, phase, pct) {
+  document.getElementById('modal-title').textContent = `PE_${branch} × F.${phase}`;
+  document.getElementById('modal-body').innerHTML = `
+    <p style="font-size: 12px; margin-bottom: 12px;">Phase F.${phase} hoàn thành <strong>${pct}%</strong> tại branch <strong>PE_${branch}</strong>.</p>
+    <table>
+      <thead><tr><th>Store</th><th>Status</th><th>Days in phase</th></tr></thead>
+      <tbody>
+        <tr><td>PE_S_${branch}_01</td><td><span class="tag green">DONE</span></td><td>5d</td></tr>
+        <tr><td>PE_S_${branch}_02</td><td><span class="tag yellow">IN_PROGRESS</span></td><td>12d</td></tr>
+      </tbody>
+    </table>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+// Phase bar chart
+(function(){
+  const W=480, H=300, P=40;
+  const phases = [];
+  for (let i = 1; i <= 13; i++) {
+    let p;
+    if (i === 7) p = Math.floor(Math.random()*30 + 20);
+    else if (i === 8) p = Math.floor(Math.random()*40 + 30);
+    else p = Math.floor(Math.random()*40 + 50);
+    phases.push({ n: i, p });
+  }
+  const bw = (W - 2*P) / 13;
+  let svg = '';
+  phases.forEach((d, i) => {
+    const x = P + i * bw + 2;
+    const h = (d.p / 100) * (H - 2*P);
+    const y = H - P - h;
+    const color = d.p < 30 ? '#f85149' : d.p < 60 ? '#d29922' : '#3fb950';
+    svg += `<rect x="${x}" y="${y}" width="${bw - 4}" height="${h}" fill="${color}"/>`;
+    svg += `<text x="${x + bw/2 - 2}" y="${y - 4}" font-size="9" fill="#e6edf3" text-anchor="middle">${d.p}%</text>`;
+    svg += `<text x="${x + bw/2 - 2}" y="${H - P + 14}" font-size="9" fill="#8b949e" text-anchor="middle">F.${d.n}</text>`;
+  });
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  document.getElementById('phase-bar-svg').innerHTML = svg;
+})();
+
+// ========== Store Health Card ==========
+const STORE_PHASES = [
+  { n:1, name:"Ubicación encontrada", status:"done", days:1, var:"0d" },
+  { n:2, name:"TTR aprueba", status:"done", days:3, var:"+0d" },
+  { n:3, name:"Legal aprueba", status:"done", days:3, var:"0d" },
+  { n:4, name:"Firma del contrato", status:"done", days:3, var:"+1d", crit:true },
+  { n:5, name:"Creación código canal", status:"done", days:2, var:"0d" },
+  { n:6, name:"Pago garantía", status:"done", days:5, var:"+2d", crit:true },
+  { n:7, name:"Inspección (SS)", status:"done", days:3, var:"0d" },
+  { n:8, name:"Construcción", status:"active", days:7, var:"+5d", crit:true },
+  { n:9, name:"Reclutamiento", status:"todo", days:3, var:"-" },
+  { n:10, name:"TTR recepción", status:"todo", days:3, var:"-", crit:true },
+  { n:11, name:"Emisión SUNAT", status:"todo", days:2, var:"-" },
+  { n:12, name:"Licencia municipal", status:"block", days:10, var:"+0d", crit:true },
+  { n:13, name:"Inicio operaciones", status:"todo", days:1, var:"-", crit:true },
+];
+const ganttBody = document.getElementById('store-gantt-rows');
+STORE_PHASES.forEach((p, i) => {
+  const segs = STORE_PHASES.map((_, j) => {
+    let cls = 'todo';
+    if (j < i) cls = 'done';
+    if (j === i && p.status === 'active') cls = 'active';
+    if (j === i && p.status === 'block') cls = 'block';
+    if (j === i && p.crit && p.status !== 'done') cls = 'crit';
+    return `<div class="seg ${cls}" title="F.${j+1}"></div>`;
+  }).join('');
+  const statusTag = p.status === 'done' ? '<span class="tag green">✓ DONE</span>' :
+                     p.status === 'active' ? '<span class="tag blue">▶ ACTIVE</span>' :
+                     p.status === 'block' ? '<span class="tag yellow">⚠ BLOCK</span>' :
+                     '<span class="tag gray">○ TODO</span>';
+  const varColor = p.var.startsWith('+') ? 'red' : p.var === '0d' ? 'green' : 'gray';
+  ganttBody.innerHTML += `<tr><td><strong>${p.n}</strong></td><td>${p.name}${p.crit ? ' <span style="color:var(--red);font-size:9px;">●CR</span>' : ''}</td><td>${statusTag}</td><td>${p.days}d</td><td><span class="tag ${varColor}">${p.var}</span></td><td><div class="gantt-mini">${segs}</div></td></tr>`;
+});
+
+// Variance chart
+(function(){
+  const W=380, H=300, P=30;
+  const data = STORE_PHASES.map(p => ({ n: p.n, planned: parseInt(p.days), actual: parseInt(p.days) + (p.var.includes('+') ? parseInt(p.var) : 0) }));
+  const max = Math.max(...data.map(d => Math.max(d.planned, d.actual))) + 2;
+  const bw = (W - 2*P) / data.length;
+  let svg = '';
+  data.forEach((d, i) => {
+    const x = P + i * bw + 1;
+    const ph = d.planned / max * (H - 2*P);
+    const ah = d.actual / max * (H - 2*P);
+    svg += `<rect x="${x}" y="${H - P - ph}" width="${(bw-2)/2 - 1}" height="${ph}" fill="#388bfd"/>`;
+    svg += `<rect x="${x + (bw-2)/2}" y="${H - P - ah}" width="${(bw-2)/2 - 1}" height="${ah}" fill="#d29922"/>`;
+    svg += `<text x="${x + bw/2 - 1}" y="${H - P + 10}" font-size="8" fill="#8b949e" text-anchor="middle">F.${d.n}</text>`;
+  });
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  document.getElementById('variance-svg').innerHTML = svg;
+})();
+
+// ========== Leaderboard ==========
+const LEADERBOARD = [
+  { rank:1, code:"PE_LIM", stores:2, prog:78, spi:1.05, otd:90, vel:0.8, risk:25, delta:"+5", status:"green" },
+  { rank:2, code:"PE_ARE", stores:2, prog:72, spi:1.02, otd:85, vel:0.7, risk:30, delta:"+3", status:"green" },
+  { rank:3, code:"PE_CUS", stores:2, prog:68, spi:0.98, otd:80, vel:0.6, risk:38, delta:"+1", status:"yellow" },
+  { rank:4, code:"PE_ICA", stores:2, prog:65, spi:0.95, otd:75, vel:0.6, risk:42, delta:"-2", status:"yellow" },
+  { rank:5, code:"PE_CAJ", stores:2, prog:62, spi:0.93, otd:70, vel:0.5, risk:48, delta:"0", status:"yellow" },
+  { rank:6, code:"PE_PIU", stores:2, prog:58, spi:0.90, otd:65, vel:0.5, risk:55, delta:"-3", status:"yellow" },
+  { rank:7, code:"PE_LAL", stores:2, prog:55, spi:0.88, otd:60, vel:0.4, risk:60, delta:"-5", status:"red" },
+  { rank:8, code:"PE_TRU", stores:2, prog:52, spi:0.85, otd:55, vel:0.4, risk:65, delta:"+2", status:"red" },
+  { rank:9, code:"PE_LAM", stores:2, prog:48, spi:0.82, otd:50, vel:0.3, risk:70, delta:"-1", status:"red" },
+  { rank:10, code:"PE_HVC", stores:2, prog:18, spi:0.45, otd:0, vel:0.1, risk:95, delta:"-12", status:"red" },
+];
+const lbBody = document.getElementById('leaderboard-table');
+LEADERBOARD.forEach(b => {
+  const spiTag = b.spi >= 1 ? 'green' : b.spi >= 0.9 ? 'yellow' : 'red';
+  const otdTag = b.otd >= 80 ? 'green' : b.otd >= 60 ? 'yellow' : 'red';
+  const deltaC = b.delta.startsWith('+') ? 'var(--green)' : b.delta.startsWith('-') ? 'var(--red)' : 'var(--text2)';
+  const stTag = b.status === 'green' ? '🟢 ON-TRACK' : b.status === 'yellow' ? '🟡 AT-RISK' : '🔴 CRITICAL';
+  lbBody.innerHTML += `<tr>
+    <td><strong>${b.rank}</strong></td>
+    <td><span class="tag blue">${b.code}</span></td>
+    <td>${b.stores}</td>
+    <td><div style="display:flex;align-items:center;gap:6px;"><div class="bar" style="flex:1;"><div style="width:${b.prog}%;background:var(--green);"></div></div><span>${b.prog}%</span></div></td>
+    <td><span class="tag ${spiTag}">${b.spi.toFixed(2)}</span></td>
+    <td><span class="tag ${otdTag}">${b.otd}%</span></td>
+    <td>${b.vel}/wk</td>
+    <td><strong>${b.risk}</strong></td>
+    <td style="color:${deltaC};font-weight:600;">${b.delta}</td>
+    <td>${stTag}</td>
+  </tr>`;
+});
+
+// SPI distribution
+(function(){
+  const W=480, H=240, P=30;
+  const buckets = [3, 5, 8, 5, 3, 1]; // <0.5, 0.5-0.7, 0.7-0.9, 0.9-1.1, 1.1-1.3, >1.3
+  const labels = ["<0.5","0.5-0.7","0.7-0.9","0.9-1.1","1.1-1.3",">1.3"];
+  const max = Math.max(...buckets);
+  const bw = (W - 2*P) / buckets.length;
+  let svg = '';
+  buckets.forEach((c, i) => {
+    const x = P + i * bw + 2;
+    const h = c / max * (H - 2*P);
+    const y = H - P - h;
+    const color = i < 2 ? '#f85149' : i === 2 ? '#d29922' : i === 3 ? '#3fb950' : '#58a6ff';
+    svg += `<rect x="${x}" y="${y}" width="${bw - 4}" height="${h}" fill="${color}"/>`;
+    svg += `<text x="${x + bw/2 - 2}" y="${y - 4}" font-size="10" fill="#e6edf3" text-anchor="middle">${c}</text>`;
+    svg += `<text x="${x + bw/2 - 2}" y="${H - P + 14}" font-size="9" fill="#8b949e" text-anchor="middle">${labels[i]}</text>`;
+  });
+  // Baseline 1.0
+  const baseX = P + 3 * bw + bw / 2;
+  svg += `<line x1="${baseX}" y1="${P}" x2="${baseX}" y2="${H-P}" stroke="#f85149" stroke-dasharray="3,3"/>`;
+  svg += `<text x="${baseX + 4}" y="${P + 10}" font-size="9" fill="#f85149">1.0 baseline</text>`;
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  document.getElementById('spi-dist-svg').innerHTML = svg;
+})();
+
+// EVM
+(function(){
+  const W=480, H=240, P=30;
+  const months = 6;
+  // PV grows linearly to 100, EV grows slower, AC grows fastest
+  let svg = '';
+  function line(getY, color, dash="") {
+    let prev = null;
+    for (let i = 0; i <= months; i++) {
+      const x = P + (i / months) * (W - 2*P);
+      const y = H - P - getY(i) * (H - 2*P) / 100;
+      if (prev) svg += `<line x1="${prev.x}" y1="${prev.y}" x2="${x}" y2="${y}" stroke="${color}" stroke-width="2" ${dash ? 'stroke-dasharray="'+dash+'"' : ''}/>`;
+      svg += `<circle cx="${x}" cy="${y}" r="3" fill="${color}"/>`;
+      prev = { x, y };
+    }
+  }
+  line(i => Math.min(100, i * 18), "#388bfd"); // PV
+  line(i => Math.min(95, i * 16), "#3fb950"); // EV (slightly slower)
+  line(i => Math.min(105, i * 19), "#d29922"); // AC (slightly higher cost)
+  svg += `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#30363d"/>`;
+  svg += `<line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="#30363d"/>`;
+  for (let i = 0; i <= months; i++) {
+    const x = P + (i / months) * (W - 2*P);
+    svg += `<text x="${x}" y="${H - P + 12}" font-size="9" fill="#8b949e" text-anchor="middle">M${i}</text>`;
+  }
+  document.getElementById('evm-svg').innerHTML = svg;
+})();
+</script>
+</body>
+</html>
