@@ -20,6 +20,11 @@ interface Props {
   onExpandAll: () => void;
   onAutoSchedule: () => void;
   onNotify: (msg: string) => void;
+  onUnlink?: () => void;
+  onExport?: () => void;
+  onScrollToday?: () => void;
+  onLevelResources?: () => void;
+  onStats?: () => void;
 }
 
 const VIEWS: { id: ViewMode; icon: string; label: string }[] = [
@@ -70,7 +75,7 @@ function Group({ children }: { children: React.ReactNode }) {
   return <div style={{ display:"flex", alignItems:"center", gap:2, padding:"0 8px", borderRight:"1px solid #21262d" }}>{children}</div>;
 }
 
-export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritical, onToggleBaseline, onToggleArrows, onToggleDetail, onSaveBaseline, onAddTask, onDelete, onLink, onFilter, onSearch, onCollapseAll, onExpandAll, onAutoSchedule, onNotify }: Props) {
+export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritical, onToggleBaseline, onToggleArrows, onToggleDetail, onSaveBaseline, onAddTask, onDelete, onLink, onFilter, onSearch, onCollapseAll, onExpandAll, onAutoSchedule, onNotify, onUnlink, onExport, onScrollToday, onLevelResources, onStats }: Props) {
   const { ribbonTab: tab, viewMode, zoomMode, showCritical, showBaseline, showArrows, filterStatus } = state;
 
   return (
@@ -98,7 +103,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
           </Group>
           <Group>
             <RBtn icon="🔗" label="Vincular"    onClick={() => onLink("FS")} />
-            <RBtn icon="✂"  label="Desvincular" onClick={() => onLink("FS")} />
+            <RBtn icon="✂"  label="Desvincular" onClick={() => onUnlink?.()} />
           </Group>
           <Group>
             <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
@@ -113,7 +118,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
           <Group>
             <RBtn icon="✔" label="% Avance"    onClick={() => onNotify("Seleccione una tarea y haga doble clic en la barra de progreso")} />
             <RBtn icon="⚡" label="Auto"        onClick={onAutoSchedule} />
-            <RBtn icon="⚖" label="Nivelar"     onClick={() => onNotify("Nivelación de recursos completada")} />
+            <RBtn icon="⚖" label="Nivelar"     onClick={() => onLevelResources?.()} />
           </Group>
           <Group>
             <RBtn icon="🔴" label="R.Crítica"  active={showCritical}  onClick={onToggleCritical} />
@@ -121,7 +126,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
             <RBtn icon="📌" label="Guardar LB"                        onClick={onSaveBaseline} />
           </Group>
           <Group>
-            <RBtn icon="📅" label="Hoy"         onClick={() => onNotify("Vista centrada en hoy")} />
+            <RBtn icon="📅" label="Hoy"         onClick={() => onScrollToday?.()} />
           </Group>
         </>}
 
@@ -166,18 +171,18 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
           <Group>
             <RBtn icon="👤" label="Recurso"    onClick={() => onNotify("Agregue recursos en la vista de Recursos")} />
             <RBtn icon="⚠"  label="Sobreasig." onClick={() => onNotify("3 recursos con sobreasignación detectados")} />
-            <RBtn icon="⚖"  label="Nivelar"    onClick={() => onNotify("Nivelación completada")} />
+            <RBtn icon="⚖"  label="Nivelar"    onClick={() => onLevelResources?.()} />
           </Group>
         </>}
 
         {tab === "project" && <>
           <Group>
             <RBtn icon="ℹ"  label="Info"       onClick={() => onNotify(`${state.tasks.filter(t=>t.type==='summary').length} proyectos activos`)} />
-            <RBtn icon="📊" label="Estadísticas" onClick={() => onNotify("Estadísticas del portafolio actualizadas")} />
+            <RBtn icon="📊" label="Estadísticas" onClick={() => onStats?.()} />
           </Group>
           <Group>
             <RBtn icon="📄" label="Reporte"    onClick={() => onNotify("Reporte generado")} />
-            <RBtn icon="📗" label="Exportar"   onClick={() => onNotify("Exportado a Excel")} />
+            <RBtn icon="📗" label="Exportar"   onClick={() => onExport?.()} />
           </Group>
           <Group>
             <RBtn icon="📆" label="Calendario" onClick={() => onNotify("Calendario actualizado")} />
