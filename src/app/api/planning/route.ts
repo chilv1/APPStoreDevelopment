@@ -23,8 +23,13 @@ export async function GET(request: Request) {
   else if (statusFilter === "on_hold") statusWhere = { status: "ON_HOLD" };
   // "all" → no filter
 
+  const where = { ...roleWhere, ...statusWhere };
+
+  // Count total matching stores for "Mostrando X de Y" indicator
+  const total = await prisma.storeProject.count({ where });
+
   const stores = await prisma.storeProject.findMany({
-    where: { ...roleWhere, ...statusWhere },
+    where,
     include: {
       pm: { select: { id: true, name: true } },
       bc: { include: { branch: { select: { name: true, code: true } } } },
@@ -80,5 +85,5 @@ export async function GET(request: Request) {
     }),
   }));
 
-  return NextResponse.json(data);
+  return NextResponse.json({ stores: data, total, limit, hasMore: data.length < total });
 }

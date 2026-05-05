@@ -3,11 +3,43 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { cascadeDependents } from "@/lib/phase-scheduler";
 
+// ── Helper: verify PM owns the store that contains this phase ──────────────
+async function checkPhaseOwnership(phaseId: string, user: any): Promise<{ storeId: string } | null> {
+  const phase = await prisma.phase.findUnique({
+    where: { id: phaseId },
+    select: { store: { select: { id: true, pmId: true } } },
+  });
+  if (!phase) return null;
+
+  // ADMIN and AREA_MANAGER can edit any phase
+  if (["ADMIN", "AREA_MANAGER"].includes(user.role)) return { storeId: phase.store.id };
+
+  // PM can only edit phases in their assigned stores
+  if (user.role === "PM") {
+    const dbUser = await prisma.user.findFirst({
+      where: { OR: [{ email: user.email }, { id: user.id }] },
+      select: { id: true },
+    });
+    if (!dbUser || phase.store.pmId !== dbUser.id) return null;
+    return { storeId: phase.store.id };
+  }
+
+  // SURVEY_STAFF — read only, no write
+  return null;
+}
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ phaseId: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = session.user as any;
 
   const { phaseId } = await params;
+
+  // Ownership check
+  const ownership = await checkPhaseOwnership(phaseId, user);
+  if (!ownership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const storeId = ownership.storeId;
+
   const body = await request.json();
 
   const data: any = {};
@@ -54,13 +86,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
     // Recalculate store progress if status changed
     if (body.status !== undefined) {
       const allPhases = await prisma.phase.findMany({
-        where: { storeId: phase.store.id },
+        where: { storeId },
         include: { tasks: { select: { status: true } } },
       });
       const totalTasks = allPhases.reduce((s, p) => s + p.tasks.length, 0);
       const doneTasks  = allPhases.reduce((s, p) => s + p.tasks.filter(t => t.status === "DONE").length, 0);
       const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-      await prisma.storeProject.update({ where: { id: phase.store.id }, data: { progress } });
+      await prisma.storeProject.update({ where: { id: storeId }, data: { progress } });
     }
 
     let cascadedCount = 0;
@@ -68,7 +100,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
     const depSchChanged = data.dependencyType !== undefined || data.lagDays !== undefined || data.dependsOnId !== undefined;
 
     if (depSchChanged) {
-      // Re-fetch phase with its current values after the update
       const updated = await prisma.phase.findUnique({
         where: { id: phaseId },
         select: { dependsOnId: true, dependencyType: true, lagDays: true, plannedStart: true, plannedEnd: true },
@@ -87,7 +118,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
           if      (dt === "SS") newStartMs = new Date(pred.plannedStart).getTime() + lagMs;
           else if (dt === "FF") newStartMs = new Date(pred.plannedEnd).getTime()   + lagMs - durMs;
           else if (dt === "SF") newStartMs = new Date(pred.plannedStart).getTime() + lagMs - durMs;
-          else                  newStartMs = new Date(pred.plannedEnd).getTime()   + lagMs; // FS
+          else                  newStartMs = new Date(pred.plannedEnd).getTime()   + lagMs;
           await prisma.phase.update({
             where: { id: phaseId },
             data: { plannedStart: new Date(newStartMs), plannedEnd: new Date(newStartMs + durMs) },
@@ -99,17 +130,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
       cascadedCount = await cascadeDependents(phaseId, prisma as any);
     }
 
-    const user = session.user as any;
     const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
     try {
       await prisma.activity.create({
         data: {
-          userId:  dbUser?.id ?? null,
-          storeId: phase.store.id,
-          action:  "PHASE_UPDATED",
-          entity:  "Phase",
+          userId:   dbUser?.id ?? null,
+          storeId,
+          action:   "PHASE_UPDATED",
+          entity:   "Phase",
           entityId: phaseId,
-          details: cascadedCount > 0
+          details:  cascadedCount > 0
             ? `Cập nhật GĐ ${phase.order} - ${phase.name} (cascade ${cascadedCount} GĐ)`
             : `Cập nhật giai đoạn ${phase.order} - ${phase.name}`,
         },
@@ -122,52 +152,71 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   }
 }
 
-// Delete a single phase — re-links its dependents to its predecessor, then deletes
+// Delete a single phase — re-links dependents to predecessor, atomic transaction
 export async function DELETE(_req: Request, { params }: { params: Promise<{ phaseId: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
-  if (!["ADMIN", "AREA_MANAGER", "PM"].includes(user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const { phaseId } = await params;
+
+  // Ownership check (ADMIN, AREA_MANAGER, PM-of-store only)
+  const ownership = await checkPhaseOwnership(phaseId, user);
+  if (!ownership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const phase = await prisma.phase.findUnique({
     where: { id: phaseId },
     select: { id: true, storeId: true, order: true, dependsOnId: true, name: true },
   });
   if (!phase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
 
-  // Re-link: phases that depended on this one → point to this phase's predecessor
-  await prisma.phase.updateMany({
-    where: { storeId: phase.storeId, dependsOnId: phaseId },
-    data: { dependsOnId: phase.dependsOnId ?? null },
-  });
-
-  // Delete phase (cascade: tasks, notes)
-  await prisma.phase.delete({ where: { id: phaseId } });
-
-  // Re-sequence remaining phases (order gap fill)
-  const remaining = await prisma.phase.findMany({
-    where: { storeId: phase.storeId, order: { gt: phase.order } },
-    orderBy: { order: "asc" },
-  });
-  for (const p of remaining) {
-    await prisma.phase.update({ where: { id: p.id }, data: { order: p.order - 1, phaseNumber: p.phaseNumber - 1 } });
-  }
-
-  // Update store targetOpenDate
-  const lastPhase = await prisma.phase.findFirst({ where: { storeId: phase.storeId }, orderBy: { order: "desc" } });
-  if (lastPhase?.plannedEnd) {
-    await prisma.storeProject.update({ where: { id: phase.storeId }, data: { targetOpenDate: lastPhase.plannedEnd } });
-  }
-
-  const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
   try {
-    await prisma.activity.create({
-      data: { userId: dbUser?.id ?? null, storeId: phase.storeId, action: "PHASE_DELETED", entity: "Phase", entityId: phaseId, details: `Xóa giai đoạn "${phase.name}"` },
-    });
-  } catch { /* non-critical */ }
+    // Atomic: re-link → delete → re-sequence → sync targetOpenDate
+    await prisma.$transaction(async (tx) => {
+      // Re-link dependents to this phase's predecessor
+      await tx.phase.updateMany({
+        where: { storeId: phase.storeId, dependsOnId: phaseId },
+        data: { dependsOnId: phase.dependsOnId ?? null },
+      });
 
-  return NextResponse.json({ ok: true });
+      // Delete phase (cascade: tasks, notes)
+      await tx.phase.delete({ where: { id: phaseId } });
+
+      // Re-sequence remaining phases (close the gap)
+      const remaining = await tx.phase.findMany({
+        where: { storeId: phase.storeId, order: { gt: phase.order } },
+        orderBy: { order: "asc" },
+      });
+      for (const p of remaining) {
+        await tx.phase.update({
+          where: { id: p.id },
+          data: { order: p.order - 1, phaseNumber: p.phaseNumber - 1 },
+        });
+      }
+
+      // Sync store targetOpenDate
+      const lastPhase = await tx.phase.findFirst({
+        where: { storeId: phase.storeId },
+        orderBy: { order: "desc" },
+        select: { plannedEnd: true },
+      });
+      if (lastPhase?.plannedEnd) {
+        await tx.storeProject.update({
+          where: { id: phase.storeId },
+          data: { targetOpenDate: lastPhase.plannedEnd },
+        });
+      }
+    });
+
+    const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
+    try {
+      await prisma.activity.create({
+        data: { userId: dbUser?.id ?? null, storeId: phase.storeId, action: "PHASE_DELETED", entity: "Phase", entityId: phaseId, details: `Xóa giai đoạn "${phase.name}"` },
+      });
+    } catch { /* non-critical */ }
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Lỗi xóa phase" }, { status: 500 });
+  }
 }

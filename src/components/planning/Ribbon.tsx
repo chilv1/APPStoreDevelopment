@@ -169,8 +169,17 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
 
         {tab === "resource" && <>
           <Group>
-            <RBtn icon="👤" label="Recurso"    onClick={() => onNotify("Agregue recursos en la vista de Recursos")} />
-            <RBtn icon="⚠"  label="Sobreasig." onClick={() => onNotify("3 recursos con sobreasignación detectados")} />
+            <RBtn icon="👤" label="Recurso"    onClick={() => onNotify("Use la vista Recursos para gestionar asignaciones")} />
+            <RBtn icon="⚠"  label="Sobreasig." onClick={() => {
+              // Calculate real overallocation from state
+              const resCounts = new Map<string, number>();
+              state.tasks.filter(t => t.res && t.type !== "summary" && t.status !== "COMPLETED").forEach(t => {
+                resCounts.set(t.res, (resCounts.get(t.res) ?? 0) + 1);
+              });
+              const over = [...resCounts.entries()].filter(([, n]) => n > 1);
+              if (over.length === 0) onNotify("✅ Sin sobreasignación de recursos detectada");
+              else onNotify(`⚠ Sobreasig.: ${over.map(([r, n]) => `${r} (${n} tareas activas)`).join(", ")}`);
+            }} />
             <RBtn icon="⚖"  label="Nivelar"    onClick={() => onLevelResources?.()} />
           </Group>
         </>}
@@ -181,7 +190,7 @@ export default function Ribbon({ state, onView, onZoom, onRibbon, onToggleCritic
             <RBtn icon="📊" label="Estadísticas" onClick={() => onStats?.()} />
           </Group>
           <Group>
-            <RBtn icon="📄" label="Reporte"    onClick={() => onNotify("Reporte generado")} />
+            <RBtn icon="📄" label="Reporte"    onClick={() => window.open("/api/reports/executive/pdf", "_blank")} />
             <RBtn icon="📗" label="Exportar"   onClick={() => onExport?.()} />
           </Group>
           <Group>

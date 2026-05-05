@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type {
   PlanningState, PlanTask, PlanResource, ApiStore,
   ViewMode, ZoomMode, DepType, RibbonTab,
@@ -207,15 +207,21 @@ function buildTasksFromStores(stores: ApiStore[]): PlanTask[] {
 // ── COMPONENT ────────────────────────────────────────────────────────────────
 export default function PlanningClient() {
   const [state, dispatch] = useReducer(reducer, INIT);
+  const [totalStores, setTotalStores] = useState(0);
+  const [loadedLimit, setLoadedLimit] = useState(60);
   const notifTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async (filterStatus: string) => {
+  const load = useCallback(async (filterStatus: string, limit = 60) => {
     try {
-      const res = await fetch(`/api/planning?status=${filterStatus}&limit=60`);
-      const stores: ApiStore[] = await res.json();
-      if (!Array.isArray(stores)) return;
-      const raw = buildTasksFromStores(stores);
+      const res  = await fetch(`/api/planning?status=${filterStatus}&limit=${limit}`);
+      const json = await res.json();
+      // API now returns { stores, total, hasMore } — handle both shapes for safety
+      const stores: ApiStore[] = Array.isArray(json) ? json : (json.stores ?? []);
+      const total: number      = Array.isArray(json) ? stores.length : (json.total ?? stores.length);
+      if (!stores.length && !Array.isArray(json)) return;
+      setTotalStores(total);
+      const raw      = buildTasksFromStores(stores);
       const scheduled = computeSchedule(raw);
       const withCrit  = markCritical(scheduled, true);
       const resources: PlanResource[] = [
@@ -300,10 +306,17 @@ export default function PlanningClient() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         notify(`❌ ${err.error || "Error guardando cambios"}`);
+        return;
+      }
+      // M2: Auto-cascade — reload fresh data after any date/dur/dep change
+      const dateOrDepChanged = body.plannedStart !== undefined || body.plannedEnd !== undefined
+        || body.dependencyType !== undefined || body.lagDays !== undefined || body.dependsOnId !== undefined;
+      if (dateOrDepChanged) {
+        await load(state.filterStatus, loadedLimit);
       }
     } catch { notify("❌ Error de conexión"); }
     finally  { dispatch({ type:"SET_SAVING", saving:false }); }
-  }, [state.tasks, notify]);
+  }, [state.tasks, notify, state.filterStatus, loadedLimit, load]);
 
   // ── ADD TASK — opens modal, creates via API ───────────────────────────────
   const openAddTask = useCallback(() => {
@@ -562,10 +575,29 @@ export default function PlanningClient() {
         />
       )}
 
+      {/* Load More banner — shown when there are more stores than loaded */}
+      {!state.loading && totalStores > stats.stores && (
+        <div style={{ background:"#1c2128", borderTop:"1px solid #30363d", padding:"4px 16px", display:"flex", alignItems:"center", gap:12, flexShrink:0, fontSize:11 }}>
+          <span style={{ color:"#8b949e" }}>
+            📊 Mostrando <strong style={{ color:"#e6edf3" }}>{stats.stores}</strong> de <strong style={{ color:"#e6edf3" }}>{totalStores}</strong> proyectos
+          </span>
+          <button
+            onClick={() => { const next = loadedLimit + 60; setLoadedLimit(next); load(state.filterStatus, next); }}
+            style={{ background:"rgba(56,139,253,.15)", border:"1px solid #388bfd", color:"#388bfd", padding:"2px 12px", borderRadius:4, fontSize:11, cursor:"pointer" }}>
+            Cargar 60 más ↓
+          </button>
+          <button
+            onClick={() => { setLoadedLimit(999); load(state.filterStatus, 999); }}
+            style={{ background:"transparent", border:"1px solid #30363d", color:"#8b949e", padding:"2px 12px", borderRadius:4, fontSize:11, cursor:"pointer" }}>
+            Cargar todos ({totalStores})
+          </button>
+        </div>
+      )}
+
       {/* Status bar */}
       <div style={{ background:"#1f6feb", height:20, display:"flex", alignItems:"center", padding:"0 12px", gap:20, flexShrink:0, fontSize:10, color:"#fff" }}>
         <span>📋 Telecom Planner</span>
-        <span>🏪 {stats.stores} proyectos</span>
+        <span>🏪 {stats.stores}/{totalStores || stats.stores} proyectos</span>
         <span>📋 {stats.tasks} fases · {stats.done} completadas</span>
         <span>📈 Avance promedio: {stats.avgPct}%</span>
         {state.showCritical && <span style={{ color:"#fca5a5" }}>🔴 Ruta crítica: {stats.crit} fases</span>}
