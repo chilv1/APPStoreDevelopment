@@ -51,7 +51,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   if (body.actualEnd       !== undefined) data.actualEnd       = parseDate(body.actualEnd);
   if (body.status          !== undefined) data.status          = body.status;
   if (body.dependencyType  !== undefined) data.dependencyType  = body.dependencyType;
-  if (body.dependsOnId     !== undefined) data.dependsOnId     = body.dependsOnId ?? null;
+  if (body.dependsOnId     !== undefined) {
+    // Prevent self-reference and cycles
+    if (body.dependsOnId === phaseId) {
+      return NextResponse.json({ error: "Una fase no puede depender de sí misma" }, { status: 400 });
+    }
+    if (body.dependsOnId) {
+      // Walk the predecessor chain — if we reach phaseId, there's a cycle
+      const visited = new Set<string>([phaseId]);
+      let cur: string | null = body.dependsOnId;
+      let depth = 0;
+      while (cur && depth < 200) {
+        if (visited.has(cur)) {
+          return NextResponse.json({ error: "Esta dependencia crearía un ciclo" }, { status: 400 });
+        }
+        visited.add(cur);
+        const next: { dependsOnId: string | null } | null = await prisma.phase.findUnique({ where: { id: cur }, select: { dependsOnId: true } });
+        cur = next?.dependsOnId ?? null;
+        depth++;
+      }
+    }
+    data.dependsOnId = body.dependsOnId ?? null;
+  }
   if (body.lagDays         !== undefined) data.lagDays         = Number(body.lagDays) || 0;
   if (body.name            !== undefined) data.name            = body.name;
   if (body.progressPct     !== undefined) data.progressPct     = Math.min(100, Math.max(0, Number(body.progressPct) || 0));

@@ -17,14 +17,25 @@ function fmtD(d: Date | null) {
 export default function NetworkDiagram({ tasks, showCritical }: Props) {
   const phaseTasks = tasks.filter(t => t.type !== "summary");
 
-  // Topological level assignment
+  // Topological level assignment with cycle detection
   const levels = useMemo(() => {
-    const map = new Map<string, number>();
+    const map      = new Map<string, number>();
+    const visiting = new Set<string>();
+    // Build phase id index for O(1) lookup instead of O(n) find()
+    const phaseById = new Map(phaseTasks.map(p => [p.id, p]));
+
     function getLevel(t: PlanTask): number {
       if (map.has(t.id)) return map.get(t.id)!;
-      if (!t.pred) { map.set(t.id, 0); return 0; }
-      const pred = phaseTasks.find(x => x.id === t.pred);
+      if (visiting.has(t.id)) {
+        // Cycle detected — break by setting level 0
+        map.set(t.id, 0);
+        return 0;
+      }
+      if (!t.pred || t.pred === t.id) { map.set(t.id, 0); return 0; }
+      visiting.add(t.id);
+      const pred = phaseById.get(t.pred);
       const l = pred ? getLevel(pred) + 1 : 0;
+      visiting.delete(t.id);
       map.set(t.id, l);
       return l;
     }
