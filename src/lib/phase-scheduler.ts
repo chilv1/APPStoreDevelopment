@@ -5,7 +5,7 @@ const DAY_MS = 1000 * 60 * 60 * 24;
 export interface PhaseInput {
   id: string;
   order: number;
-  dependencyType: string;   // "FS" | "SS"
+  dependencyType: string;   // "FS" | "SS" | "FF" | "SF"
   dependsOnId: string | null;
   lagDays: number;
   durationDays?: number;    // computed from plannedStart/plannedEnd if not provided
@@ -61,9 +61,14 @@ export function computePhaseSchedule(
       const dep = phaseMap.get(phase.dependsOnId);
       if (dep) {
         const depSched = visit(dep);
-        const lagMs = (phase.lagDays ?? 0) * DAY_MS;
+        const lagMs   = (phase.lagDays ?? 0) * DAY_MS;
+        const thisDur = getDurationMs(phase);
         if (phase.dependencyType === "SS") {
           startMs = depSched.start.getTime() + lagMs;
+        } else if (phase.dependencyType === "FF") {
+          startMs = depSched.end.getTime() + lagMs - thisDur;
+        } else if (phase.dependencyType === "SF") {
+          startMs = depSched.start.getTime() + lagMs - thisDur;
         } else {
           // FS (default)
           startMs = depSched.end.getTime() + lagMs;
@@ -148,20 +153,24 @@ export async function cascadeDependents(
       if (visited.has(dep.id)) continue;
 
       const lagMs = (dep.lagDays ?? 0) * DAY_MS;
-      let newStartMs: number;
-
-      if (dep.dependencyType === "SS") {
-        newStartMs = new Date(current.plannedStart).getTime() + lagMs;
-      } else {
-        // FS
-        newStartMs = new Date(current.plannedEnd).getTime() + lagMs;
-      }
 
       // Preserve duration
       const oldDurMs =
         dep.plannedStart && dep.plannedEnd
           ? new Date(dep.plannedEnd).getTime() - new Date(dep.plannedStart).getTime()
           : 14 * DAY_MS;
+
+      let newStartMs: number;
+      if (dep.dependencyType === "SS") {
+        newStartMs = new Date(current.plannedStart).getTime() + lagMs;
+      } else if (dep.dependencyType === "FF") {
+        newStartMs = new Date(current.plannedEnd).getTime() + lagMs - oldDurMs;
+      } else if (dep.dependencyType === "SF") {
+        newStartMs = new Date(current.plannedStart).getTime() + lagMs - oldDurMs;
+      } else {
+        // FS (default)
+        newStartMs = new Date(current.plannedEnd).getTime() + lagMs;
+      }
 
       const newStart = new Date(newStartMs);
       const newEnd = new Date(newStartMs + oldDurMs);

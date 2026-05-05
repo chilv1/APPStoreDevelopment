@@ -57,8 +57,8 @@ export default function WBSGrid({ tasks, selectedId, showCritical, onSelect, onT
         ))}
       </div>
 
-      {/* Rows */}
-      <div style={{ flex:1, overflowY:"auto", overflowX:"hidden" }}>
+      {/* Rows — class used by GanttPane to sync vertical scroll */}
+      <div className="planning-grid-wrap" style={{ flex:1, overflowY:"auto", overflowX:"hidden" }}>
         {tasks.map((t, i) => {
           const isSel = t.id === selectedId;
           const isCrit = showCritical && t.critical;

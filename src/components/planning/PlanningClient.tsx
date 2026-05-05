@@ -97,10 +97,17 @@ function reducer(s: State, a: Action): State {
 
 // ── SCHEDULE COMPUTATION ──────────────────────────────────────────────────────
 function computeSchedule(tasks: PlanTask[]): PlanTask[] {
-  const map = new Map<string, { start: number; end: number }>();
+  const map      = new Map<string, { start: number; end: number }>();
+  const visiting = new Set<string>(); // cycle detection
 
   function visit(t: PlanTask): { start: number; end: number } {
     if (map.has(t.id)) return map.get(t.id)!;
+    if (visiting.has(t.id)) {
+      // Cycle detected — break, use original dates as fallback
+      const s = t.start ? t.start.getTime() : Date.now();
+      return { start: s, end: s + Math.max(t.dur, 1) * DAY };
+    }
+    visiting.add(t.id);
     let startMs = t.start ? t.start.getTime() : Date.now();
     if (t.pred) {
       const pred = tasks.find(x => x.id === t.pred);
@@ -108,11 +115,12 @@ function computeSchedule(tasks: PlanTask[]): PlanTask[] {
         const ps = visit(pred);
         const lagMs = (t.lag ?? 0) * DAY;
         if      (t.depType === "SS") startMs = ps.start + lagMs;
-        else if (t.depType === "FF") startMs = ps.end + lagMs - t.dur * DAY;
+        else if (t.depType === "FF") startMs = ps.end   + lagMs - t.dur * DAY;
         else if (t.depType === "SF") startMs = ps.start + lagMs - t.dur * DAY;
-        else                         startMs = ps.end + lagMs;
+        else                         startMs = ps.end   + lagMs;
       }
     }
+    visiting.delete(t.id);
     const r = { start: startMs, end: startMs + Math.max(t.dur, 0) * DAY };
     map.set(t.id, r);
     return r;
@@ -173,7 +181,7 @@ function buildTasksFromStores(stores: ApiStore[]): PlanTask[] {
       storeId: store.id, baseline: null,
     });
     store.phases.forEach(ph => {
-      const isMilestone = ph.name.toLowerCase().includes("inaug") && ph.phaseNumber === store.phases.length;
+      const isMilestone = /inaug|apertura|inicio oper/i.test(ph.name);
       tasks.push({
         id: ph.id, type: isMilestone ? "milestone" : "task",
         name: ph.name,
@@ -268,6 +276,14 @@ export default function PlanningClient() {
     if (patch.depType !== undefined)  body.dependencyType  = patch.depType;
     if (patch.pred !== undefined)     body.dependsOnId     = patch.pred ?? null;
     if (patch.lag !== undefined)      body.lagDays         = patch.lag;
+    // dur without explicit dates → recalculate plannedEnd keeping plannedStart
+    if (patch.dur !== undefined && patch.start === undefined && patch.fin === undefined) {
+      const currentStart = task.start;
+      if (currentStart) {
+        body.plannedStart = currentStart.toISOString();
+        body.plannedEnd   = new Date(currentStart.getTime() + Math.max(1, patch.dur) * DAY).toISOString();
+      }
+    }
     // pct: update phase status based on progress
     if (patch.pct !== undefined) {
       body.status = patch.pct >= 100 ? "COMPLETED" : patch.pct > 0 ? "IN_PROGRESS" : "NOT_STARTED";
@@ -310,24 +326,9 @@ export default function PlanningClient() {
         return;
       }
       const newPhase = await res.json();
-      // Add to local state immediately
-      const parentId = `s-${opts.storeId}`;
-      dispatch({ type:"ADD_TASK", task: {
-        id: newPhase.id, type:"task",
-        name: newPhase.name,
-        dur: opts.durationDays,
-        start: newPhase.plannedStart ? new Date(newPhase.plannedStart) : null,
-        fin:   newPhase.plannedEnd   ? new Date(newPhase.plannedEnd)   : null,
-        pred: newPhase.dependsOnId ?? null,
-        depType: (newPhase.dependencyType as DepType) ?? "FS",
-        lag: newPhase.lagDays ?? 0,
-        pct: 0, res: "",
-        level: 1, parentId,
-        status: "NOT_STARTED", critical: false,
-        milestone: false, expanded: true,
-        storeId: opts.storeId, baseline: null, phaseId: newPhase.id,
-      }});
       notify(`✅ Fase "${newPhase.name}" creada`);
+      // Reload fresh data so ordering and cascade are correct
+      await load(state.filterStatus);
     } catch { notify("❌ Error de conexión"); }
     finally  { dispatch({ type:"SET_SAVING", saving:false }); }
   }, [notify]);
@@ -356,11 +357,12 @@ export default function PlanningClient() {
         notify(`❌ ${err.error || "Error eliminando fase"}`);
         return;
       }
-      dispatch({ type:"DELETE_TASK", id: task.id });
       notify(`✅ Fase "${task.name}" eliminada`);
+      // Reload to get correct predecessor re-links and updated order
+      await load(state.filterStatus);
     } catch { notify("❌ Error de conexión"); }
     finally  { dispatch({ type:"SET_SAVING", saving:false }); }
-  }, [notify]);
+  }, [notify, state.filterStatus, load]);
 
   // ── VINCULAR / DESVINCULAR ────────────────────────────────────────────────
   const linkTasks = useCallback((depType: DepType) => {
@@ -436,9 +438,10 @@ export default function PlanningClient() {
   const scrollToday = useCallback(() => {
     const ganttBody = document.getElementById("gantt-body-scroll");
     if (ganttBody) {
-      const today = new Date();
-      // Dispatch zoom reset then scroll (handled in GanttPane via prop)
+      ganttBody.dispatchEvent(new CustomEvent("scrollToToday"));
       notify("📅 Vista centrada en hoy");
+    } else {
+      notify("📅 Cambie a la vista Gantt primero");
     }
   }, [notify]);
 

@@ -51,7 +51,37 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
 
     let cascadedCount = 0;
     const datesChanged = data.plannedStart !== undefined || data.plannedEnd !== undefined;
-    if (datesChanged) {
+    const depSchChanged = data.dependencyType !== undefined || data.lagDays !== undefined || data.dependsOnId !== undefined;
+
+    if (depSchChanged) {
+      // Re-fetch phase with its current values after the update
+      const updated = await prisma.phase.findUnique({
+        where: { id: phaseId },
+        select: { dependsOnId: true, dependencyType: true, lagDays: true, plannedStart: true, plannedEnd: true },
+      });
+      if (updated?.dependsOnId && updated.plannedStart && updated.plannedEnd) {
+        const pred = await prisma.phase.findUnique({
+          where: { id: updated.dependsOnId },
+          select: { plannedStart: true, plannedEnd: true },
+        });
+        if (pred?.plannedStart && pred?.plannedEnd) {
+          const DAY_MS = 86_400_000;
+          const lagMs  = (updated.lagDays ?? 0) * DAY_MS;
+          const durMs  = new Date(updated.plannedEnd).getTime() - new Date(updated.plannedStart).getTime();
+          const dt     = updated.dependencyType;
+          let newStartMs: number;
+          if      (dt === "SS") newStartMs = new Date(pred.plannedStart).getTime() + lagMs;
+          else if (dt === "FF") newStartMs = new Date(pred.plannedEnd).getTime()   + lagMs - durMs;
+          else if (dt === "SF") newStartMs = new Date(pred.plannedStart).getTime() + lagMs - durMs;
+          else                  newStartMs = new Date(pred.plannedEnd).getTime()   + lagMs; // FS
+          await prisma.phase.update({
+            where: { id: phaseId },
+            data: { plannedStart: new Date(newStartMs), plannedEnd: new Date(newStartMs + durMs) },
+          });
+        }
+      }
+      cascadedCount = await cascadeDependents(phaseId, prisma as any);
+    } else if (datesChanged) {
       cascadedCount = await cascadeDependents(phaseId, prisma as any);
     }
 

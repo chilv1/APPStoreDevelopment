@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import type { PlanTask, DepType } from "./types";
 
 interface Props {
@@ -23,8 +24,15 @@ const INPUT = {
 } as const;
 
 export default function DetailPane({ task, allTasks, onClose, onUpdate }: Props) {
-  const predIdx = task.pred ? allTasks.findIndex(t => t.id === task.pred) + 1 : "";
+  // Local state for fields that fire API on every keystroke without debounce
+  const [localName, setLocalName] = useState(task.name);
+  const [localDur,  setLocalDur]  = useState(task.dur);
 
+  // Sync when task changes (e.g. after external update)
+  useEffect(() => { setLocalName(task.name); }, [task.id, task.name]);
+  useEffect(() => { setLocalDur(task.dur);   }, [task.id, task.dur]);
+
+  const predIdx   = task.pred ? allTasks.findIndex(t => t.id === task.pred) + 1 : "";
   const toDateStr = (d: Date | null) => d ? d.toISOString().slice(0, 10) : "";
 
   return (
@@ -34,16 +42,23 @@ export default function DetailPane({ task, allTasks, onClose, onUpdate }: Props)
         <button onClick={onClose} style={{ marginLeft:"auto", background:"none", border:"none", color:"#484f58", cursor:"pointer", fontSize:16, lineHeight:1 }}>✕</button>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"10px 16px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"10px 16px" }}>
         <Field label="Nombre">
-          <input value={task.name} onChange={e => onUpdate({ name: e.target.value })}
-            style={INPUT} />
+          <input
+            value={localName}
+            onChange={e => setLocalName(e.target.value)}
+            onBlur={() => { if (localName !== task.name) onUpdate({ name: localName }); }}
+            style={INPUT}
+          />
         </Field>
 
         <Field label="Duración (días)">
-          <input type="number" min={0} value={task.dur}
-            onChange={e => onUpdate({ dur: Math.max(0, parseInt(e.target.value)||0) })}
-            style={INPUT} />
+          <input
+            type="number" min={1} value={localDur}
+            onChange={e => setLocalDur(Math.max(1, parseInt(e.target.value) || 1))}
+            onBlur={() => { if (localDur !== task.dur) onUpdate({ dur: localDur }); }}
+            style={INPUT}
+          />
         </Field>
 
         <Field label="Inicio">
@@ -68,7 +83,7 @@ export default function DetailPane({ task, allTasks, onClose, onUpdate }: Props)
         </Field>
 
         <Field label="Predecesor (N°)">
-          <input type="number" min={0} defaultValue={predIdx}
+          <input type="number" min={0} defaultValue={predIdx} key={`pred-${task.id}`}
             onBlur={e => {
               const idx = parseInt(e.target.value) - 1;
               const target = allTasks[idx];
@@ -87,6 +102,14 @@ export default function DetailPane({ task, allTasks, onClose, onUpdate }: Props)
               }</option>
             ))}
           </select>
+        </Field>
+
+        <Field label="Lag (días)">
+          <input
+            type="number" min={0} value={task.lag}
+            onChange={e => onUpdate({ lag: Math.max(0, parseInt(e.target.value) || 0) })}
+            style={INPUT}
+          />
         </Field>
 
         <Field label="Recurso">

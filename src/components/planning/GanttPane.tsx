@@ -114,11 +114,15 @@ export default function GanttPane({ tasks, allTasks, selectedId, zoomMode, showC
   const today = new Date(); today.setHours(0,0,0,0);
   const todayX = msToX(today.getTime());
 
+  // Keep a ref of localTasks to avoid stale closures in drag onUp
+  const localTasksRef = useRef<PlanTask[]>(localTasks);
+  localTasksRef.current = localTasks;
+
   // Drag handlers
   const startDrag = useCallback((e: React.MouseEvent, taskId: string, type: DragState["type"]) => {
     e.preventDefault(); e.stopPropagation();
     const t = localTasks.find(x => x.id === taskId);
-    if (!t?.start || !t.fin) return;
+    if (!t?.start || !t.fin || t.type === "summary") return; // guard: no drag on summary rows
     setDrag({ taskId, type, startX:e.clientX, origStartMs:t.start.getTime(), origEndMs:t.fin.getTime() });
     document.body.style.cursor = type==="move" ? "grabbing" : "ew-resize";
     document.body.style.userSelect = "none";
@@ -143,7 +147,8 @@ export default function GanttPane({ tasks, allTasks, selectedId, zoomMode, showC
       }));
     };
     const onUp = () => {
-      const t = localTasks.find(x => x.id === drag.taskId);
+      // Use ref to avoid stale closure on rapidly-changing localTasks
+      const t = localTasksRef.current.find(x => x.id === drag.taskId);
       if (t?.start && t.fin) onUpdateTask(drag.taskId, { start:t.start, fin:t.fin, dur:t.dur });
       setDrag(null);
       document.body.style.cursor = "";
@@ -152,13 +157,26 @@ export default function GanttPane({ tasks, allTasks, selectedId, zoomMode, showC
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     return () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
-  }, [drag, px, localTasks, onUpdateTask]);
+  }, [drag, px, onUpdateTask]);
 
   // Sync grid ↔ gantt scroll
   const onBodyScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const grid = document.querySelector<HTMLDivElement>(".planning-grid-wrap");
     if (grid) grid.scrollTop = e.currentTarget.scrollTop;
   };
+
+  // Listen for "scrollToToday" custom event dispatched by PlanningClient
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const handler = () => {
+      const todayMs = new Date().setHours(0,0,0,0);
+      const x = Math.round((todayMs - vw.startMs) / DAY * px);
+      body.scrollLeft = Math.max(0, x - 200);
+    };
+    body.addEventListener("scrollToToday", handler);
+    return () => body.removeEventListener("scrollToToday", handler);
+  }, [vw.startMs, px]);
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:200 }}>
@@ -179,7 +197,7 @@ export default function GanttPane({ tasks, allTasks, selectedId, zoomMode, showC
       </div>
 
       {/* Gantt body */}
-      <div ref={bodyRef} style={{ flex:1, overflowY:"auto", overflowX:"auto" }} onScroll={onBodyScroll}>
+      <div ref={bodyRef} id="gantt-body-scroll" style={{ flex:1, overflowY:"auto", overflowX:"auto" }} onScroll={onBodyScroll}>
         <div style={{ width:totalW, position:"relative" }}>
           {/* Today line */}
           {todayX >= 0 && todayX <= totalW && (
