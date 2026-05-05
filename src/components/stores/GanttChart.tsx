@@ -697,7 +697,14 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
     });
   }, [phases, now]);
 
-  const target = targetDate ? new Date(targetDate) : null;
+  // Derive apertura date from last phase's plannedEnd so it moves automatically
+  // when phases are rescheduled. Fall back to store.targetOpenDate prop only
+  // if phases have no dates yet.
+  const target = useMemo(() => {
+    const lastPhase = phasesWithDates[phasesWithDates.length - 1];
+    if (lastPhase?.plannedEnd) return new Date(lastPhase.plannedEnd);
+    return targetDate ? new Date(targetDate) : null;
+  }, [phasesWithDates, targetDate]);
 
   // Full project span
   const fullStart = useMemo(() => {

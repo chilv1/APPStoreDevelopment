@@ -175,7 +175,12 @@ export async function cascadeDependents(
     }
   }
 
-  if (updates.length === 0) return 0;
+  if (updates.length === 0) {
+    // Still need to sync targetOpenDate even when no dependents were cascaded
+    // (the changed phase itself may be the last phase)
+    await syncTargetOpenDate(changedPhase.storeId, prisma);
+    return 0;
+  }
 
   await prisma.$transaction(
     updates.map(({ id, plannedStart, plannedEnd }) =>
@@ -183,5 +188,22 @@ export async function cascadeDependents(
     )
   );
 
+  // Sync store.targetOpenDate = plannedEnd of the last phase (highest order)
+  await syncTargetOpenDate(changedPhase.storeId, prisma);
+
   return updates.length;
+}
+
+async function syncTargetOpenDate(storeId: string, prisma: PrismaClient) {
+  const lastPhase = await prisma.phase.findFirst({
+    where: { storeId },
+    orderBy: { order: "desc" },
+    select: { plannedEnd: true },
+  });
+  if (lastPhase?.plannedEnd) {
+    await prisma.storeProject.update({
+      where: { id: storeId },
+      data: { targetOpenDate: lastPhase.plannedEnd },
+    });
+  }
 }
