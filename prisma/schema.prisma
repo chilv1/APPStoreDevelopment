@@ -52,6 +52,7 @@ model User {
   issues         Issue[]        @relation("IssueReporter")
   phaseNotes     PhaseNote[]    @relation("PhaseNoteAuthor")
   baselines      PhaseBaseline[] @relation("BaselineCreator")
+  createdDeps    TaskDependency[] @relation("DepCreator")
 }
 
 model StoreProject {
@@ -106,6 +107,35 @@ model Phase {
 
   dependsOn  Phase?  @relation("PhaseDep", fields: [dependsOnId], references: [id], onDelete: SetNull)
   dependents Phase[] @relation("PhaseDep")
+
+  // Multi-predecessor edges (preferred over legacy `dependsOnId`).
+  predecessorLinks TaskDependency[] @relation("DepSucc")
+  successorLinks   TaskDependency[] @relation("DepPred")
+}
+
+// Multi-predecessor dependency edge (Phase ↔ Phase).
+// `lagPercent` overrides `lagDays` when non-null.
+// `hard` = true → engine emits error if violated; false → warning only.
+model TaskDependency {
+  id            String  @id @default(cuid())
+  predecessorId String
+  successorId   String
+  type          String  @default("FS") // FS | SS | FF | SF
+  lagDays       Int     @default(0)
+  lagPercent    Int?
+  hard          Boolean @default(true)
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  creator   User?    @relation("DepCreator", fields: [createdBy], references: [id])
+
+  predecessor Phase @relation("DepPred", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor   Phase @relation("DepSucc", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorId, successorId])
+  @@index([successorId])
 }
 
 // Quick text notes attached to a specific phase (for daily logging like
