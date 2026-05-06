@@ -1,0 +1,43 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            echo "==> Pulling latest from main"
+            git fetch origin main
+            git reset --hard origin/main
+            echo "==> Installing dependencies"
+            npm ci --no-audit --no-fund
+            echo "==> Generating Prisma client"
+            npx prisma generate
+            echo "==> Applying migrations (deploy mode)"
+            npx prisma migrate deploy
+            echo "==> Building Next.js"
+            npm run build
+            echo "==> Restarting PM2 process"
+            pm2 restart telecom-store-manager --update-env || pm2 start npm --name telecom-store-manager -- start
+            pm2 save
+            echo "==> Deploy complete"
