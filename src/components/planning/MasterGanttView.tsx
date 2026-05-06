@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "@/lib/i18n/context";
-import type { PlanningStore, ScheduleResp } from "./types";
+import type { PlanningStore, PlanningPhase, ScheduleResp } from "./types";
 
 interface PlanningAssignee { id: string; name: string; role: string }
 
@@ -16,11 +16,22 @@ interface Props {
   currentUserId: string | null;
 }
 
-const ROW_HEIGHT = 38;
+// Row & layout
+const ROW_HEIGHT = 36;
 const GROUP_HEIGHT = 44;
 const HEADER_HEIGHT = 50;
-const NAME_COL_WIDTH = 320;
 const MS_PER_DAY = 86_400_000;
+
+// Left-panel column widths (MS-Project style table)
+const COL_NUM_W = 30;
+const COL_DUR_W = 54;
+const COL_START_W = 80;
+const COL_FINISH_W = 80;
+const COL_PRED_W = 70;
+const COL_RES_W = 170;
+const COL_NAME_MIN_W = 180;
+const NAME_COL_WIDTH = COL_NUM_W + COL_NAME_MIN_W + COL_DUR_W + COL_START_W + COL_FINISH_W + COL_PRED_W + COL_RES_W;
+const GRID_TEMPLATE = `${COL_NUM_W}px minmax(${COL_NAME_MIN_W}px, 1fr) ${COL_DUR_W}px ${COL_START_W}px ${COL_FINISH_W}px ${COL_PRED_W}px ${COL_RES_W}px`;
 
 type Zoom = "day" | "week" | "month";
 const PX_PER_DAY: Record<Zoom, number> = { day: 26, week: 14, month: 4 };
@@ -29,15 +40,31 @@ function startOfDay(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
-function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase() ?? "").join("");
+function fmtDate(d: string | null): string {
+  if (!d) return "";
+  const dd = new Date(d);
+  return `${dd.getUTCDate()}/${dd.getUTCMonth() + 1}/${String(dd.getUTCFullYear()).slice(-2)}`;
 }
 
-function hashColor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
-  const hue = Math.abs(h) % 360;
-  return `linear-gradient(135deg, hsl(${hue} 65% 55%), hsl(${(hue + 30) % 360} 65% 45%))`;
+function durationDays(start: string | null, end: string | null): string {
+  if (!start || !end) return "—";
+  const days = Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / MS_PER_DAY));
+  return `${days}d`;
+}
+
+function fmtPredecessor(phase: PlanningPhase, storePhases: PlanningPhase[]): string {
+  if (!phase.dependsOnId) return "";
+  const pred = storePhases.find((p) => p.id === phase.dependsOnId);
+  if (!pred) return "";
+  let s = String(pred.phaseNumber);
+  if (phase.dependencyType && phase.dependencyType !== "FS") s += " " + phase.dependencyType;
+  if (phase.lagDays && phase.lagDays !== 0) s += (phase.lagDays > 0 ? " +" : " ") + phase.lagDays + "d";
+  return s;
+}
+
+function fmtResources(assignees: PlanningAssignee[] | undefined): string {
+  if (!assignees || assignees.length === 0) return "—";
+  return assignees.map((a) => a.name).join(", ");
 }
 
 interface DragState {
@@ -50,94 +77,11 @@ interface DragState {
   deltaDays: number;
 }
 
-// Avatar stack used inside AssigneePill on hover.
-function AvatarStack({ users, onUserClick, activeUserId }: {
-  users: PlanningAssignee[];
-  onUserClick: (id: string) => void;
-  activeUserId: string | null;
-}) {
-  const shown = users.slice(0, 3);
-  const overflow = users.length - shown.length;
-  return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      {shown.map((u, i) => (
-        <button
-          key={u.id}
-          onClick={(ev) => { ev.stopPropagation(); onUserClick(u.id); }}
-          title={u.name}
-          style={{
-            width: 22, height: 22, borderRadius: "50%",
-            background: hashColor(u.id), color: "#fff",
-            fontSize: 9, fontWeight: 700, display: "flex",
-            alignItems: "center", justifyContent: "center",
-            marginLeft: i === 0 ? 0 : -6,
-            border: `2px solid ${activeUserId === u.id ? "#0f172a" : "var(--bg-card, #fff)"}`,
-            cursor: "pointer", padding: 0, lineHeight: 1,
-            boxShadow: activeUserId === u.id ? "0 0 0 1px rgba(15,23,42,0.4)" : "none",
-          }}
-        >{initials(u.name)}</button>
-      ))}
-      {overflow > 0 && (
-        <div
-          title={users.slice(3).map((u) => u.name).join(", ")}
-          style={{
-            width: 22, height: 22, borderRadius: "50%",
-            background: "#94a3b8", color: "#fff",
-            fontSize: 9, fontWeight: 700, display: "flex",
-            alignItems: "center", justifyContent: "center",
-            marginLeft: -6, border: "2px solid var(--bg-card, #fff)",
-          }}
-        >+{overflow}</div>
-      )}
-    </div>
-  );
-}
-
-// Default = compact badge "👥 N", hover = expand to AvatarStack.
-function AssigneePill({ users, onUserClick, activeUserId }: {
-  users: PlanningAssignee[];
-  onUserClick: (id: string) => void;
-  activeUserId: string | null;
-}) {
-  const [hovered, setHovered] = useState(false);
-  if (users.length === 0) return null;
-  const isActive = activeUserId !== null && users.some((u) => u.id === activeUserId);
-  return (
-    <span
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={(ev) => ev.stopPropagation()}
-      style={{ display: "inline-flex", alignItems: "center", marginLeft: "auto", flexShrink: 0 }}
-    >
-      {hovered ? (
-        <AvatarStack users={users} onUserClick={onUserClick} activeUserId={activeUserId} />
-      ) : (
-        <span
-          title={users.map((u) => u.name).join(", ")}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "2px 7px", borderRadius: 11, height: 22,
-            background: isActive ? "rgba(15,23,42,0.12)" : "rgba(99,102,241,0.10)",
-            color: isActive ? "#0f172a" : "#4f46e5",
-            fontSize: 10, fontWeight: 700,
-            border: isActive ? "1px solid rgba(15,23,42,0.3)" : "1px solid rgba(99,102,241,0.25)",
-          }}
-        >
-          👥 {users.length}
-        </span>
-      )}
-    </span>
-  );
-}
-
-// Mini progress bar 3px tall under phase name.
-function MiniProgressBar({ pct }: { pct: number }) {
-  const fillColor = pct >= 100 ? "#10b981" : "#3b82f6";
-  return (
-    <div style={{ width: "100%", height: 3, background: "rgba(15,23,42,0.06)", borderRadius: 2, marginTop: 3 }}>
-      <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: "100%", background: fillColor, borderRadius: 2, transition: "width 0.15s ease" }} />
-    </div>
-  );
+interface PhaseCoord {
+  left: number;
+  right: number;
+  midY: number;
+  top: number;
 }
 
 export default function MasterGanttView({
@@ -159,7 +103,6 @@ export default function MasterGanttView({
 
   const effectiveFilterUserId = assigneeFilter === "me" ? currentUserId : assigneeFilter;
 
-  // Unique users across all stores' phases for the filter select.
   const allAssignees = useMemo<PlanningAssignee[]>(() => {
     const seen = new Map<string, PlanningAssignee>();
     for (const s of stores) {
@@ -172,7 +115,7 @@ export default function MasterGanttView({
     return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [stores]);
 
-  // Compute global timeline range across ALL stores' phases.
+  // Global timeline range across ALL phases.
   const { rangeStart, totalDays } = useMemo(() => {
     let minMs = Infinity, maxMs = -Infinity;
     for (const s of stores) {
@@ -224,9 +167,8 @@ export default function MasterGanttView({
 
   const todayOffset = dayOffset(new Date());
 
-  // Track the most recently opened store so we can auto-scroll to it after render.
-  const lastExpandedRef = useRef<Set<string>>(new Set());
   const pendingScrollRef = useRef<string | null>(null);
+  const lastExpandedRef = useRef<Set<string>>(new Set());
 
   const toggleStore = (storeId: string) => {
     setExpanded((prev) => {
@@ -243,7 +185,36 @@ export default function MasterGanttView({
     });
   };
 
-  // After render, if a store was just expanded, scroll right col to center its bars.
+  const expandAll = () => {
+    const all = new Set(stores.map((s) => s.id));
+    setExpanded(all);
+    for (const s of stores) {
+      if (!schedulesByStore.has(s.id)) onRequestSchedule(s.id);
+    }
+  };
+  const collapseAll = () => setExpanded(new Set());
+
+  // Rows: store header + phase rows when expanded.
+  type Row =
+    | { kind: "store"; store: PlanningStore }
+    | { kind: "phase"; storeId: string; phaseIdx: number };
+  const rows: Row[] = useMemo(() => {
+    const out: Row[] = [];
+    for (const s of stores) {
+      out.push({ kind: "store", store: s });
+      if (expanded.has(s.id)) {
+        for (let i = 0; i < s.phases.length; i++) out.push({ kind: "phase", storeId: s.id, phaseIdx: i });
+      }
+    }
+    return out;
+  }, [stores, expanded]);
+
+  const phaseMatchesFilter = (assignees: PlanningAssignee[]): boolean => {
+    if (!effectiveFilterUserId) return true;
+    return assignees.some((u) => u.id === effectiveFilterUserId);
+  };
+
+  // Auto-scroll to expanded store
   useEffect(() => {
     const sid = pendingScrollRef.current;
     if (!sid) return;
@@ -266,7 +237,6 @@ export default function MasterGanttView({
       const center = (lx + rx) / 2;
       targetLeft = Math.max(0, Math.min(timelineWidth - right.clientWidth, center - right.clientWidth / 2));
     }
-    // Vertical: place this store's group header just below sticky timeline header.
     let yPos = HEADER_HEIGHT;
     for (const s of stores) {
       if (s.id === sid) break;
@@ -278,40 +248,7 @@ export default function MasterGanttView({
     lastExpandedRef.current = new Set(expanded);
   }, [expanded, stores, timelineWidth]);
 
-  const expandAll = () => {
-    const all = new Set(stores.map((s) => s.id));
-    setExpanded(all);
-    for (const s of stores) {
-      if (!schedulesByStore.has(s.id)) onRequestSchedule(s.id);
-    }
-  };
-  const collapseAll = () => setExpanded(new Set());
-
-  const handleAvatarClick = (uid: string) => {
-    setAssigneeFilter((prev) => (prev === uid ? null : uid));
-  };
-
-  // Rows: store header + phase rows when expanded.
-  type Row =
-    | { kind: "store"; store: PlanningStore }
-    | { kind: "phase"; storeId: string; phaseIdx: number };
-  const rows: Row[] = useMemo(() => {
-    const out: Row[] = [];
-    for (const s of stores) {
-      out.push({ kind: "store", store: s });
-      if (expanded.has(s.id)) {
-        for (let i = 0; i < s.phases.length; i++) out.push({ kind: "phase", storeId: s.id, phaseIdx: i });
-      }
-    }
-    return out;
-  }, [stores, expanded]);
-
-  const phaseMatchesFilter = (assignees: PlanningAssignee[]): boolean => {
-    if (!effectiveFilterUserId) return true;
-    return assignees.some((u) => u.id === effectiveFilterUserId);
-  };
-
-  // ── Vertical scroll sync between cols ────────────────────────────────────
+  // ── Vertical scroll sync ─────────────────────────────────────────────────
   const onLeftScroll = () => {
     const a = leftRef.current; const b = rightRef.current;
     if (!a || !b) return;
@@ -323,7 +260,7 @@ export default function MasterGanttView({
     if (a.scrollTop !== b.scrollTop) a.scrollTop = b.scrollTop;
   };
 
-  // ── Drag handling (PATCH /api/phases/:id) ─────────────────────────────────
+  // ── Drag handling (PATCH /api/phases/:id) ────────────────────────────────
   const onPointerDown = (storeId: string, phaseId: string, mode: DragState["mode"]) => (e: React.PointerEvent) => {
     e.stopPropagation();
     const store = stores.find((s) => s.id === storeId);
@@ -370,6 +307,68 @@ export default function MasterGanttView({
     } catch {}
   };
 
+  // ── Compute coordinates for bars + dependency arrows ─────────────────────
+  const { totalRowHeight, phaseCoords, dependencyArrows } = useMemo(() => {
+    const phaseCoords = new Map<string, PhaseCoord>();
+    let yCursor = HEADER_HEIGHT;
+    for (const row of rows) {
+      if (row.kind === "store") {
+        yCursor += GROUP_HEIGHT;
+      } else {
+        const store = stores.find((s) => s.id === row.storeId);
+        const phase = store?.phases[row.phaseIdx];
+        if (phase && phase.plannedStart && phase.plannedEnd) {
+          const x = dayOffset(phase.plannedStart);
+          const e = dayOffset(phase.plannedEnd);
+          if (x !== null && e !== null) {
+            const top = yCursor + 5;
+            const barH = ROW_HEIGHT - 12;
+            phaseCoords.set(phase.id, {
+              left: x,
+              right: e,
+              top,
+              midY: top + barH / 2,
+            });
+          }
+        }
+        yCursor += ROW_HEIGHT;
+      }
+    }
+
+    // Build arrow paths from phase.dependsOnId
+    const arrows: { d: string; key: string; critical: boolean }[] = [];
+    for (const row of rows) {
+      if (row.kind !== "phase") continue;
+      const store = stores.find((s) => s.id === row.storeId);
+      const phase = store?.phases[row.phaseIdx];
+      if (!phase || !phase.dependsOnId) continue;
+      const pred = store?.phases.find((p) => p.id === phase.dependsOnId);
+      if (!pred) continue;
+      const sc = phaseCoords.get(pred.id);
+      const tc = phaseCoords.get(phase.id);
+      if (!sc || !tc) continue;
+      const type = (phase.dependencyType ?? "FS").toUpperCase();
+      const sx = type === "FS" || type === "FF" ? sc.right : sc.left;
+      const tx = type === "FS" || type === "SF" ? tc.left  : tc.right;
+      const sy = sc.midY;
+      const ty = tc.midY;
+      // intermX is the bend point; pick it so the LAST segment direction
+      // points INTO the target bar's edge (so the arrow head sits at the
+      // edge pointing inward, MS Project style).
+      let intermX: number;
+      if (type === "FS")      intermX = Math.max(sx + 4, tx - 4);     // turn right of pred, before target
+      else if (type === "SS") intermX = Math.min(sx, tx) - 8;          // route on the left side
+      else if (type === "FF") intermX = Math.max(sx, tx) + 8;          // route on the right side
+      else /* SF */            intermX = Math.min(sx - 4, tx + 4);     // routed left of pred
+      const d = `M ${sx} ${sy} L ${intermX} ${sy} L ${intermX} ${ty} L ${tx} ${ty}`;
+      const sched = schedulesByStore.get(row.storeId);
+      const isCritical = !!(sched?.criticalPath.includes(pred.id) && sched.criticalPath.includes(phase.id));
+      arrows.push({ d, key: `${pred.id}->${phase.id}`, critical: isCritical });
+    }
+
+    return { totalRowHeight: yCursor, phaseCoords, dependencyArrows: arrows };
+  }, [rows, stores, rangeStart, pxPerDay, schedulesByStore]);
+
   return (
     <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
       {/* Toolbar */}
@@ -390,7 +389,6 @@ export default function MasterGanttView({
           <button onClick={collapseAll} style={btnStyle}>▶ Collapse all</button>
         </div>
 
-        {/* Assignee filter */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>👥</span>
           <select
@@ -415,12 +413,13 @@ export default function MasterGanttView({
           <span><span style={{ display: "inline-block", width: 10, height: 10, background: "#3b82f6", borderRadius: 2, marginRight: 4 }} /> Normal</span>
           <span><span style={{ display: "inline-block", width: 10, height: 10, background: "#ef4444", borderRadius: 2, marginRight: 4 }} /> {t.planning.criticalPath}</span>
           <span><span style={{ display: "inline-block", width: 10, height: 10, background: "#10b981", borderRadius: 2, marginRight: 4 }} /> {t.status.completed}</span>
+          <span><span style={{ display: "inline-block", width: 14, height: 6, borderTop: "1.5px solid #94a3b8", marginRight: 4, marginBottom: 1 }} /> Link</span>
         </div>
       </div>
 
-      {/* Body — two cols, each with its own vertical scroll, synced via onScroll */}
+      {/* Body */}
       <div style={{ display: "flex", maxHeight: 720 }}>
-        {/* Left col: name list with own vertical scroll */}
+        {/* Left col */}
         <div
           ref={leftRef}
           onScroll={onLeftScroll}
@@ -431,21 +430,27 @@ export default function MasterGanttView({
             flexShrink: 0,
             overflowX: "hidden",
             overflowY: "auto",
-            // Hide native scrollbar on left so only right col shows the scroll handle
             scrollbarWidth: "none" as any,
           }}
         >
-          {/* Sticky col header */}
+          {/* Sticky table header */}
           <div style={{
             position: "sticky", top: 0, zIndex: 3,
-            height: HEADER_HEIGHT, borderBottom: "1px solid var(--border)",
-            padding: "0 12px", display: "flex", alignItems: "center",
-            fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
-            textTransform: "uppercase", letterSpacing: "0.06em",
+            height: HEADER_HEIGHT,
+            display: "grid", gridTemplateColumns: GRID_TEMPLATE,
+            alignItems: "end",
+            borderBottom: "1px solid var(--border)",
             background: "var(--bg-card)",
+            fontSize: 10, fontWeight: 700,
+            color: "var(--text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
           }}>
-            Tienda · Fase
+            {["#", "Tarea", "Dur", "Inicio", "Fin", "Pred", "Recursos"].map((h, i) => (
+              <div key={i} style={{ padding: "0 8px 8px 8px", borderRight: i < 6 ? "1px solid rgba(15,23,42,0.06)" : "none" }}>{h}</div>
+            ))}
           </div>
+
           {rows.map((row) => {
             if (row.kind === "store") {
               const s = row.store;
@@ -453,28 +458,26 @@ export default function MasterGanttView({
               const done = s.phases.filter((p) => p.status === "COMPLETED").length;
               const storePct = s.phases.length > 0 ? Math.round((done / s.phases.length) * 100) : 0;
               return (
-                <div key={`store-${s.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <div
-                    onClick={() => toggleStore(s.id)}
-                    style={{
-                      height: GROUP_HEIGHT,
-                      padding: "0 12px",
-                      display: "flex", alignItems: "center", gap: 8,
-                      fontSize: 13, cursor: "pointer",
-                      background: "rgba(99,102,241,0.04)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    <span style={{ fontSize: 10, color: "var(--text-muted)", width: 10 }}>{isOpen ? "▼" : "▶"}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, color: "var(--text-primary)" }}>
-                          <span style={{ color: "var(--text-muted)", fontFamily: "monospace", fontSize: 11, marginRight: 6 }}>{s.code}</span>
-                          {s.name}
-                        </span>
-                        <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{done}/{s.phases.length}</span>
-                      </div>
-                      <MiniProgressBar pct={storePct} />
+                <div key={`store-${s.id}`} onClick={() => toggleStore(s.id)} style={{
+                  height: GROUP_HEIGHT,
+                  borderBottom: "1px solid var(--border)",
+                  padding: "0 12px",
+                  display: "flex", alignItems: "center", gap: 8,
+                  fontSize: 13, cursor: "pointer",
+                  background: "rgba(99,102,241,0.04)",
+                  fontWeight: 700,
+                }}>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", width: 10 }}>{isOpen ? "▼" : "▶"}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, color: "var(--text-primary)" }}>
+                        <span style={{ color: "var(--text-muted)", fontFamily: "monospace", fontSize: 11, marginRight: 6 }}>{s.code}</span>
+                        {s.name}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>{done}/{s.phases.length}</span>
+                    </div>
+                    <div style={{ width: "100%", height: 3, background: "rgba(15,23,42,0.06)", borderRadius: 2, marginTop: 3 }}>
+                      <div style={{ width: `${storePct}%`, height: "100%", background: storePct === 100 ? "#10b981" : "#3b82f6", borderRadius: 2 }} />
                     </div>
                   </div>
                 </div>
@@ -482,52 +485,63 @@ export default function MasterGanttView({
             }
             const store = stores.find((s) => s.id === row.storeId);
             const phase = store?.phases[row.phaseIdx];
-            if (!phase) return null;
+            if (!phase || !store) return null;
             const schedule = schedulesByStore.get(row.storeId);
             const criticalSet = new Set(schedule?.criticalPath ?? []);
             const isCritical = criticalSet.has(phase.id);
             const isSelected = selectedPhaseId === phase.id;
             const matches = phaseMatchesFilter(phase.assignees ?? []);
+            const resourceText = fmtResources(phase.assignees);
             return (
               <div
                 key={phase.id}
                 onClick={() => onSelectPhase(phase.id, row.storeId)}
                 style={{
+                  display: "grid", gridTemplateColumns: GRID_TEMPLATE,
                   height: ROW_HEIGHT,
                   borderBottom: "1px solid rgba(15,23,42,0.05)",
-                  padding: "0 12px 0 30px",
-                  display: "flex", alignItems: "center",
-                  fontSize: 12, cursor: "pointer",
+                  fontSize: 11,
+                  cursor: "pointer",
                   background: isSelected ? "rgba(59,130,246,0.08)" : "transparent",
                   borderLeft: isCritical ? "3px solid #ef4444" : "3px solid transparent",
-                  opacity: matches ? 1 : 0.25,
+                  opacity: matches ? 1 : 0.3,
                   transition: "opacity 0.15s ease",
+                  alignItems: "center",
                 }}
               >
-                <span style={{ color: "var(--text-muted)", marginRight: 6, fontFamily: "monospace", fontSize: 10, flexShrink: 0 }}>{phase.phaseNumber}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ color: "var(--text-primary)", fontWeight: isSelected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{phase.name}</span>
-                    <AssigneePill users={phase.assignees ?? []} onUserClick={handleAvatarClick} activeUserId={effectiveFilterUserId} />
+                <div style={cellStyle({ color: "var(--text-muted)", fontFamily: "monospace", fontSize: 10, justifyContent: "center" })}>{phase.phaseNumber}</div>
+                <div style={cellStyle({ overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" })}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: isSelected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={phase.name}>{phase.name}</span>
+                  <div style={{ width: "100%", height: 3, background: "rgba(15,23,42,0.06)", borderRadius: 2, marginTop: 3 }}>
+                    <div style={{ width: `${Math.max(0, Math.min(100, phase.pct))}%`, height: "100%", background: phase.pct >= 100 ? "#10b981" : "#3b82f6", borderRadius: 2 }} />
                   </div>
-                  <MiniProgressBar pct={phase.pct} />
+                </div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{durationDays(phase.plannedStart, phase.plannedEnd)}</div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedStart)}</div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedEnd)}</div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtPredecessor(phase, store.phases)}</div>
+                <div
+                  style={cellStyle({ color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}
+                  title={resourceText}
+                >
+                  {resourceText}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Right col: timeline with own vertical scroll, synced */}
+        {/* Right col */}
         <div
           ref={rightRef}
           onScroll={onRightScroll}
           style={{ flex: 1, overflow: "auto" }}
         >
-          <div style={{ width: timelineWidth, position: "relative" }}>
+          <div style={{ width: timelineWidth, position: "relative", minHeight: totalRowHeight }}>
             {/* Sticky timeline header */}
             <div style={{
               height: HEADER_HEIGHT, position: "sticky", top: 0,
-              background: "var(--bg-card)", borderBottom: "1px solid var(--border)", zIndex: 2,
+              background: "var(--bg-card)", borderBottom: "1px solid var(--border)", zIndex: 3,
             }}>
               {ticks.map((tk, i) => (
                 <div key={i} style={{
@@ -545,6 +559,33 @@ export default function MasterGanttView({
                 <div style={{ position: "absolute", top: -16, left: -18, fontSize: 9, fontWeight: 700, color: "#fff", background: "#ef4444", padding: "2px 5px", borderRadius: 3 }}>HOY</div>
               </div>
             )}
+
+            {/* Dependency arrows (SVG overlay above bars but below header) */}
+            <svg
+              style={{ position: "absolute", left: 0, top: 0, width: timelineWidth, height: totalRowHeight, pointerEvents: "none", zIndex: 2 }}
+              width={timelineWidth}
+              height={totalRowHeight}
+            >
+              <defs>
+                <marker id="arrow-grey" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#94a3b8" />
+                </marker>
+                <marker id="arrow-red" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#ef4444" />
+                </marker>
+              </defs>
+              {dependencyArrows.map((a) => (
+                <path
+                  key={a.key}
+                  d={a.d}
+                  stroke={a.critical ? "#ef4444" : "#94a3b8"}
+                  strokeWidth={a.critical ? 1.6 : 1.2}
+                  fill="none"
+                  markerEnd={a.critical ? "url(#arrow-red)" : "url(#arrow-grey)"}
+                  opacity={a.critical ? 0.9 : 0.7}
+                />
+              ))}
+            </svg>
 
             {/* Rows: store summary band + phase bars */}
             {(() => {
@@ -605,12 +646,13 @@ export default function MasterGanttView({
                   const w = Math.max(2, right - left);
                   const top = yCursor + 5;
                   const barColor = isCompleted ? "#10b981" : isCritical ? "#ef4444" : phase.status === "BLOCKED" ? "#f59e0b" : "#3b82f6";
+                  const resourceText = fmtResources(phase.assignees);
                   elements.push(
-                    <div key={phase.id} style={{ opacity: matches ? 1 : 0.25, transition: "opacity 0.15s ease" }}>
+                    <div key={phase.id} style={{ opacity: matches ? 1 : 0.3, transition: "opacity 0.15s ease" }}>
                       <div
                         onClick={() => onSelectPhase(phase.id, row.storeId)}
                         onPointerDown={onPointerDown(row.storeId, phase.id, "move")}
-                        title={`${phase.name} · ${phase.plannedStart?.slice(0, 10)} → ${phase.plannedEnd?.slice(0, 10)}`}
+                        title={`${phase.name} · ${phase.plannedStart?.slice(0, 10)} → ${phase.plannedEnd?.slice(0, 10)}${phase.assignees?.length ? `\n${resourceText}` : ""}`}
                         style={{
                           position: "absolute",
                           left, top, width: w, height: ROW_HEIGHT - 12,
@@ -621,29 +663,31 @@ export default function MasterGanttView({
                           overflow: "hidden", fontSize: 10, fontWeight: 600, color: "#fff",
                           whiteSpace: "nowrap", textOverflow: "ellipsis",
                           userSelect: "none", touchAction: "none",
+                          zIndex: 1,
                         }}
                       >
                         {phase.pct > 0 && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${phase.pct}%`, background: "rgba(0,0,0,0.18)" }} />}
                         <span style={{ position: "relative", zIndex: 1 }}>{w > 50 ? phase.name : ""}</span>
-                        <div
-                          onPointerDown={onPointerDown(row.storeId, phase.id, "resize-start")}
-                          style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }}
-                          onClick={(ev) => ev.stopPropagation()}
-                        />
-                        <div
-                          onPointerDown={onPointerDown(row.storeId, phase.id, "resize-end")}
-                          style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }}
-                          onClick={(ev) => ev.stopPropagation()}
-                        />
+                        <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-start")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
+                        <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-end")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
                       </div>
+                      {/* Resource label next to bar (MS Project style) */}
+                      {phase.assignees && phase.assignees.length > 0 && w > 0 && (
+                        <div style={{
+                          position: "absolute",
+                          left: right + 6, top: top + 1,
+                          height: ROW_HEIGHT - 14,
+                          fontSize: 10, color: "var(--text-secondary)", fontWeight: 500,
+                          whiteSpace: "nowrap", pointerEvents: "none",
+                          display: "flex", alignItems: "center",
+                        }}>{resourceText}</div>
+                      )}
                       {isDragging && drag.deltaDays !== 0 && (
                         <div style={{
                           position: "absolute", left: left + w / 2 - 28, top: top - 22,
                           background: "#0f172a", color: "#fff", padding: "2px 6px", borderRadius: 3,
                           fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", zIndex: 10,
-                        }}>
-                          {drag.deltaDays > 0 ? `+${drag.deltaDays}d` : `${drag.deltaDays}d`}
-                        </div>
+                        }}>{drag.deltaDays > 0 ? `+${drag.deltaDays}d` : `${drag.deltaDays}d`}</div>
                       )}
                     </div>
                   );
@@ -653,8 +697,8 @@ export default function MasterGanttView({
               return elements;
             })()}
 
-            {/* Spacer to ensure scrollable height equals the rows total */}
-            <div style={{ height: HEADER_HEIGHT + rows.reduce((acc, r) => acc + (r.kind === "store" ? GROUP_HEIGHT : ROW_HEIGHT), 0) }} />
+            {/* Spacer */}
+            <div style={{ height: totalRowHeight }} />
           </div>
         </div>
       </div>
@@ -672,3 +716,14 @@ const btnStyle: React.CSSProperties = {
   color: "var(--text-secondary)",
   cursor: "pointer",
 };
+
+function cellStyle(extra: React.CSSProperties): React.CSSProperties {
+  return {
+    height: "100%",
+    padding: "0 8px",
+    borderRight: "1px solid rgba(15,23,42,0.04)",
+    display: "flex",
+    alignItems: "center",
+    ...extra,
+  };
+}
