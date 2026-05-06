@@ -25,6 +25,10 @@ export default function Sidebar({ session }: { session: any }) {
     { href: "/map",           icon: "🗺️", label: t.sidebar.map },
   ];
 
+  const AURORA_ITEMS = [
+    { href: "/aurora/portfolio", icon: "✨", label: "Aurora Portfolio" },
+  ];
+
   const ADMIN_ITEMS = [
     { href: "/users",           icon: "👥", label: t.sidebar.users },
     { href: "/phase-templates", icon: "⚙️", label: t.sidebar.phaseTemplates },
@@ -58,6 +62,23 @@ export default function Sidebar({ session }: { session: any }) {
             {t.sidebar.mainMenu}
           </div>
           {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item ${pathname === item.href || pathname.startsWith(item.href + "/") ? "active" : ""}`}
+              style={{ display: "flex", marginBottom: 2 }}
+            >
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: "#4a5568", textTransform: "uppercase", letterSpacing: "0.08em", padding: "4px 8px", marginBottom: 4 }}>
+            Aurora PM
+          </div>
+          {AURORA_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
