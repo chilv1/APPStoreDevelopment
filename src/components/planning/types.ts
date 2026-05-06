@@ -1,6 +1,6 @@
 // Shared types for the new Planning UI.
 
-export type View = "wbs" | "gantt" | "resources" | "calendar";
+export type View = "wbs" | "gantt" | "resources" | "calendar" | "variance";
 
 export type ConstraintType = "ASAP" | "ALAP" | "MSO" | "MFO" | "SNET" | "SNLT" | "FNET" | "FNLT" | null;
 

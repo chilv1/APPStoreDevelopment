@@ -21,6 +21,7 @@ export default function Sidebar({ session }: { session: any }) {
     { href: "/stores",        icon: "🏪", label: t.sidebar.stores },
     { href: "/gantt",         icon: "📅", label: t.sidebar.portfolioGantt },
     { href: "/planificacion", icon: "🗂️", label: t.sidebar.planning },
+    { href: "/timesheet",     icon: "⏱️", label: "Timesheet" },
     { href: "/branches",      icon: "🏢", label: t.sidebar.branches },
     { href: "/map",           icon: "🗺️", label: t.sidebar.map },
   ];

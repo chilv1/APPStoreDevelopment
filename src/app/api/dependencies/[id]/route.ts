@@ -72,6 +72,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const updated = await prisma.taskDependency.update({ where: { id }, data });
+  // Audit log
+  const me = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
+  await prisma.activity.create({
+    data: {
+      action: "DEP_UPDATED", entity: "TaskDependency", entityId: id,
+      details: Object.entries(data).map(([k, v]) => `${k}=${v}`).join(" · "),
+      userId: me?.id ?? null,
+      storeId: dep.successor.storeId,
+    },
+  });
   return NextResponse.json({ dependency: updated });
 }
 
@@ -88,5 +98,14 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
 
   await prisma.taskDependency.delete({ where: { id } });
+  const me = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
+  await prisma.activity.create({
+    data: {
+      action: "DEP_DELETED", entity: "TaskDependency", entityId: id,
+      details: `${dep.type} : ${dep.predecessorId} → ${dep.successorId}`,
+      userId: me?.id ?? null,
+      storeId: dep.successor.storeId,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

@@ -69,10 +69,17 @@ export async function POST(request: Request) {
     prisma.phase.findUnique({ where: { id: successorId }, select: { id: true, storeId: true } }),
   ]);
   if (!pred || !succ) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
+  // Cross-store deps are allowed only within the same Business Center (Stream 1 P3).
   if (pred.storeId !== succ.storeId) {
-    return NextResponse.json({ error: "Cross-store dependencies not yet supported" }, { status: 400 });
+    const [predStore, succStore] = await Promise.all([
+      prisma.storeProject.findUnique({ where: { id: pred.storeId }, select: { businessCenterId: true } }),
+      prisma.storeProject.findUnique({ where: { id: succ.storeId }, select: { businessCenterId: true } }),
+    ]);
+    if (!predStore?.businessCenterId || predStore.businessCenterId !== succStore?.businessCenterId) {
+      return NextResponse.json({ error: "Cross-store dependencies are allowed only within the same Business Center" }, { status: 400 });
+    }
   }
-  if (!(await userCanEditStore(user, pred.storeId))) {
+  if (!(await userCanEditStore(user, pred.storeId)) || !(await userCanEditStore(user, succ.storeId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -99,6 +106,17 @@ export async function POST(request: Request) {
         hard,
         notes: notes ?? null,
         createdBy: me?.id ?? null,
+      },
+    });
+    // Audit log (Stream 1 P3).
+    await prisma.activity.create({
+      data: {
+        action:   "DEP_CREATED",
+        entity:   "TaskDependency",
+        entityId: created.id,
+        details:  `${type}${lagDays ? ` lag ${lagDays}d` : ""}${hard ? "" : " (soft)"} : ${pred.id} → ${succ.id}`,
+        userId:   me?.id ?? null,
+        storeId:  succ.storeId,
       },
     });
     return NextResponse.json({ dependency: created }, { status: 201 });

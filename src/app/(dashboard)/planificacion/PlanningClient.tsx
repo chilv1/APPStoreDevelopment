@@ -6,10 +6,11 @@ import WBSGrid from "@/components/planning/WBSGrid";
 import GanttView from "@/components/planning/GanttView";
 import ResourcesView from "@/components/planning/ResourcesView";
 import CalendarView from "@/components/planning/CalendarView";
+import VarianceView from "@/components/planning/VarianceView";
 import PhaseDrawer from "@/components/planning/PhaseDrawer";
 import type { PlanningStore, ScheduleResp, View } from "@/components/planning/types";
 
-const VIEWS: View[] = ["wbs", "gantt", "resources", "calendar"];
+const VIEWS: View[] = ["wbs", "gantt", "variance", "resources", "calendar"];
 
 export default function PlanningClient() {
   const t = useT();
@@ -109,10 +110,11 @@ export default function PlanningClient() {
             const labels: Record<View, string> = {
               wbs: t.planning.viewWBS,
               gantt: t.planning.viewGantt,
+              variance: "Variance",
               resources: t.planning.viewResources,
               calendar: t.planning.viewCalendar,
             };
-            const icons: Record<View, string> = { wbs: "🧱", gantt: "📊", resources: "👥", calendar: "📅" };
+            const icons: Record<View, string> = { wbs: "🧱", gantt: "📊", variance: "📈", resources: "👥", calendar: "📅" };
             const active = view === v;
             return (
               <button
@@ -183,6 +185,9 @@ export default function PlanningClient() {
           onSelectPhase={setSelectedPhaseId}
           onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
         />
+      )}
+      {activeStore && view === "variance" && (
+        <VarianceView storeId={activeStore.id} />
       )}
       {activeStore && view === "resources" && (
         <ResourcesView storeId={activeStore.id} />

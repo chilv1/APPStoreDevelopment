@@ -53,6 +53,10 @@ model User {
   phaseNotes     PhaseNote[]    @relation("PhaseNoteAuthor")
   baselines      PhaseBaseline[] @relation("BaselineCreator")
   createdDeps    TaskDependency[] @relation("DepCreator")
+  snapshots      ScheduleSnapshot[] @relation("SnapshotTaker")
+  resources      Resource[]      @relation("ResourceUser")
+  timeEntries    TimeEntry[]     @relation("TimeEntryUser")
+  approvals      TimeEntry[]     @relation("TimeEntryApprover")
 }
 
 model StoreProject {
@@ -80,6 +84,8 @@ model StoreProject {
   issues           Issue[]
   activities       Activity[]
   baselines        PhaseBaseline[]
+  scheduleSnapshots ScheduleSnapshot[]
+  resources        Resource[]
 }
 
 model Phase {
@@ -118,6 +124,11 @@ model Phase {
   // Multi-predecessor edges (preferred over legacy `dependsOnId`).
   predecessorLinks TaskDependency[] @relation("DepSucc")
   successorLinks   TaskDependency[] @relation("DepPred")
+
+  // Resource assignments (Stream 4 P2)
+  assignments ResourceAssignment[]
+  // Timesheet entries (Stream 5 P1)
+  timeEntries TimeEntry[]
 }
 
 // Multi-predecessor dependency edge (Phase ↔ Phase).
@@ -218,6 +229,7 @@ model Task {
   phase      Phase   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   assigneeId String?
   assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  timeEntries TimeEntry[]
 }
 
 model Issue {
@@ -235,6 +247,107 @@ model Issue {
   store      StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
   reporterId String?
   reporter   User?        @relation("IssueReporter", fields: [reporterId], references: [id])
+}
+
+// Stream 5 P1 — Timesheet entries.
+//
+// One row per (user, phase, day, [optional task]). `hours` in decimal
+// hours (0.25 step recommended). `status` reflects approval workflow.
+model TimeEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  phaseId   String
+  taskId    String?
+  date      DateTime // anchored to UTC midnight
+  hours     Float
+  billable  Boolean  @default(true)
+  notes     String?
+  status    String   @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  approverId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User  @relation("TimeEntryUser",     fields: [userId],     references: [id], onDelete: Cascade)
+  approver User? @relation("TimeEntryApprover", fields: [approverId], references: [id])
+  phase    Phase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  task     Task? @relation(fields: [taskId],  references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([phaseId])
+}
+
+// Stream 4 P2 — Resource + ResourceAssignment.
+//
+// `Resource.userId` is optional: a Resource can be a real User (PM, surveyor)
+// or a generic role/material/cost item without a login (e.g. "Civil crew").
+// `kind` distinguishes WORK / MATERIAL / COST per MS-Project semantics.
+// `maxUnits` (% — 100 = 1 FTE) caps daily allocation for leveling.
+// `standardRate` / `overtimeRate` priced per-hour; cost = units × hours × rate.
+model Resource {
+  id            String  @id @default(cuid())
+  name          String
+  kind          String  @default("WORK") // WORK | MATERIAL | COST
+  email         String?
+  group         String?
+  maxUnits      Int     @default(100)
+  standardRate  Float   @default(0)
+  overtimeRate  Float   @default(0)
+  costPerUse    Float   @default(0)
+
+  storeId String?
+  store   StoreProject? @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId  String?
+  user    User?         @relation("ResourceUser", fields: [userId], references: [id])
+
+  assignments ResourceAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([userId])
+}
+
+model ResourceAssignment {
+  id          String  @id @default(cuid())
+  resourceId  String
+  phaseId     String
+  units       Int     @default(100)
+  workHours   Float   @default(0)
+  actualWork  Float   @default(0)
+  cost        Float   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  phase    Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, phaseId])
+  @@index([phaseId])
+}
+
+// Stream 2 P2: ScheduleSnapshot — frozen output of scheduler engine at a
+// point in time. Lets us diff CP / dates between two runs.
+model ScheduleSnapshot {
+  id        String   @id @default(cuid())
+  storeId   String
+  takenAt   DateTime @default(now())
+  reason    String?
+  // Per-task array (id, name, start, finish, totalFloat, critical) as JSON.
+  payload   String
+  // SHA-256 of payload — quick equality test to skip duplicates.
+  checksum  String
+
+  takenBy   String?
+  taker     User?         @relation("SnapshotTaker", fields: [takenBy], references: [id])
+  store     StoreProject  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, takenAt])
 }
 
 model Activity {
