@@ -1,0 +1,212 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "csrf 200": {
+                    "name": "csrf 200",
+                    "path": "::csrf 200",
+                    "id": "a070d383222dd91075e31e8f0063e68f",
+                    "passes": 5108,
+                    "fails": 0
+                },
+                "login redirect/ok": {
+                    "name": "login redirect/ok",
+                    "path": "::login redirect/ok",
+                    "id": "d042d8fd408c5b102cdbe79b90988086",
+                    "passes": 5108,
+                    "fails": 0
+                },
+                "session 200": {
+                    "name": "session 200",
+                    "path": "::session 200",
+                    "id": "f15bde00e4a591a7bd5cae90d54aed4d",
+                    "passes": 5108,
+                    "fails": 0
+                },
+                "session has user": {
+                    "path": "::session has user",
+                    "id": "e56619691fe031d08da1cdaa6af8a58d",
+                    "passes": 5108,
+                    "fails": 0,
+                    "name": "session has user"
+                },
+                "dashboard 200": {
+                    "name": "dashboard 200",
+                    "path": "::dashboard 200",
+                    "id": "834732e3e331ab0c1efa32a058e51217",
+                    "passes": 10216,
+                    "fails": 0
+                },
+                "stores 200": {
+                    "path": "::stores 200",
+                    "id": "16a9f0b492966736b90eb0d38df9915a",
+                    "passes": 4034,
+                    "fails": 0,
+                    "name": "stores 200"
+                }
+            },
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "data_sent": {
+            "count": 23326388,
+            "rate": 38492.129712345886
+        },
+        "http_req_duration": {
+            "med": 135.525,
+            "max": 4085.603,
+            "p(90)": 363.14000000000004,
+            "p(95)": 564.5057499999997,
+            "avg": 212.34936244674336,
+            "min": 84.448,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "max": 189.731,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.29511165212686835
+        },
+        "iteration_duration": {
+            "avg": 9494.482934328324,
+            "min": 3783.227125,
+            "med": 9620.910312,
+            "max": 17964.996833,
+            "p(90)": 12122.4447668,
+            "p(95)": 12931.561651749998
+        },
+        "http_req_duration{name:api/stores}": {
+            "avg": 214.38967773921692,
+            "min": 87.878,
+            "med": 107.3155,
+            "max": 3274.323,
+            "p(90)": 382.1066000000001,
+            "p(95)": 697.9357499999999,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "http_req_sending": {
+            "min": 0.003,
+            "med": 0.018,
+            "max": 3.268,
+            "p(90)": 0.033,
+            "p(95)": 0.039,
+            "avg": 0.0229368025968745
+        },
+        "http_req_duration{name:api/stores/[id]}": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 29574,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "count": 29574,
+            "rate": 48.80165090767234
+        },
+        "http_req_waiting": {
+            "p(90)": 362.9714,
+            "p(95)": 564.4063499999997,
+            "avg": 212.2353667072437,
+            "min": 84.395,
+            "med": 135.4485,
+            "max": 4085.468
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0.30915402042334494,
+            "min": 0,
+            "med": 0,
+            "max": 105.903,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iterations": {
+            "count": 5108,
+            "rate": 8.428986029498557
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 84.448,
+            "med": 135.525,
+            "max": 4085.603,
+            "p(90)": 363.14000000000004,
+            "p(95)": 564.5057499999997,
+            "avg": 212.34936244674336
+        },
+        "http_req_blocked": {
+            "avg": 0.6116640292153928,
+            "min": 0,
+            "med": 0.005,
+            "max": 280.74,
+            "p(90)": 0.01,
+            "p(95)": 0.012
+        },
+        "http_req_duration{name:auth/login}": {
+            "max": 3184.344,
+            "p(90)": 389.7205,
+            "p(95)": 522.6743999999999,
+            "avg": 262.6988478856698,
+            "min": 161.048,
+            "med": 199.2095,
+            "thresholds": {
+                "p(95)<3000": false
+            }
+        },
+        "http_req_receiving": {
+            "p(90)": 0.148,
+            "p(95)": 0.197,
+            "avg": 0.09105893690403749,
+            "min": 0.011,
+            "med": 0.067,
+            "max": 5.126
+        },
+        "data_received": {
+            "count": 90094522,
+            "rate": 148669.8252295126
+        },
+        "vus": {
+            "min": 0,
+            "max": 100,
+            "value": 2
+        },
+        "http_req_duration{name:api/dashboard}": {
+            "max": 4085.603,
+            "p(90)": 380.2880000000001,
+            "p(95)": 663.1824999999997,
+            "avg": 216.69490759592833,
+            "min": 88.927,
+            "med": 113.4065,
+            "thresholds": {
+                "p(95)<1500": false
+            }
+        },
+        "checks": {
+            "passes": 34682,
+            "fails": 0,
+            "value": 1
+        }
+    }
+}

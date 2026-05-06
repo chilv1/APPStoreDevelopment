@@ -13,7 +13,7 @@ Tìm   Thẩm   Đàm    Ký     Thiết  Xây    Thiết  Tuyển  Đào    Chu
 kiếm  định   phán   HĐ     kế     dựng   bị     dụng   tạo    bị     trương
 ```
 
-**Thời gian trung bình**: 4–8 tháng từ khi tìm mặt bằng đến khai trương.
+**Thời gian trung bình**: 1.5 tháng từ khi tìm mặt bằng đến khai trương.
 
 ---
 

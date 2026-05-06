@@ -1,0 +1,502 @@
+[
+  {
+    "email": "load_001@bitel.pe",
+    "password": "loadtest123",
+    "role": "ADMIN"
+  },
+  {
+    "email": "load_002@bitel.pe",
+    "password": "loadtest123",
+    "role": "ADMIN"
+  },
+  {
+    "email": "load_003@bitel.pe",
+    "password": "loadtest123",
+    "role": "ADMIN"
+  },
+  {
+    "email": "load_004@bitel.pe",
+    "password": "loadtest123",
+    "role": "ADMIN"
+  },
+  {
+    "email": "load_005@bitel.pe",
+    "password": "loadtest123",
+    "role": "ADMIN"
+  },
+  {
+    "email": "load_006@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_007@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_008@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_009@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_010@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_011@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_012@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_013@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_014@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_015@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_016@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_017@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_018@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_019@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_020@bitel.pe",
+    "password": "loadtest123",
+    "role": "AREA_MANAGER"
+  },
+  {
+    "email": "load_021@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_022@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_023@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_024@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_025@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_026@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_027@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_028@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_029@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_030@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_031@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_032@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_033@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_034@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_035@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_036@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_037@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_038@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_039@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_040@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_041@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_042@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_043@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_044@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_045@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_046@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_047@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_048@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_049@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_050@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_051@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_052@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_053@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_054@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_055@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_056@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_057@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_058@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_059@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_060@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_061@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_062@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_063@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_064@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_065@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_066@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_067@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_068@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_069@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_070@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_071@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_072@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_073@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_074@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_075@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_076@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_077@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_078@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_079@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_080@bitel.pe",
+    "password": "loadtest123",
+    "role": "PM"
+  },
+  {
+    "email": "load_081@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_082@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_083@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_084@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_085@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_086@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_087@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_088@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_089@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_090@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_091@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_092@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_093@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_094@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_095@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_096@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_097@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_098@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_099@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  },
+  {
+    "email": "load_100@bitel.pe",
+    "password": "loadtest123",
+    "role": "SURVEY_STAFF"
+  }
+]
