@@ -3,7 +3,6 @@ import type { Dict } from "./types";
 const dict: Dict = {
   sidebar: {
     overview: "Tổng quan", stores: "Cửa hàng", portfolioGantt: "Gantt tổng",
-    planning: "Lập Kế Hoạch",
     branches: "Chi nhánh & BC", map: "Bản đồ", reports: "Báo cáo",
     users: "Quản lý User", phaseTemplates: "Mẫu Giai Đoạn",
     logout: "Đăng xuất", mainMenu: "MENU CHÍNH", admin: "QUẢN TRỊ",
