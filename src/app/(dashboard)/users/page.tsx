@@ -29,7 +29,7 @@ function UserModal({
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{title}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{title}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         <form onSubmit={onSubmit} noValidate>
@@ -83,7 +83,7 @@ function UserModal({
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: "10px", borderRadius: 8,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
             }}>{t.common.cancel}</button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{
@@ -215,7 +215,7 @@ export default function UsersPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>{t.usersPage.title}</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>{t.usersPage.title}</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.usersPage.subtitle.replace("{n}", String(users.length))}</p>
         </div>
         <button onClick={() => { setCreateError(""); setShowCreate(true); }} className="gradient-btn" style={{
@@ -251,12 +251,12 @@ export default function UsersPage() {
                       }}>
                         {u.name?.charAt(0)?.toUpperCase()}
                       </div>
-                      <span style={{ color: "#f0f4ff", fontWeight: 500 }}>{u.name}</span>
+                      <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{u.name}</span>
                     </div>
                   </td>
                   <td style={{ fontSize: 13 }}>{u.email}</td>
                   <td><span className={`badge ${ROLE_COLORS[u.role]}`}>{getRoleLabel(u.role, locale)}</span></td>
-                  <td style={{ fontSize: 13, color: u.branch ? "#f0f4ff" : "var(--text-secondary)" }}>
+                  <td style={{ fontSize: 13, color: u.branch ? "var(--text-primary)" : "var(--text-secondary)" }}>
                     {getBranchLabel(u)}
                   </td>
                   <td>
@@ -315,7 +315,7 @@ export default function UsersPage() {
       {deleteTarget && (
         <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setDeleteTarget(null)}>
           <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", marginBottom: 12 }}>{t.usersPage.deleteConfirmTitle}</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>{t.usersPage.deleteConfirmTitle}</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
               {t.usersPage.deleteConfirmDesc
                 .replace("{name}", deleteTarget.name)
@@ -324,7 +324,7 @@ export default function UsersPage() {
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={() => setDeleteTarget(null)} style={{
                 flex: 1, padding: "10px", borderRadius: 8,
-                background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+                background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
                 color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
               }}>{t.common.cancel}</button>
               <button onClick={handleDelete} disabled={deleting} style={{

@@ -44,7 +44,7 @@ export default function IssueModal({ storeId, onClose, onCreated }: {
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{t.modal.issueRegisterTitle}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{t.modal.issueRegisterTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -76,7 +76,7 @@ export default function IssueModal({ storeId, onClose, onCreated }: {
           <div style={{ display: "flex", gap: 10 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: "10px", borderRadius: 8,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
             }}>{t.common.cancel}</button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{

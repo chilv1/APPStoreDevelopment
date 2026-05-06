@@ -47,7 +47,7 @@ export default function StoresPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>{t.storesList.title}</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>{t.storesList.title}</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
             {t.storesList.subtitle.replace("{n}", String(stores.length))}
           </p>
@@ -132,7 +132,7 @@ function StoreCard({ store, t, locale, intlCode }: { store: any; t: any; locale:
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#f0f4ff", marginBottom: 4, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.3 }}>
               {store.name}
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{store.code}</div>
@@ -161,7 +161,7 @@ function StoreCard({ store, t, locale, intlCode }: { store: any; t: any; locale:
         {activePhase && (
           <div style={{
             background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)",
-            borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#f0f4ff",
+            borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "var(--text-primary)",
           }}>
             {t.storesList.activePhase
               .replace("{n}", String(activePhase.phaseNumber))

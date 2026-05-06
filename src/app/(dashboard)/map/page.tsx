@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n/context";
 const StoreMapClient = dynamic(() => import("@/components/map/StoreMapClient"), {
   ssr: false,
   loading: () => (
-    <div style={{ height: 520, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.02)", borderRadius: 14, border: "1px solid var(--border)" }}>
+    <div style={{ height: 520, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,0.02)", borderRadius: 14, border: "1px solid var(--border)" }}>
       <div style={{ textAlign: "center" }}>
         <div className="spinner" style={{ margin: "0 auto 12px" }} />
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Cargando mapa...</p>
@@ -41,7 +41,7 @@ export default function MapPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
           {t.mapPage.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>

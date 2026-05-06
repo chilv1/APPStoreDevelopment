@@ -78,7 +78,7 @@ export default function PhaseMatrix({ rows }: { rows: PhaseMatrixRow[] }) {
         }}>
           <Link href={`/stores/${row.storeId}`} style={{
             padding: "6px 8px",
-            background: "rgba(255,255,255,0.02)",
+            background: "rgba(15,23,42,0.02)",
             borderRadius: 6,
             textDecoration: "none",
             color: "var(--text-primary)",

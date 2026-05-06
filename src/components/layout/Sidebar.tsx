@@ -17,12 +17,11 @@ export default function Sidebar({ session }: { session: any }) {
   // /dashboard (Resumen) is intentionally hidden from the sidebar; the route
   // still exists if anyone has the URL, but new users land directly on /reports.
   const NAV_ITEMS = [
-    { href: "/reports",         icon: "📈", label: t.sidebar.reports },
-    { href: "/stores",          icon: "🏪", label: t.sidebar.stores },
-    { href: "/gantt",           icon: "📅", label: t.sidebar.portfolioGantt },
-    { href: "/planificacion",   icon: "📋", label: t.sidebar.planning },
-    { href: "/branches",        icon: "🏢", label: t.sidebar.branches },
-    { href: "/map",             icon: "🗺️", label: t.sidebar.map },
+    { href: "/reports",   icon: "📈", label: t.sidebar.reports },
+    { href: "/stores",    icon: "🏪", label: t.sidebar.stores },
+    { href: "/gantt",     icon: "📅", label: t.sidebar.portfolioGantt },
+    { href: "/branches",  icon: "🏢", label: t.sidebar.branches },
+    { href: "/map",       icon: "🗺️", label: t.sidebar.map },
   ];
 
   const ADMIN_ITEMS = [
@@ -43,7 +42,7 @@ export default function Sidebar({ session }: { session: any }) {
             boxShadow: "0 4px 16px rgba(59,130,246,0.25)",
           }}>📡</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#f0f4ff", lineHeight: 1.2 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
               Telecom Store
             </div>
             <div style={{ fontSize: 11, color: "#4a5568" }}>Manager v1.0</div>
@@ -97,7 +96,7 @@ export default function Sidebar({ session }: { session: any }) {
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "10px 12px", borderRadius: 10,
-          background: "rgba(255,255,255,0.03)",
+          background: "rgba(15,23,42,0.03)",
           border: "1px solid var(--border)",
           margin: "10px 0 8px",
         }}>
@@ -110,7 +109,7 @@ export default function Sidebar({ session }: { session: any }) {
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user?.name || "User"}
             </div>
             <span className={`badge ${ROLE_COLORS[role]}`} style={{ fontSize: 10, padding: "2px 8px" }}>

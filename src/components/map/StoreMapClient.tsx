@@ -79,7 +79,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
 
   const inputStyle: React.CSSProperties = {
     padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)",
-    background: "rgba(255,255,255,0.05)", color: "#f0f4ff", fontSize: 13, cursor: "pointer",
+    background: "rgba(15,23,42,0.05)", color: "var(--text-primary)", fontSize: 13, cursor: "pointer",
   };
 
   return (
@@ -198,7 +198,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                 onChange={e => setThreshold(Number(e.target.value))}
                 style={{ width: 100, accentColor: "#3b82f6", cursor: "pointer" }}
               />
-              <span style={{ color: "#f0f4ff", fontWeight: 600, minWidth: 50 }}>{threshold}m</span>
+              <span style={{ color: "var(--text-primary)", fontWeight: 600, minWidth: 50 }}>{threshold}m</span>
             </div>
           </div>
 
@@ -215,7 +215,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                   background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "10px 12px",
                   fontSize: 13,
                 }}>
-                  <div style={{ fontWeight: 600, color: "#f0f4ff", marginBottom: 3 }}>
+                  <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: 3 }}>
                     {p.a.name} ↔ {p.b.name}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -224,7 +224,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                     </span>
                     <div style={{
                       height: 4, width: 80, borderRadius: 2,
-                      background: `linear-gradient(to right, #ef4444 ${Math.round((p.dist / threshold) * 100)}%, rgba(255,255,255,0.1) 0%)`,
+                      background: `linear-gradient(to right, #ef4444 ${Math.round((p.dist / threshold) * 100)}%, rgba(15,23,42,0.1) 0%)`,
                     }} />
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
@@ -249,7 +249,7 @@ export default function StoreMapClient({ stores }: { stores: any[] }) {
                   background: "rgba(245,158,11,0.06)", borderRadius: 8, padding: "8px 12px",
                 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>{store.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{store.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{store.code} · {getBranch(store)}</div>
                   </div>
                   <Link href={`/stores/${store.id}`} style={{

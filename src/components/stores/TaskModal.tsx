@@ -36,7 +36,7 @@ export default function TaskModal({ task, storeId, canEdit, onClose, onUpdated }
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", lineHeight: 1.3, flex: 1, paddingRight: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.3, flex: 1, paddingRight: 16 }}>
             {task.title}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer", flexShrink: 0 }}>✕</button>
@@ -79,7 +79,7 @@ export default function TaskModal({ task, storeId, canEdit, onClose, onUpdated }
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={onClose} style={{
                 flex: 1, padding: "10px", borderRadius: 8,
-                background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+                background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
                 color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
               }}>{t.common.cancel}</button>
               <button onClick={handleSave} disabled={loading} className="gradient-btn" style={{
@@ -107,7 +107,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, color: "#f0f4ff", fontWeight: 500 }}>{value}</div>
+      <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{value}</div>
     </div>
   );
 }

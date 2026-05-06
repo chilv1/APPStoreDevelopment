@@ -17,7 +17,7 @@ export default async function ReportsPage() {
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
           {t.reportsPage.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>

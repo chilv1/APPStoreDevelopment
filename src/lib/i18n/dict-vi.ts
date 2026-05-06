@@ -4,7 +4,6 @@ const dict: Dict = {
   sidebar: {
     overview: "Tổng quan", stores: "Cửa hàng", portfolioGantt: "Gantt tổng",
     branches: "Chi nhánh & BC", map: "Bản đồ", reports: "Báo cáo",
-    planning: "Lập Kế Hoạch",
     users: "Quản lý User", phaseTemplates: "Mẫu Giai Đoạn",
     logout: "Đăng xuất", mainMenu: "MENU CHÍNH", admin: "QUẢN TRỊ",
   },

@@ -4,7 +4,6 @@ const dict: Dict = {
   sidebar: {
     overview: "Resumen", stores: "Tiendas", portfolioGantt: "Gantt General",
     branches: "Sucursales y BC", map: "Mapa", reports: "Reportes",
-    planning: "Planificación",
     users: "Usuarios", phaseTemplates: "Plantillas de Fase",
     logout: "Cerrar sesión", mainMenu: "MENÚ PRINCIPAL", admin: "ADMINISTRACIÓN",
   },

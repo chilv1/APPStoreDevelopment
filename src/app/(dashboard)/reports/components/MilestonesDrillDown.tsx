@@ -149,7 +149,7 @@ export default function MilestonesDrillDown({ order, phaseName, question, branch
                     ? <span style={{ background: "rgba(63,185,80,.15)", color: "#3fb950", padding: "2px 6px", borderRadius: 4, fontSize: 10 }}>on time</span>
                     : <span style={{ color: "var(--text-secondary)" }}>—</span>;
                   return (
-                    <tr key={s.storeId} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <tr key={s.storeId} style={{ borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
                       <Td><strong>{s.storeCode}</strong></Td>
                       <Td>{s.bcCode}</Td>
                       <Td>{s.branchCode}</Td>

@@ -88,7 +88,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>{t.modal.createTitle}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{t.modal.createTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
@@ -234,7 +234,7 @@ export default function CreateStoreModal({ onClose, onCreated }: { onClose: () =
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: "11px", borderRadius: 10,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 14, fontWeight: 500, cursor: "pointer",
             }}>
               {t.common.cancel}

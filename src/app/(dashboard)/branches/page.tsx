@@ -10,8 +10,8 @@ type Branch = { id: string; name: string; code: string; description?: string; bu
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "9px 12px", borderRadius: 8,
-  border: "1px solid var(--border)", background: "rgba(255,255,255,0.05)",
-  color: "#f0f4ff", fontSize: 13,
+  border: "1px solid var(--border)", background: "rgba(15,23,42,0.05)",
+  color: "var(--text-primary)", fontSize: 13,
 };
 const Label = ({ children }: { children: React.ReactNode }) => (
   <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 5 }}>{children}</label>
@@ -105,7 +105,7 @@ export default function BranchesPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>{t.branchesPage.title}</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>{t.branchesPage.title}</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{t.branchesPage.subtitle}</p>
         </div>
         {isAdmin && (
@@ -150,7 +150,7 @@ export default function BranchesPage() {
                 borderRadius: 8, padding: "4px 12px", fontSize: 13, fontWeight: 800, letterSpacing: 1,
               }}>{branch.code}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>{branch.name}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{branch.name}</div>
                 {branch.description && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{branch.description}</div>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginRight: 8 }}>
@@ -194,7 +194,7 @@ export default function BranchesPage() {
                             borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
                           }}>{bc.code}</span>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>{bc.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{bc.name}</div>
                         {bc.address && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {bc.address}</div>}
                         <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
                           {t.branchesPage.bcStoresCount.replace("{n}", String(bc._count.stores))}
@@ -226,7 +226,7 @@ export default function BranchesPage() {
         <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setBranchModal({ open: false })}>
           <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{branchModal.edit ? t.branchesPage.branchModalEdit : t.branchesPage.branchModalCreate}</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{branchModal.edit ? t.branchesPage.branchModalEdit : t.branchesPage.branchModalCreate}</h2>
               <button onClick={() => setBranchModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <form onSubmit={saveBranch}>
@@ -249,7 +249,7 @@ export default function BranchesPage() {
               </div>
               {branchError && <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", fontSize: 13 }}>⚠️ {branchError}</div>}
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button type="button" onClick={() => setBranchModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
+                <button type="button" onClick={() => setBranchModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
                 <button type="submit" disabled={branchSaving} className="gradient-btn" style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   {branchSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.branchesPage.saveBranchBtn}
                 </button>
@@ -264,7 +264,7 @@ export default function BranchesPage() {
         <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && setBcModal({ open: false })}>
           <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{bcModal.edit ? t.branchesPage.bcModalEdit : t.branchesPage.bcModalCreate}</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{bcModal.edit ? t.branchesPage.bcModalEdit : t.branchesPage.bcModalCreate}</h2>
               <button onClick={() => setBcModal({ open: false })} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <form onSubmit={saveBC}>
@@ -297,7 +297,7 @@ export default function BranchesPage() {
               </div>
               {bcError && <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#fca5a5", fontSize: 13 }}>⚠️ {bcError}</div>}
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button type="button" onClick={() => setBcModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
+                <button type="button" onClick={() => setBcModal({ open: false })} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}>{t.common.cancel}</button>
                 <button type="submit" disabled={bcSaving} className="gradient-btn" style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   {bcSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />{t.modal.saving}</> : t.branchesPage.saveBCBtn}
                 </button>

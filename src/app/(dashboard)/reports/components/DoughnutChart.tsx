@@ -126,7 +126,7 @@ export default function DoughnutChart({
       {labels.length > 0 && (
         <div style={{
           display: "flex", flexWrap: "wrap", gap: "8px 14px",
-          paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)",
+          paddingTop: 10, borderTop: "1px solid rgba(15,23,42,0.06)",
         }}>
           {labels.map((label, i) => (
             <div key={`${label}-${i}`} style={{

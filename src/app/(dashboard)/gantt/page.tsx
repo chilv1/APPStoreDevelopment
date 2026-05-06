@@ -131,7 +131,7 @@ export default function PortfolioGanttPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1600, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
           {t.portfolio.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
@@ -173,7 +173,7 @@ export default function PortfolioGanttPage() {
         </select>
 
         <span style={{ marginLeft: 12, fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>{t.portfolio.sortLabel}</span>
-        <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 8, border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 4, background: "rgba(15,23,42,0.03)", padding: 4, borderRadius: 8, border: "1px solid var(--border)" }}>
           {sortOpts.map(opt => (
             <button key={opt.k} onClick={() => setSortKey(opt.k)} style={{
               padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
@@ -223,13 +223,13 @@ export default function PortfolioGanttPage() {
           <div style={{
             position: "relative", marginLeft: LEFT_COL, marginRight: RIGHT_COL,
             height: 28, marginBottom: 8,
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(15,23,42,0.06)",
           }}>
             {months.map((m, i) => (
               <div key={i} style={{
                 position: "absolute", left: `${m.pct}%`, top: 0,
                 fontSize: 10, color: "var(--text-secondary)", fontWeight: 600,
-                paddingLeft: 6, borderLeft: "1px solid rgba(255,255,255,0.08)",
+                paddingLeft: 6, borderLeft: "1px solid rgba(15,23,42,0.08)",
                 height: "100%",
               }}>{m.label}</div>
             ))}
@@ -269,11 +269,11 @@ export default function PortfolioGanttPage() {
               return (
                 <Link key={store.id} href={`/stores/${store.id}`} style={{
                   display: "flex", alignItems: "center", height: ROW_HEIGHT,
-                  borderTop: "1px solid rgba(255,255,255,0.04)",
+                  borderTop: "1px solid rgba(15,23,42,0.04)",
                   textDecoration: "none", color: "inherit",
                   transition: "background 0.15s",
                 }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "rgba(15,23,42,0.02)"}
                   onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
                   {/* Left column: store info */}
@@ -286,7 +286,7 @@ export default function PortfolioGanttPage() {
                       }}>{stLabel}</span>
                       <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{store.code}</span>
                     </div>
-                    <div style={{ fontSize: 13, color: "#f0f4ff", fontWeight: 600, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {store.name}
                     </div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -300,7 +300,7 @@ export default function PortfolioGanttPage() {
                     {months.map((m, i) => (
                       <div key={`grid-${i}`} style={{
                         position: "absolute", left: `${m.pct}%`, top: 0, bottom: 0,
-                        width: 1, background: "rgba(255,255,255,0.04)",
+                        width: 1, background: "rgba(15,23,42,0.04)",
                       }} />
                     ))}
 
@@ -352,7 +352,7 @@ export default function PortfolioGanttPage() {
                     {/* Progress bar at the bottom */}
                     <div style={{
                       position: "absolute", left: 0, right: 0, bottom: 2, height: 2,
-                      background: "rgba(255,255,255,0.04)", borderRadius: 1,
+                      background: "rgba(15,23,42,0.04)", borderRadius: 1,
                     }}>
                       <div style={{
                         width: `${store.progress || 0}%`,

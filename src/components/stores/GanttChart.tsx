@@ -179,7 +179,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
             {PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]} {t.storesList.phaseAbbrev}{phase.order}: {phase.name}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
@@ -260,7 +260,7 @@ function PhaseEditModal({ phase, onClose, onSaved }: { phase: any; onClose: () =
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{
             flex: 1, padding: "10px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
           }}>{t.common.cancel}</button>
           <button onClick={handleSave} disabled={loading} className="gradient-btn" style={{
@@ -288,7 +288,7 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.ganttModals.saveBaselineTitle}</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{t.ganttModals.saveBaselineTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14, lineHeight: 1.5 }}>
@@ -314,7 +314,7 @@ function SaveBaselineModal({ existingNames, onClose, onSave }: { existingNames: 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{
             flex: 1, padding: "10px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
           }}>{t.common.cancel}</button>
           <button
@@ -393,9 +393,9 @@ function PhaseNotesSection({ phase }: { phase: any }) {
   };
 
   return (
-    <div style={{ marginBottom: 14, background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
+    <div style={{ marginBottom: 14, background: "rgba(15,23,42,0.02)", border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           {t.phaseNotes.title} {notes.length > 0 && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-muted)" }}>({notes.length})</span>}
         </div>
       </div>
@@ -439,7 +439,7 @@ function PhaseNotesSection({ phase }: { phase: any }) {
                     rows={2} maxLength={1000}
                     style={{ resize: "vertical", fontSize: 12, padding: "4px 8px" }} />
                 ) : (
-                  <div style={{ fontSize: 12, color: "#f0f4ff", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{n.content}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-primary)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{n.content}</div>
                 )}
               </div>
             ))}
@@ -460,7 +460,7 @@ function PhaseNotesSection({ phase }: { phase: any }) {
             />
             <button onClick={addNote} disabled={!draft.trim() || saving} style={{
               padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-              background: draft.trim() ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : "rgba(255,255,255,0.05)",
+              background: draft.trim() ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : "rgba(15,23,42,0.05)",
               border: "none", color: "#fff",
               cursor: draft.trim() && !saving ? "pointer" : "not-allowed",
               opacity: draft.trim() && !saving ? 1 : 0.5,
@@ -516,7 +516,7 @@ function StatusBadgeDropdown({ phase, theme, status, onChange }: { phase: any; t
             <button key={s.value} onClick={() => { onChange(s.value); setOpen(false); }} style={{
               display: "block", width: "100%", padding: "6px 10px",
               background: phase.status === s.value ? `${s.color}22` : "transparent",
-              color: phase.status === s.value ? s.color : "#f0f4ff",
+              color: phase.status === s.value ? s.color : "var(--text-primary)",
               border: "none", borderRadius: 6, textAlign: "left",
               fontSize: 11, fontWeight: 600, cursor: "pointer",
             }}>{t.status[s.labelKey]}</button>
@@ -563,7 +563,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
       fontSize: 12,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f4ff" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
           {PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]} {t.storesList.phaseAbbrev}{phase.order}: {phase.name}
         </span>
       </div>
@@ -581,7 +581,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
 
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 10px", fontSize: 11, marginBottom: 8 }}>
         <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipPlanned}</span>
-        <span style={{ color: "#f0f4ff" }}>{fmtDateShort(phase.plannedStart, intlCode)} → {fmtDateShort(phase.plannedEnd, intlCode)}</span>
+        <span style={{ color: "var(--text-primary)" }}>{fmtDateShort(phase.plannedStart, intlCode)} → {fmtDateShort(phase.plannedEnd, intlCode)}</span>
         {phase.actualStart && (
           <>
             <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipActual}</span>
@@ -589,11 +589,11 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
           </>
         )}
         <span style={{ color: "var(--text-muted)" }}>{t.gantt.tooltipTasks}</span>
-        <span style={{ color: "#f0f4ff" }}>{t.gantt.tooltipTasksDone.replace("{done}", String(doneTasks)).replace("{total}", String(tasks.length || 0))}</span>
+        <span style={{ color: "var(--text-primary)" }}>{t.gantt.tooltipTasksDone.replace("{done}", String(doneTasks)).replace("{total}", String(tasks.length || 0))}</span>
       </div>
 
       {/* Progress bar */}
-      <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 4, height: 6, overflow: "hidden", marginBottom: 4 }}>
+      <div style={{ background: "rgba(15,23,42,0.06)", borderRadius: 4, height: 6, overflow: "hidden", marginBottom: 4 }}>
         <div style={{ width: `${progress}%`, height: "100%", background: theme.color, transition: "width 0.2s" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-muted)" }}>
@@ -604,13 +604,13 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
       {Array.isArray(phase.notes) && phase.notes.length > 0 && (
         <div style={{
           marginTop: 8, paddingTop: 8,
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid rgba(15,23,42,0.06)",
         }}>
           <div style={{ fontSize: 10, color: "#facc15", fontWeight: 600, marginBottom: 3 }}>
             {t.gantt.tooltipNotes.replace("{n}", String(phase.notes.length))}
           </div>
           <div style={{
-            fontSize: 11, color: "#f0f4ff", lineHeight: 1.4,
+            fontSize: 11, color: "var(--text-primary)", lineHeight: 1.4,
             display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
             overflow: "hidden", textOverflow: "ellipsis",
             background: "rgba(250, 204, 21, 0.06)", border: "1px solid rgba(250, 204, 21, 0.15)",
@@ -621,7 +621,7 @@ function Tooltip({ phase, x, y, now }: { phase: any; x: number; y: number; now: 
         </div>
       )}
 
-      <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-muted)", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
+      <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-muted)", textAlign: "center", borderTop: "1px solid rgba(15,23,42,0.06)", paddingTop: 6 }}>
         {t.gantt.tooltipHint}
       </div>
     </div>
@@ -928,7 +928,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
     <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           {t.gantt.title}
         </h2>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -944,7 +944,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
             </div>
           )}
           <button onClick={handlePrint} className="no-print" title={t.gantt.printExport} style={{
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", padding: "5px 12px", borderRadius: 8,
             fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
           }}>
@@ -957,7 +957,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
       {storeId && (
         <div className="no-print" style={{
           display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap",
-          padding: "8px 12px", background: "rgba(255,255,255,0.02)",
+          padding: "8px 12px", background: "rgba(15,23,42,0.02)",
           border: "1px solid var(--border)", borderRadius: 8,
         }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{t.ganttModals.baselineLabel}</span>
@@ -991,7 +991,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
           {baselines.length > 0 && canManageBaselines && (
             <button onClick={() => setShowManageBaselines(true)} style={{
               padding: "4px 10px", borderRadius: 6, fontSize: 11,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
             }}>
               {t.ganttModals.manageBaselines.replace("{n}", String(baselines.length))}
@@ -1010,7 +1010,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
 
       {/* Zoom + Nav toolbar */}
       <div className="no-print" style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 8, border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 4, background: "rgba(15,23,42,0.03)", padding: 4, borderRadius: 8, border: "1px solid var(--border)" }}>
           {(["WEEK", "MONTH", "QUARTER", "ALL"] as ZoomLevel[]).map(z => (
             <button key={z} onClick={() => { setZoom(z); setViewOffsetDays(0); }} style={{
               padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
@@ -1027,19 +1027,19 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
           <div style={{ display: "flex", gap: 4 }}>
             <button onClick={() => setViewOffsetDays(viewOffsetDays - Math.floor(ZOOM_DAYS[zoom] / 3))} style={{
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
             }}>{t.gantt.navPrev}</button>
             <button onClick={() => setViewOffsetDays(0)} disabled={viewOffsetDays === 0} style={{
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
-              background: viewOffsetDays === 0 ? "rgba(255,255,255,0.02)" : "rgba(59,130,246,0.1)",
+              background: viewOffsetDays === 0 ? "rgba(15,23,42,0.02)" : "rgba(59,130,246,0.1)",
               border: `1px solid ${viewOffsetDays === 0 ? "var(--border)" : "rgba(59,130,246,0.3)"}`,
               color: viewOffsetDays === 0 ? "var(--text-muted)" : "#93c5fd",
               cursor: viewOffsetDays === 0 ? "default" : "pointer",
             }}>{t.gantt.navToday}</button>
             <button onClick={() => setViewOffsetDays(viewOffsetDays + Math.floor(ZOOM_DAYS[zoom] / 3))} style={{
               padding: "5px 10px", borderRadius: 6, fontSize: 11,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", cursor: "pointer",
             }}>{t.gantt.navNext}</button>
           </div>
@@ -1084,14 +1084,14 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
             position: "relative",
             marginLeft: LEFT_COL, marginRight: RIGHT_COL,
             height: 28, marginBottom: 8,
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(15,23,42,0.06)",
             overflow: "hidden",
           }}>
             {monthMarkers.map((m, i) => !isClipped(m.pct) && (
               <div key={i} style={{
                 position: "absolute", left: `${m.pct}%`, top: 0,
                 fontSize: 11, color: "var(--text-secondary)", fontWeight: 600,
-                paddingLeft: 6, borderLeft: "1px solid rgba(255,255,255,0.08)",
+                paddingLeft: 6, borderLeft: "1px solid rgba(15,23,42,0.08)",
                 height: "100%",
               }}>
                 {m.label}
@@ -1163,7 +1163,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                 progress > 0;
 
               return (
-                <div key={phase.id} style={{ display: "flex", alignItems: "center", height: ROW_HEIGHT, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                <div key={phase.id} style={{ display: "flex", alignItems: "center", height: ROW_HEIGHT, borderTop: "1px solid rgba(15,23,42,0.04)" }}>
                   {/* Left label */}
                   <div style={{
                     width: LEFT_COL, flexShrink: 0, paddingRight: 10,
@@ -1171,7 +1171,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                   }}>
                     <span style={{ fontSize: 18, lineHeight: 1 }}>{PHASE_ICONS[phase.order] ?? PHASE_ICONS[1]}</span>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, color: "#f0f4ff", fontWeight: 600, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 600, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t.storesList.phaseAbbrev}{phase.order}
                         {(phase as any).dependencyType === "SS" && (
                           <span title="Start-to-Start" style={{ marginLeft: 4, fontSize: 9, background: "rgba(16,185,129,0.2)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 3, padding: "0 3px", fontWeight: 700 }}>SS</span>
@@ -1189,7 +1189,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                     {monthMarkers.map((m, i) => !isClipped(m.pct) && (
                       <div key={`grid-${i}`} style={{
                         position: "absolute", left: `${m.pct}%`, top: 0, bottom: 0,
-                        width: 1, background: "rgba(255,255,255,0.04)", pointerEvents: "none",
+                        width: 1, background: "rgba(15,23,42,0.04)", pointerEvents: "none",
                       }} />
                     ))}
 
@@ -1224,8 +1224,8 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                               left: `${bVisLeft}%`, width: `${bVisWidth}%`,
                               top: BAR_AREA_HEIGHT - 8,
                               height: 5,
-                              background: "rgba(255,255,255,0.04)",
-                              border: "1px dashed rgba(255,255,255,0.25)",
+                              background: "rgba(15,23,42,0.04)",
+                              border: "1px dashed rgba(15,23,42,0.25)",
                               borderRadius: 2,
                               zIndex: 1,
                             }}
@@ -1280,7 +1280,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                       const dragInfo = isDragging && dragState!.moved && (
                         <div style={{
                           position: "absolute", top: -22, left: "50%", transform: "translateX(-50%)",
-                          background: "#1e293b", color: "#f0f4ff", border: `1px solid ${theme.color}`,
+                          background: "#ffffff", color: "var(--text-primary)", border: `1px solid ${theme.color}`,
                           borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700,
                           whiteSpace: "nowrap", zIndex: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                         }}>
@@ -1303,7 +1303,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                             width: `${renderWidth}%`,
                             top: 6,
                             height: 20,
-                            background: phase._fallback ? "rgba(255,255,255,0.04)" : `${theme.color}26`,
+                            background: phase._fallback ? "rgba(15,23,42,0.04)" : `${theme.color}26`,
                             border: `1px ${phase._fallback ? "dashed" : "solid"} ${theme.color}`,
                             borderRadius: 4,
                             overflow: "hidden",
@@ -1343,7 +1343,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                                 style={{
                                   position: "absolute", left: 0, top: 0, bottom: 0, width: 5,
                                   cursor: "ew-resize", background: "transparent",
-                                  borderLeft: "2px solid rgba(255,255,255,0.5)",
+                                  borderLeft: "2px solid rgba(15,23,42,0.5)",
                                   zIndex: 4,
                                 }}
                                 title={t.common.dragStartHint}
@@ -1353,7 +1353,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                                 style={{
                                   position: "absolute", right: 0, top: 0, bottom: 0, width: 5,
                                   cursor: "ew-resize", background: "transparent",
-                                  borderRight: "2px solid rgba(255,255,255,0.5)",
+                                  borderRight: "2px solid rgba(15,23,42,0.5)",
                                   zIndex: 4,
                                 }}
                                 title={t.common.dragEndHint}
@@ -1384,7 +1384,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                       <div title={`${phase.notes.length} ${t.common.notes}`} style={{
                         position: "absolute",
                         left: `${visLeft}%`, top: -4,
-                        background: "#1e293b", color: "#facc15",
+                        background: "#fef3c7", color: "#a16207",
                         border: "1px solid rgba(250, 204, 21, 0.5)",
                         borderRadius: 99, padding: "1px 5px",
                         fontSize: 9, fontWeight: 700,
@@ -1495,7 +1495,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
         <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && setShowManageBaselines(false)}>
           <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.ganttModals.manageBaselinesTitle}</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{t.ganttModals.manageBaselinesTitle}</h2>
               <button onClick={() => setShowManageBaselines(false)} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 14 }}>
@@ -1504,12 +1504,12 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
             <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
               {baselines.map(b => (
                 <div key={b.id} style={{
-                  background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)",
+                  background: "rgba(15,23,42,0.03)", border: "1px solid var(--border)",
                   borderRadius: 8, padding: "10px 12px",
                   display: "flex", alignItems: "center", gap: 10,
                 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff" }}>📌 {b.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>📌 {b.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                       {b.creator?.name || t.common.system} · {new Date(b.createdAt).toLocaleString(intlCode)} · {t.ganttModals.snapshotsCount.replace("{n}", String((b.snapshots || []).length))}
                     </div>

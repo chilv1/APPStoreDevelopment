@@ -85,7 +85,7 @@ export default function StoreDetailPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, fontSize: 13, color: "var(--text-secondary)" }}>
         <Link href="/stores" style={{ color: "var(--accent-blue)", textDecoration: "none" }}>🏪 {t.sidebar.stores}</Link>
         <span>›</span>
-        <span style={{ color: "#f0f4ff" }}>{store.name}</span>
+        <span style={{ color: "var(--text-primary)" }}>{store.name}</span>
       </div>
 
       {/* Store Header */}
@@ -96,19 +96,19 @@ export default function StoreDetailPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f0f4ff" }}>{store.name}</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)" }}>{store.name}</h1>
               <span className={`badge ${STATUS_COLORS[store.status]}`}>{getStatusLabel(store.status, locale)}</span>
             </div>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>📍 {store.address}</div>
             <div style={{ display: "flex", gap: 20, fontSize: 13, color: "var(--text-secondary)", flexWrap: "wrap", marginTop: 8 }}>
               <span>🔖 {store.code}</span>
               {store.bc
-                ? <span>🏢 <strong style={{ color: "#f0f4ff" }}>{store.bc.branch?.name}</strong> · <strong style={{ color: "#60a5fa" }}>{store.bc.code}</strong> — {store.bc.name}</span>
+                ? <span>🏢 <strong style={{ color: "var(--text-primary)" }}>{store.bc.branch?.name}</strong> · <strong style={{ color: "#60a5fa" }}>{store.bc.code}</strong> — {store.bc.name}</span>
                 : store.region && <span>🌏 {store.region}</span>
               }
-              {store.pm && <span>👤 {t.storeDetail.pm}: <strong style={{ color: "#f0f4ff" }}>{store.pm.name}</strong></span>}
+              {store.pm && <span>👤 {t.storeDetail.pm}: <strong style={{ color: "var(--text-primary)" }}>{store.pm.name}</strong></span>}
               {store.budget && <span>💰 {formatCurrency(store.budget)}</span>}
-              {store.targetOpenDate && <span>🎯 {t.storeDetail.targetOpenLabel}: <strong style={{ color: "#f0f4ff" }}>{formatDate(store.targetOpenDate, intlCode)}</strong></span>}
+              {store.targetOpenDate && <span>🎯 {t.storeDetail.targetOpenLabel}: <strong style={{ color: "var(--text-primary)" }}>{formatDate(store.targetOpenDate, intlCode)}</strong></span>}
               {store.latitude != null && store.longitude != null && (
                 <a href={`https://www.google.com/maps?q=${store.latitude},${store.longitude}`} target="_blank" rel="noopener noreferrer"
                   style={{ color: "var(--accent-blue)", textDecoration: "none", fontSize: 13 }}>
@@ -123,11 +123,11 @@ export default function StoreDetailPage() {
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setShowEdit(true)} style={{
                 padding: "8px 18px", borderRadius: 10, border: "1px solid var(--border)",
-                background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)",
+                background: "rgba(15,23,42,0.06)", color: "var(--text-secondary)",
                 fontSize: 13, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
                 transition: "all 0.15s ease",
               }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f0f4ff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(15,23,42,0.3)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
               >
                 {t.storeDetail.edit}
@@ -148,7 +148,7 @@ export default function StoreDetailPage() {
 
           {/* Overall Progress */}
           <div style={{ textAlign: "right", minWidth: 180 }}>
-            <div style={{ fontSize: 36, fontWeight: 900, color: "#f0f4ff", lineHeight: 1 }}>{store.progress}%</div>
+            <div style={{ fontSize: 36, fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{store.progress}%</div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>{t.storeDetail.completedPhases.replace("{done}", String(completedPhases)).replace("{total}", "11")}</div>
             <div className="progress-bar" style={{ height: 8 }}>
               <div className="progress-bar-fill" style={{ width: `${store.progress}%` }} />
@@ -171,8 +171,8 @@ export default function StoreDetailPage() {
                 fontSize: 16,
                 background: phase.status === "COMPLETED" ? "rgba(16,185,129,0.2)"
                   : phase.status === "IN_PROGRESS" ? "rgba(59,130,246,0.2)"
-                  : "rgba(255,255,255,0.05)",
-                border: `2px solid ${phase.status === "COMPLETED" ? "#10b981" : phase.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(255,255,255,0.1)"}`,
+                  : "rgba(15,23,42,0.05)",
+                border: `2px solid ${phase.status === "COMPLETED" ? "#10b981" : phase.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(15,23,42,0.1)"}`,
               }}>
                 {phase.status === "COMPLETED" ? "✓" : PHASE_ICONS[phase.phaseNumber]}
               </div>
@@ -185,7 +185,7 @@ export default function StoreDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(255,255,255,0.03)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(15,23,42,0.03)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", width: "fit-content" }}>
         {([
           { key: "phases",   label: t.storeDetail.tabPhases },
           { key: "gantt",    label: t.storeDetail.tabGantt },
@@ -214,15 +214,15 @@ export default function StoreDetailPage() {
                 onClick={() => setSelectedPhase(phase)}>
                 <div className="phase-dot" style={{
                   background: phase.status === "COMPLETED" ? "rgba(16,185,129,0.2)"
-                    : phase.status === "IN_PROGRESS" ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
-                  border: `2px solid ${phase.status === "COMPLETED" ? "#10b981" : phase.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(255,255,255,0.1)"}`,
+                    : phase.status === "IN_PROGRESS" ? "rgba(59,130,246,0.2)" : "rgba(15,23,42,0.05)",
+                  border: `2px solid ${phase.status === "COMPLETED" ? "#10b981" : phase.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(15,23,42,0.1)"}`,
                   color: phase.status === "COMPLETED" ? "#10b981" : phase.status === "IN_PROGRESS" ? "#3b82f6" : "var(--text-muted)",
                   fontSize: phase.status === "COMPLETED" ? 16 : 13,
                 }}>
                   {phase.status === "COMPLETED" ? "✓" : phase.phaseNumber}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f4ff", lineHeight: 1.3 }}>{phase.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3 }}>{phase.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                     {phase.tasks?.filter((tk: any) => tk.status === "DONE").length || 0}/{phase.tasks?.length || 0} {t.storeDetail.taskCount}
                   </div>
@@ -237,7 +237,7 @@ export default function StoreDetailPage() {
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
                       {PHASE_ICONS[selectedPhase.phaseNumber]} {t.storeDetail.phaseTitleHeader.replace("{n}", String(selectedPhase.phaseNumber)).replace("{name}", selectedPhase.name)}
                     </h2>
                     <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{selectedPhase.description}</p>
@@ -254,7 +254,7 @@ export default function StoreDetailPage() {
                     {/* Checkbox */}
                     <div style={{
                       width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                      border: `2px solid ${task.status === "DONE" ? "#10b981" : task.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(255,255,255,0.2)"}`,
+                      border: `2px solid ${task.status === "DONE" ? "#10b981" : task.status === "IN_PROGRESS" ? "#3b82f6" : "rgba(15,23,42,0.2)"}`,
                       background: task.status === "DONE" ? "rgba(16,185,129,0.2)" : "transparent",
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11,
                     }}>
@@ -264,7 +264,7 @@ export default function StoreDetailPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontSize: 14, fontWeight: 500,
-                        color: task.status === "DONE" ? "var(--text-secondary)" : "#f0f4ff",
+                        color: task.status === "DONE" ? "var(--text-secondary)" : "var(--text-primary)",
                         textDecoration: task.status === "DONE" ? "line-through" : "none",
                         lineHeight: 1.3,
                       }}>
@@ -306,7 +306,7 @@ export default function StoreDetailPage() {
         <div>
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff" }}>{t.storeDetail.issuesTitle}</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{t.storeDetail.issuesTitle}</h2>
             <button onClick={() => setShowIssue(true)} className="gradient-btn" style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
               color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
@@ -319,7 +319,7 @@ export default function StoreDetailPage() {
             const counts = { ALL: all.length, OPEN: 0, IN_PROGRESS: 0, RESOLVED: 0, CLOSED: 0 } as any;
             all.forEach((i: any) => { if (counts[i.status] !== undefined) counts[i.status]++; });
             const FILTER_TABS = [
-              { key: "ALL",         label: t.storeDetail.filterAllIssues,       color: "#8b9ab5" },
+              { key: "ALL",         label: t.storeDetail.filterAllIssues,       color: "var(--text-secondary)" },
               { key: "OPEN",        label: t.storeDetail.filterOpenIssues,      color: "#f59e0b" },
               { key: "IN_PROGRESS", label: t.storeDetail.filterInProgressIssues,color: "#3b82f6" },
               { key: "RESOLVED",    label: t.storeDetail.filterResolvedIssues,  color: "#10b981" },
@@ -336,7 +336,7 @@ export default function StoreDetailPage() {
                     display: "flex", alignItems: "center", gap: 6,
                   }}>
                     {ft.label}
-                    {counts[ft.key] > 0 && <span style={{ background: issueFilter === ft.key ? ft.color : "rgba(255,255,255,0.1)", color: issueFilter === ft.key ? "#fff" : "var(--text-secondary)", borderRadius: 99, padding: "0 6px", fontSize: 10, fontWeight: 700 }}>{counts[ft.key]}</span>}
+                    {counts[ft.key] > 0 && <span style={{ background: issueFilter === ft.key ? ft.color : "rgba(15,23,42,0.1)", color: issueFilter === ft.key ? "#fff" : "var(--text-secondary)", borderRadius: 99, padding: "0 6px", fontSize: 10, fontWeight: 700 }}>{counts[ft.key]}</span>}
                   </button>
                 ))}
               </div>
@@ -362,7 +362,7 @@ export default function StoreDetailPage() {
                     {/* Top row */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#f0f4ff", marginBottom: 4 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
                           {typeIcon} {issue.title}
                         </div>
                         {issue.description && <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>{issue.description}</p>}
@@ -380,7 +380,7 @@ export default function StoreDetailPage() {
                         <div key={idx} style={{ display: "flex", alignItems: "center", flex: idx < 3 ? 1 : "none" }}>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                             <div style={{
-                              width: 22, height: 22, borderRadius: "50%", border: `2px solid ${idx <= statusStep ? stepColors[statusStep] : "rgba(255,255,255,0.1)"}`,
+                              width: 22, height: 22, borderRadius: "50%", border: `2px solid ${idx <= statusStep ? stepColors[statusStep] : "rgba(15,23,42,0.1)"}`,
                               background: idx === statusStep ? stepColors[statusStep] : idx < statusStep ? `${stepColors[statusStep]}33` : "transparent",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               fontSize: 10, color: idx <= statusStep ? (idx === statusStep ? "#fff" : stepColors[statusStep]) : "var(--text-muted)",
@@ -392,7 +392,7 @@ export default function StoreDetailPage() {
                               {label}
                             </span>
                           </div>
-                          {idx < 3 && <div style={{ flex: 1, height: 2, background: idx < statusStep ? `${stepColors[statusStep]}44` : "rgba(255,255,255,0.06)", marginBottom: 14, marginLeft: 2, marginRight: 2 }} />}
+                          {idx < 3 && <div style={{ flex: 1, height: 2, background: idx < statusStep ? `${stepColors[statusStep]}44` : "rgba(15,23,42,0.06)", marginBottom: 14, marginLeft: 2, marginRight: 2 }} />}
                         </div>
                       ))}
                     </div>
@@ -415,7 +415,7 @@ export default function StoreDetailPage() {
                         <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={() => setEditIssueTarget(issue)} style={{
                             padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)",
-                            background: "rgba(255,255,255,0.04)", color: "var(--text-secondary)",
+                            background: "rgba(15,23,42,0.04)", color: "var(--text-secondary)",
                             fontSize: 11, cursor: "pointer",
                           }}>{t.common.edit}</button>
                           <button onClick={() => setResolveTarget(issue)} style={{
@@ -443,13 +443,13 @@ export default function StoreDetailPage() {
 
       {activeTab === "activity" && (
         <div style={{ maxWidth: 600 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.storeDetail.activityTitle}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>{t.storeDetail.activityTitle}</h2>
           {store.activities?.map((act: any, i: number) => (
             <div key={i} className="activity-item">
               <div className="activity-dot" style={{ background: "#3b82f6" }} />
               <div>
                 <div style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  <span style={{ color: "#f0f4ff", fontWeight: 600 }}>{act.user?.name || "System"}</span>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{act.user?.name || "System"}</span>
                   {" "}{act.details}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
@@ -622,7 +622,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
           <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}
             dangerouslySetInnerHTML={{
               __html: t.modal.typeToConfirm.replace("{code}",
-                `<strong style="color:#f0f4ff;font-family:monospace;background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px">${confirmText}</strong>`)
+                `<strong style="color:var(--text-primary);font-family:monospace;background:rgba(15,23,42,0.06);padding:1px 6px;border-radius:4px">${confirmText}</strong>`)
             }} />
           <input
             className="input"
@@ -648,7 +648,7 @@ function DeleteStoreModal({ store, onClose, onDeleted }: { store: any; onClose: 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} disabled={loading} style={{
             flex: 1, padding: "10px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: loading ? "not-allowed" : "pointer",
           }}>{t.common.cancel}</button>
           <button
@@ -696,12 +696,12 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.modal.resolveTitle}</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{t.modal.resolveTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
-        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13 }}>
-          <div style={{ fontWeight: 600, color: "#f0f4ff", marginBottom: 2 }}>{issue.title}</div>
+        <div style={{ background: "rgba(15,23,42,0.04)", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13 }}>
+          <div style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: 2 }}>{issue.title}</div>
           {issue.description && <div style={{ color: "var(--text-secondary)" }}>{issue.description}</div>}
         </div>
 
@@ -735,7 +735,7 @@ function ResolveIssueModal({ issue, onClose, onSave, loading }: any) {
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{
             flex: 1, padding: "10px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
           }}>{t.common.cancel}</button>
           <button
@@ -779,7 +779,7 @@ function EditIssueModal({ issue, onClose, onSave, onDelete, loading }: any) {
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#f0f4ff", margin: 0 }}>{t.modal.editIssueTitle}</h2>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{t.modal.editIssueTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
@@ -822,7 +822,7 @@ function EditIssueModal({ issue, onClose, onSave, onDelete, loading }: any) {
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{
             padding: "10px 16px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 13, cursor: "pointer",
           }}>{t.common.cancel}</button>
           <button disabled={loading || !form.title.trim()} onClick={() => onSave(form)} className="gradient-btn" style={{

@@ -57,7 +57,7 @@ export default function DashboardPage() {
     <div style={{ padding: "28px 32px", maxWidth: 1400, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
           📊 {t.dashboard.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
         {/* Store List */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>{t.dashboard.storeListTitle}</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{t.dashboard.storeListTitle}</h2>
             <Link href="/stores" style={{ fontSize: 13, color: "var(--accent-blue)", textDecoration: "none" }}>{t.common.seeAll} →</Link>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   <tr key={store.id}>
                     <td>
                       <Link href={`/stores/${store.id}`} style={{ textDecoration: "none" }}>
-                        <div style={{ fontWeight: 600, color: "#f0f4ff", fontSize: 13 }}>{store.name}</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>{store.name}</div>
                         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{store.code}</div>
                       </Link>
                     </td>
@@ -149,7 +149,7 @@ export default function DashboardPage() {
         {/* Activity Feed */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff" }}>{t.dashboard.activityFeedTitle}</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{t.dashboard.activityFeedTitle}</h2>
           </div>
           <div style={{ padding: "8px 16px", maxHeight: 380, overflowY: "auto" }}>
             {data.recentActivities.length === 0 ? (
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                 <div className="activity-dot" style={{ background: "#3b82f6" }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    <span style={{ color: "#f0f4ff", fontWeight: 600 }}>{act.user?.name || "System"}</span>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{act.user?.name || "System"}</span>
                     {" "}{act.details}
                   </div>
                   {act.store && (
@@ -181,11 +181,11 @@ export default function DashboardPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         {/* Status cards */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.dashboard.statusBreakdownTitle}</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>{t.dashboard.statusBreakdownTitle}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {statusData.map((s) => (
               <div key={s.key} style={{
-                background: "rgba(255,255,255,0.03)", border: `1px solid ${s.color}30`,
+                background: "rgba(15,23,42,0.03)", border: `1px solid ${s.color}30`,
                 borderRadius: 10, padding: "14px 16px",
               }}>
                 <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
@@ -200,13 +200,13 @@ export default function DashboardPage() {
 
         {/* Region Progress */}
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#f0f4ff", marginBottom: 16 }}>{t.dashboard.branchProgressTitle}</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>{t.dashboard.branchProgressTitle}</h2>
           {Object.entries(data.regionProgress).length === 0 ? (
             <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{t.common.noData}</p>
           ) : Object.entries(data.regionProgress).map(([region, info]) => (
             <div key={region} style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#f0f4ff" }}>{region}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{region}</span>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                   {t.dashboard.branchAvg.replace("{n}", String(info.total)).replace("{p}", String(Math.round(info.progress / info.total)))}
                 </span>
@@ -233,7 +233,7 @@ function StatCard({ icon, label, value, color }: { icon: string; label: string; 
         }}>{icon}</div>
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 8px ${color}` }} />
       </div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: "#f0f4ff", marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)", marginBottom: 4 }}>{value}</div>
       <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</div>
     </div>
   );

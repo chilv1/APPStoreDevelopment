@@ -110,13 +110,13 @@ export default function EditStoreModal({
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" onMouseDown={e => e.stopPropagation()} style={{ maxWidth: 640, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f0f4ff" }}>{t.modal.editTitle}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{t.modal.editTitle}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
 
         {/* Mã dự án — read-only */}
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", marginBottom: 20, fontSize: 13, color: "var(--text-secondary)" }}>
-          🔖 {t.modal.projectCode.replace(" *", "")}: <strong style={{ color: "#f0f4ff" }}>{store.code}</strong>
+        <div style={{ background: "rgba(15,23,42,0.03)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 14px", marginBottom: 20, fontSize: 13, color: "var(--text-secondary)" }}>
+          🔖 {t.modal.projectCode.replace(" *", "")}: <strong style={{ color: "var(--text-primary)" }}>{store.code}</strong>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -250,7 +250,7 @@ export default function EditStoreModal({
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: "11px", borderRadius: 10,
-              background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+              background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
               color: "var(--text-secondary)", fontSize: 14, fontWeight: 500, cursor: "pointer",
             }}>{t.common.cancel}</button>
             <button type="submit" disabled={loading} className="gradient-btn" style={{

@@ -11,9 +11,9 @@ export const LOCALE_INFO: Record<Locale, { flag: string; name: string; short: st
 
 export type Dict = {
   sidebar: {
-    overview: string; stores: string; portfolioGantt: string; planning: string;
-    branches: string; map: string; reports: string; users: string;
-    phaseTemplates: string; logout: string; mainMenu: string; admin: string;
+    overview: string; stores: string; portfolioGantt: string; branches: string;
+    map: string; reports: string; users: string; phaseTemplates: string;
+    logout: string; mainMenu: string; admin: string;
   };
   common: {
     save: string; cancel: string; delete: string; edit: string; create: string;

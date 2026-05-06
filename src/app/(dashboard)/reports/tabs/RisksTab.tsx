@@ -170,7 +170,7 @@ export default function RisksTab() {
             {data.topIssues.map((i) => (
               <Link key={i.id} href={`/stores/${i.storeId}`} style={{
                 display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center",
-                padding: "8px 12px", background: "rgba(255,255,255,0.02)", borderRadius: 6,
+                padding: "8px 12px", background: "rgba(15,23,42,0.02)", borderRadius: 6,
                 textDecoration: "none", color: "inherit",
               }}>
                 <span style={{

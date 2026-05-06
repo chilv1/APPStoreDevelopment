@@ -171,7 +171,7 @@ export default function MilestonesTab() {
       </div>
 
       {/* View toggle */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 0, background: "rgba(255,255,255,.03)", borderRadius: 6, padding: 3, width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 0, background: "rgba(15,23,42,.03)", borderRadius: 6, padding: 3, width: "fit-content" }}>
         {([
           ["phase", "📅 By Phase (across portfolio)"],
           ["bc",    "🏢 By BC (Business Center)"],
@@ -213,7 +213,7 @@ function PhaseTable({ data, onClick }: { data: PhaseMilestone[]; onClick: (order
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+            <tr style={{ background: "rgba(15,23,42,0.03)" }}>
               <Th w={50}>Phase</Th>
               <Th w={300}>Câu hỏi quản lý</Th>
               <Th w={70}>✓ Done</Th>
@@ -233,7 +233,7 @@ function PhaseTable({ data, onClick }: { data: PhaseMilestone[]; onClick: (order
               return (
                 <tr key={p.order}
                   onClick={() => onClick(p.order)}
-                  style={{ cursor: "pointer", background: isStarred ? "rgba(56,139,253,.04)" : "transparent", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                  style={{ cursor: "pointer", background: isStarred ? "rgba(56,139,253,.04)" : "transparent", borderBottom: "1px solid rgba(15,23,42,0.04)" }}
                 >
                   <Td><strong>F.{p.order}</strong></Td>
                   <Td>
@@ -269,7 +269,7 @@ function BCTableView({ data }: { data: BCMilestone[] }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+            <tr style={{ background: "rgba(15,23,42,0.03)" }}>
               <Th>BC</Th><Th>Branch</Th><Th>Stores</Th><Th>Avg Progress</Th>
               <Th>F.1 Vị trí</Th><Th>F.6 Thuê</Th><Th>F.8 XD</Th><Th>F.13 Mở</Th>
               <Th>ETA all open</Th><Th>Health</Th>
@@ -277,13 +277,13 @@ function BCTableView({ data }: { data: BCMilestone[] }) {
           </thead>
           <tbody>
             {data.map((bc) => (
-              <tr key={bc.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <tr key={bc.id} style={{ borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
                 <Td><span style={{ background: "rgba(56,139,253,.15)", color: "#388bfd", padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 600 }}>{bc.code}</span></Td>
                 <Td>{bc.branch}</Td>
                 <Td><strong>{bc.storeCount}</strong></Td>
                 <Td>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, overflow: "hidden", maxWidth: 100 }}>
+                    <div style={{ flex: 1, height: 6, background: "rgba(15,23,42,.05)", borderRadius: 3, overflow: "hidden", maxWidth: 100 }}>
                       <div style={{ width: `${bc.avgProgress}%`, height: "100%", background: "#3fb950" }} />
                     </div>
                     <span>{bc.avgProgress}%</span>
@@ -313,7 +313,7 @@ function PMTableView({ data }: { data: PMMilestone[] }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+            <tr style={{ background: "rgba(15,23,42,0.03)" }}>
               <Th>PM</Th><Th>Branch</Th><Th>Stores</Th><Th>Progress</Th>
               <Th>Active</Th><Th>Capacity</Th><Th>Overdue</Th>
               <Th>F.6 Thuê</Th><Th>F.8 XD</Th><Th>ETA all open</Th><Th>Status</Th>
@@ -324,13 +324,13 @@ function PMTableView({ data }: { data: PMMilestone[] }) {
               const capColor = p.capacity > 100 ? "#f85149" : p.capacity > 80 ? "#d29922" : "#3fb950";
               const statusLabel = p.status === "green" ? "🟢 OK" : p.status === "yellow" ? "🟡 BUSY" : "🔴 OVERLOAD";
               return (
-                <tr key={p.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <tr key={p.id} style={{ borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
                   <Td><strong>{p.name}</strong></Td>
                   <Td>{p.branch}</Td>
                   <Td>{p.storeCount}</Td>
                   <Td>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,.05)", borderRadius: 3, overflow: "hidden", maxWidth: 80 }}>
+                      <div style={{ flex: 1, height: 6, background: "rgba(15,23,42,.05)", borderRadius: 3, overflow: "hidden", maxWidth: 80 }}>
                         <div style={{ width: `${p.avgProgress}%`, height: "100%", background: "#3fb950" }} />
                       </div>
                       <span>{p.avgProgress}%</span>

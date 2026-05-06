@@ -1,13 +1,8 @@
-// Shared Chart.js dark-theme defaults. Every chart wrapper imports these
-// so legends/tooltips/grids/axes look consistent on the app's dark background.
-//
-// Why centralize: Chart.js is imperative and config-heavy. Without a shared base
-// every chart re-declares the same dark-mode tweaks → inconsistencies + drift.
-// Match CSS variables in src/app/globals.css
-export const TEXT_PRIMARY = "#f0f4ff";
-export const TEXT_SECONDARY = "rgba(139,154,181,0.85)";
-export const BG_TOOLTIP = "rgba(15,23,42,0.95)";
-export const GRID_COLOR = "rgba(255,255,255,0.06)";
+// Match CSS variables in src/app/globals.css (Chart.js canvas needs real hex/rgba — no var())
+export const TEXT_PRIMARY = "#0f172a";
+export const TEXT_SECONDARY = "rgba(71,85,105,0.85)";
+export const BG_TOOLTIP = "rgba(255,255,255,0.98)";
+export const GRID_COLOR = "rgba(15,23,42,0.06)";
 
 export const COLORS = {
   primary:   "#3b82f6",  // blue

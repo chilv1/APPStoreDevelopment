@@ -44,7 +44,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #080c14 0%, #0d1728 50%, #080c14 100%)",
+      background: "linear-gradient(135deg, #f5f7fa 0%, #e9eef5 50%, #f5f7fa 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -77,10 +77,10 @@ export default function LoginPage() {
           }}>
             <span style={{ fontSize: 28 }}>📡</span>
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
             {t.login.appTitle}
           </h1>
-          <p style={{ fontSize: 14, color: "#8b9ab5" }}>
+          <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
             {t.login.tagline}
           </p>
           <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
@@ -90,19 +90,19 @@ export default function LoginPage() {
 
         {/* Login Card */}
         <div style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(15,23,42,0.04)",
+          border: "1px solid rgba(15,23,42,0.08)",
           borderRadius: 20,
           padding: 32,
           backdropFilter: "blur(12px)",
         }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f0f4ff", marginBottom: 24 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 24 }}>
             {t.login.title}
           </h2>
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#8b9ab5", marginBottom: 8 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>
                 {t.login.email}
               </label>
               <input
@@ -117,7 +117,7 @@ export default function LoginPage() {
             </div>
 
             <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#8b9ab5", marginBottom: 8 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>
                 {t.login.password}
               </label>
               <input
@@ -163,7 +163,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo accounts */}
-          <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(15,23,42,0.06)" }}>
             <p style={{ fontSize: 12, color: "#4a5568", marginBottom: 12, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               {t.login.demoTitle}
             </p>
@@ -173,14 +173,14 @@ export default function LoginPage() {
                   key={acc.email}
                   onClick={() => { setEmail(acc.email); setPassword("123456"); }}
                   style={{
-                    background: "rgba(255,255,255,0.03)",
+                    background: "rgba(15,23,42,0.03)",
                     border: `1px solid ${acc.color}30`,
                     borderRadius: 8, padding: "8px 10px",
                     cursor: "pointer", textAlign: "left",
                     transition: "all 0.15s ease",
                   }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = `${acc.color}15`; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(15,23,42,0.03)"; }}
                 >
                   <div style={{ fontSize: 11, fontWeight: 600, color: acc.color, marginBottom: 2 }}>
                     {acc.role}

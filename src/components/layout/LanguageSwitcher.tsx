@@ -9,7 +9,7 @@ export default function LanguageSwitcher() {
   return (
     <div style={{
       display: "flex", gap: 4,
-      background: "rgba(255,255,255,0.04)",
+      background: "rgba(15,23,42,0.04)",
       border: "1px solid var(--border)",
       borderRadius: 8,
       padding: 3,

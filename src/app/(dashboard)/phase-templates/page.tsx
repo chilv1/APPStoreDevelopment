@@ -186,7 +186,7 @@ export default function PhaseTemplatesPage() {
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1280, margin: "0 auto", paddingBottom: 100 }}>
       <div style={{ marginBottom: 18 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f0f4ff", marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>
           {t.phaseTemplatesPage.title}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
@@ -219,7 +219,7 @@ export default function PhaseTemplatesPage() {
           display: "grid",
           gridTemplateColumns: "40px 1fr 90px 180px 290px 90px 36px",
           gap: 10, padding: "8px 16px",
-          background: "rgba(255,255,255,0.03)",
+          background: "rgba(15,23,42,0.03)",
           borderBottom: "1px solid var(--border)",
           fontSize: 10, fontWeight: 700,
           color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".5px",
@@ -244,7 +244,7 @@ export default function PhaseTemplatesPage() {
                 display: "grid",
                 gridTemplateColumns: "40px 1fr 90px 180px 290px 90px 36px",
                 gap: 10, padding: "10px 16px",
-                borderBottom: isExpanded ? "none" : "1px solid rgba(255,255,255,0.04)",
+                borderBottom: isExpanded ? "none" : "1px solid rgba(15,23,42,0.04)",
                 alignItems: "center",
                 transition: "background .15s",
               }}>
@@ -335,7 +335,7 @@ export default function PhaseTemplatesPage() {
                     style={{
                       padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                       cursor: "pointer",
-                      background: isExpanded ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
+                      background: isExpanded ? "rgba(59,130,246,0.2)" : "rgba(15,23,42,0.05)",
                       border: `1px solid ${isExpanded ? "rgba(59,130,246,0.4)" : "var(--border)"}`,
                       color: isExpanded ? "#93c5fd" : "var(--text-secondary)",
                     }}
@@ -398,7 +398,7 @@ export default function PhaseTemplatesPage() {
                       onClick={() => addTask(tpl.id)}
                       style={{
                         padding: "5px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer",
-                        background: "rgba(255,255,255,0.03)", border: "1px dashed var(--border)",
+                        background: "rgba(15,23,42,0.03)", border: "1px dashed var(--border)",
                         color: "var(--text-secondary)", marginTop: 4, alignSelf: "flex-start",
                       }}
                     >
@@ -495,7 +495,7 @@ export default function PhaseTemplatesPage() {
             <div style={{ fontSize: 20, marginBottom: 8 }}>🗑️ Eliminar fase</div>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12, lineHeight: 1.6 }}>
               Está a punto de eliminar{" "}
-              <strong style={{ color: "#f0f4ff" }}>F.{deleteTarget.template.order} {deleteTarget.template.name}</strong>{" "}
+              <strong style={{ color: "var(--text-primary)" }}>F.{deleteTarget.template.order} {deleteTarget.template.name}</strong>{" "}
               de la plantilla y de{" "}
               <strong style={{ color: "#ef4444" }}>
                 {deleteTarget.impact.storeCount} stores
@@ -506,7 +506,7 @@ export default function PhaseTemplatesPage() {
               </strong>.
               <br /><br />
               Esta acción es <strong style={{ color: "#ef4444" }}>irreversible</strong>. Escriba{" "}
-              <code style={{ background: "rgba(255,255,255,0.1)", padding: "1px 6px", borderRadius: 4, color: "#fca5a5" }}>
+              <code style={{ background: "rgba(15,23,42,0.1)", padding: "1px 6px", borderRadius: 4, color: "#fca5a5" }}>
                 XÁC NHẬN
               </code>{" "}
               para confirmar.

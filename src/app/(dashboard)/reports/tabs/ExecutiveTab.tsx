@@ -80,7 +80,7 @@ export default function ExecutiveTab() {
           download
           style={{
             padding: "8px 16px", borderRadius: 8,
-            background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)",
+            background: "rgba(15,23,42,0.05)", border: "1px solid var(--border)",
             color: "var(--text-secondary)", fontSize: 12, fontWeight: 600,
             textDecoration: "none",
           }}
