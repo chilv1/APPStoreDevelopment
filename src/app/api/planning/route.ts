@@ -81,6 +81,8 @@ export async function GET(request: Request) {
         constraintType: (ph as any).constraintType ?? null,
         constraintDate: (ph as any).constraintDate ?? null,
         deadline: (ph as any).deadline ?? null,
+        gateRequired: (ph as any).gateRequired ?? false,
+        gateApprovedAt: (ph as any).gateApprovedAt ?? null,
         pct,
         progressPct: (ph as any).progressPct ?? 0,
         taskCount: total,

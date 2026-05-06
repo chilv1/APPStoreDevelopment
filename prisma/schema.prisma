@@ -57,6 +57,8 @@ model User {
   resources      Resource[]      @relation("ResourceUser")
   timeEntries    TimeEntry[]     @relation("TimeEntryUser")
   approvals      TimeEntry[]     @relation("TimeEntryApprover")
+  phaseGates     Phase[]         @relation("PhaseGateApprover")
+  reportSchedules ReportSchedule[] @relation("ReportScheduleCreator")
 }
 
 model StoreProject {
@@ -86,6 +88,7 @@ model StoreProject {
   baselines        PhaseBaseline[]
   scheduleSnapshots ScheduleSnapshot[]
   resources        Resource[]
+  reportSchedules  ReportSchedule[]
 }
 
 model Phase {
@@ -117,6 +120,14 @@ model Phase {
   // resource assignments). Computed totalCost = fixedCost + Σ assignment.cost.
   fixedCost          Float   @default(0)
   fixedCostAccrual   String  @default("PRORATED") // START | END | PRORATED
+
+  // Stream 8 P3 — stage-gate workflow. Phase cannot transition to
+  // COMPLETED unless gate is approved. `gateRequired` defaults true so
+  // existing phases keep current behavior (admin approval = gate pass).
+  gateRequired   Boolean   @default(false)
+  gateApprovedAt DateTime?
+  gateApproverId String?
+  gateApprover   User?     @relation("PhaseGateApprover", fields: [gateApproverId], references: [id])
 
   storeId String
   store   StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -195,6 +206,11 @@ model PhaseBaselineSnapshot {
   phaseNumber  Int                                            // 1..11
   plannedStart DateTime?
   plannedEnd   DateTime?
+  // Stream 3 P3 — time-phased baseline (cost + work + progress at snapshot time).
+  fixedCost    Float     @default(0)
+  workHours    Float     @default(0)
+  totalCost    Float     @default(0)
+  progressPct  Int       @default(0)
 
   baselineId String
   baseline   PhaseBaseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
@@ -252,6 +268,26 @@ model Issue {
   store      StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
   reporterId String?
   reporter   User?        @relation("IssueReporter", fields: [reporterId], references: [id])
+}
+
+// Stream 7 P3 — Scheduled report digests.
+// Captures who wants which report on what cron + recipients. The cron
+// runner + email transport land in P4; v1 stores config + lets users
+// trigger a "run now" preview that returns the report payload.
+model ReportSchedule {
+  id          String   @id @default(cuid())
+  name        String
+  reportKind  String   @default("WEEKLY_SUMMARY") // WEEKLY_SUMMARY | COST_VARIANCE | RISK_DIGEST
+  cron        String   // "0 9 * * 1" = Mon 9:00
+  recipients  String   // JSON-stringified array of email addresses
+  storeId     String?
+  enabled     Boolean  @default(true)
+  lastRunAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  creator     User?    @relation("ReportScheduleCreator", fields: [createdBy], references: [id])
+  store       StoreProject? @relation(fields: [storeId], references: [id], onDelete: SetNull)
 }
 
 // Stream 5 P1 — Timesheet entries.

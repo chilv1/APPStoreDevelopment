@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { scheduleStore } from "@/lib/scheduler/db-bridge";
-import { analyzeRisks, buildWeeklySummary } from "@/lib/ai/risk-analyzer";
+import { analyzeRisks, buildWeeklySummaryAsync } from "@/lib/ai/risk-analyzer";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -26,10 +26,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
   const result = await scheduleStore(prisma, id);
   const risks = analyzeRisks(result, phases);
-  const summary = buildWeeklySummary(result, phases, risks);
+  const summary = await buildWeeklySummaryAsync(result, phases, risks);
 
   return NextResponse.json({
-    summary,
+    summary: summary.text,
+    summarySource: summary.source,
     risks,
     metrics: {
       criticalPathLength: result.criticalPath.length,

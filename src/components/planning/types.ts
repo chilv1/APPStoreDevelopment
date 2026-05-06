@@ -20,6 +20,8 @@ export interface PlanningPhase {
   constraintType: ConstraintType;
   constraintDate: string | null;
   deadline: string | null;
+  gateRequired: boolean;
+  gateApprovedAt: string | null;
   pct: number;
   progressPct: number;
   taskCount: number;

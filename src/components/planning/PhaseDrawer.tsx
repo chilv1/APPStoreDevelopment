@@ -379,6 +379,12 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
             </div>
           </section>
 
+          {/* Stage-gate section — Stream 8 P3 */}
+          <section style={{ marginTop: 22 }}>
+            <SectionLabel>🚦 Stage-gate</SectionLabel>
+            <PhaseGateControl phase={phase} onMutate={onMutate} />
+          </section>
+
           {/* Time log section */}
           <section style={{ marginTop: 22 }}>
             <SectionLabel>⏱️ Time log</SectionLabel>
@@ -387,6 +393,64 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
         </div>
       </aside>
     </>
+  );
+}
+
+// ── Stage-gate control (Stream 8 P3) ─────────────────────────────────────
+
+function PhaseGateControl({ phase, onMutate }: { phase: PlanningPhase; onMutate: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const approved = !!phase.gateApprovedAt;
+
+  const toggleRequired = async (value: boolean) => {
+    setBusy(true);
+    try {
+      await fetch(`/api/phases/${phase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gateRequired: value }),
+      });
+      onMutate();
+    } finally { setBusy(false); }
+  };
+
+  const act = async (action: "approve" | "reset") => {
+    setBusy(true);
+    try {
+      await fetch(`/api/phases/${phase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gateAction: action }),
+      });
+      onMutate();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="task-item" style={{ flexDirection: "column", padding: 10, gap: 8, alignItems: "stretch" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)" }}>
+        <input type="checkbox" checked={phase.gateRequired} disabled={busy} onChange={(e) => toggleRequired(e.target.checked)} />
+        <span>Require gate approval before COMPLETED</span>
+      </label>
+      {phase.gateRequired && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="badge" style={{
+            background: approved ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+            color:      approved ? "#047857" : "#92400e",
+            borderColor: "transparent",
+          }}>
+            {approved ? "✓ Gate approved" : "⏳ Pending gate approval"}
+          </span>
+          {approved
+            ? <button onClick={() => act("reset")} disabled={busy} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 11, cursor: busy ? "not-allowed" : "pointer" }}>Reset</button>
+            : <button onClick={() => act("approve")} disabled={busy} className="gradient-btn" style={{ padding: "4px 10px", borderRadius: 4, border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: busy ? "not-allowed" : "pointer" }}>✓ Approve gate</button>
+          }
+        </div>
+      )}
+      {phase.gateApprovedAt && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Approved {new Date(phase.gateApprovedAt).toLocaleString()}</div>
+      )}
+    </div>
   );
 }
 

@@ -76,6 +76,9 @@ export default function CostView({ storeId }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Stream 6 P3 — EVM trend chart */}
+      <EVMTrendChart storeId={storeId} />
+
       {/* Top KPIs — totals + variance */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
         <StatCard label="Total Cost" value={fmt(totals.totalCost)} sub={`Fixed ${fmt(totals.fixedCost)} · Work ${fmt(totals.workCost)}`} />
@@ -169,6 +172,76 @@ export default function CostView({ storeId }: Props) {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ── EVM trend chart (Stream 6 P3) ──────────────────────────────────────────
+
+function EVMTrendChart({ storeId }: { storeId: string }) {
+  const [points, setPoints] = useState<{ date: string; bcws: number; bcwp: number; acwp: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/stores/${storeId}/cost/trend`)
+      .then((r) => r.ok ? r.json() : { points: [] })
+      .then((d) => { setPoints(d.points ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [storeId]);
+
+  if (loading) return <div className="glass" style={{ borderRadius: 14, padding: 30, textAlign: "center", color: "var(--text-secondary)" }}>Loading trend…</div>;
+  if (points.length < 2) return null;
+
+  const W = 1100, H = 220, PAD = { l: 60, r: 20, t: 16, b: 28 };
+  const innerW = W - PAD.l - PAD.r;
+  const innerH = H - PAD.t - PAD.b;
+  const max = Math.max(1, ...points.flatMap((p) => [p.bcws, p.bcwp, p.acwp]));
+  const xAt = (i: number) => PAD.l + (i / Math.max(1, points.length - 1)) * innerW;
+  const yAt = (v: number) => PAD.t + innerH - (v / max) * innerH;
+  const series: [string, string, "bcws" | "bcwp" | "acwp"][] = [
+    ["BCWS",  "#3b82f6", "bcws"],
+    ["BCWP",  "#10b981", "bcwp"],
+    ["ACWP",  "#ef4444", "acwp"],
+  ];
+
+  // Today line.
+  const todayIdx = points.findIndex((p) => new Date(p.date).getTime() >= Date.now());
+
+  return (
+    <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>📈 EVM trend</h3>
+        <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--text-secondary)" }}>
+          {series.map(([label, color]) => (
+            <span key={label}><span style={{ display: "inline-block", width: 10, height: 10, background: color, borderRadius: 2, marginRight: 4 }} />{label}</span>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: 12 }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+          {/* y-axis grid */}
+          {[0, 0.25, 0.5, 0.75, 1].map((g) => {
+            const y = PAD.t + innerH - g * innerH;
+            return <g key={g}>
+              <line x1={PAD.l} x2={PAD.l + innerW} y1={y} y2={y} stroke="rgba(15,23,42,0.06)" strokeDasharray="2,4" />
+              <text x={PAD.l - 6} y={y + 3} textAnchor="end" fontSize="9" fill="var(--text-muted)">{Math.round(max * g).toLocaleString()}</text>
+            </g>;
+          })}
+          {/* Today line */}
+          {todayIdx > 0 && (
+            <line x1={xAt(todayIdx)} x2={xAt(todayIdx)} y1={PAD.t} y2={PAD.t + innerH} stroke="#ef4444" strokeWidth="1" strokeDasharray="3,3" />
+          )}
+          {/* Series */}
+          {series.map(([, color, key]) => {
+            const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(1)} ${yAt(p[key]).toFixed(1)}`).join(" ");
+            return <path key={key} d={path} fill="none" stroke={color} strokeWidth="2" />;
+          })}
+          {/* x-axis labels */}
+          {points.length > 0 && [0, Math.floor(points.length / 2), points.length - 1].map((i) => (
+            <text key={i} x={xAt(i)} y={H - 6} textAnchor="middle" fontSize="9" fill="var(--text-muted)">{points[i].date}</text>
+          ))}
+        </svg>
       </div>
     </div>
   );

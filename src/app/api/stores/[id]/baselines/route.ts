@@ -43,11 +43,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: `Tối đa ${MAX_BASELINES_PER_STORE} mốc/cửa hàng. Hãy xóa mốc cũ trước.` }, { status: 400 });
   }
 
-  // Snapshot phases now
+  // Snapshot phases now (Stream 3 P3: capture cost + work + progress too).
   const phases = await prisma.phase.findMany({
     where: { storeId: id },
     orderBy: { phaseNumber: "asc" },
-    select: { phaseNumber: true, plannedStart: true, plannedEnd: true },
+    select: {
+      phaseNumber: true, plannedStart: true, plannedEnd: true,
+      fixedCost: true, progressPct: true,
+      assignments: { select: { workHours: true, cost: true } },
+    },
   });
   if (phases.length === 0) return NextResponse.json({ error: "Cửa hàng không có giai đoạn nào" }, { status: 400 });
 
@@ -62,11 +66,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       name,
       createdBy: dbUser?.id ?? null,
       snapshots: {
-        create: phases.map(p => ({
-          phaseNumber:  p.phaseNumber,
-          plannedStart: p.plannedStart,
-          plannedEnd:   p.plannedEnd,
-        })),
+        create: phases.map(p => {
+          const workHours = p.assignments.reduce((s, a) => s + a.workHours, 0);
+          const totalCost = p.fixedCost + p.assignments.reduce((s, a) => s + a.cost, 0);
+          return {
+            phaseNumber:  p.phaseNumber,
+            plannedStart: p.plannedStart,
+            plannedEnd:   p.plannedEnd,
+            fixedCost:    p.fixedCost,
+            workHours,
+            totalCost,
+            progressPct:  p.progressPct,
+          };
+        }),
       },
     },
     include: {

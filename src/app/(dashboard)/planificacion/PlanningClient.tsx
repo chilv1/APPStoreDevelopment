@@ -11,6 +11,8 @@ import CostView from "@/components/planning/CostView";
 import PortfolioOverview from "@/components/planning/PortfolioOverview";
 import SnapshotsPanel from "@/components/planning/SnapshotsPanel";
 import AIPanel from "@/components/planning/AIPanel";
+import ApprovalsPanel from "@/components/planning/ApprovalsPanel";
+import ReportSchedulesPanel from "@/components/planning/ReportSchedulesPanel";
 import PhaseDrawer from "@/components/planning/PhaseDrawer";
 import type { PlanningStore, ScheduleResp, View } from "@/components/planning/types";
 
@@ -28,6 +30,8 @@ export default function PlanningClient() {
   const [recomputedAt, setRecomputedAt] = useState<number | null>(null);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [approvalsOpen, setApprovalsOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   const refreshStores = () => {
     fetch("/api/planning?status=all&limit=200")
@@ -158,6 +162,18 @@ export default function PlanningClient() {
               {t.planning.finishLabel}: <strong style={{ color: "var(--text-primary)" }}>{new Date(schedule.projectFinish).toLocaleDateString()}</strong>
             </span>
             <button
+              onClick={() => setApprovalsOpen(true)}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.05)", color: "#92400e", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              📥 Approvals
+            </button>
+            <button
+              onClick={() => setReportsOpen(true)}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              📧 Reports
+            </button>
+            <button
               onClick={() => setAiOpen(true)}
               disabled={!storeId}
               style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.05)", color: "#1d4ed8", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
@@ -251,6 +267,16 @@ export default function PlanningClient() {
       {/* AI risks panel */}
       {aiOpen && activeStore && (
         <AIPanel storeId={activeStore.id} onClose={() => setAiOpen(false)} onSelectPhase={(id) => setSelectedPhaseId(id)} />
+      )}
+
+      {/* Approvals panel — global, no store needed */}
+      {approvalsOpen && (
+        <ApprovalsPanel onClose={() => setApprovalsOpen(false)} />
+      )}
+
+      {/* Reports panel — global */}
+      {reportsOpen && (
+        <ReportSchedulesPanel onClose={() => setReportsOpen(false)} />
       )}
     </div>
   );

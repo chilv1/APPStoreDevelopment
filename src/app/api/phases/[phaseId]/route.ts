@@ -96,6 +96,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
     data.fixedCostAccrual = body.fixedCostAccrual;
   }
 
+  // Stream 8 P3 — stage-gate enforcement.
+  if (body.gateRequired !== undefined) data.gateRequired = !!body.gateRequired;
+  if (body.gateAction === "approve" && ["ADMIN", "AREA_MANAGER"].includes(user.role)) {
+    const me = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });
+    data.gateApprovedAt = new Date();
+    data.gateApproverId = me?.id ?? null;
+  }
+  if (body.gateAction === "reset" && ["ADMIN", "AREA_MANAGER"].includes(user.role)) {
+    data.gateApprovedAt = null;
+    data.gateApproverId = null;
+  }
+  // If transitioning to COMPLETED, ensure gate is approved when required.
+  if (data.status === "COMPLETED") {
+    const cur = await prisma.phase.findUnique({ where: { id: phaseId }, select: { gateRequired: true, gateApprovedAt: true } });
+    if (cur?.gateRequired && !cur.gateApprovedAt && data.gateApprovedAt === undefined) {
+      return NextResponse.json({ error: "Stage-gate not approved for this phase yet" }, { status: 400 });
+    }
+  }
+
   // Cross-validate dates: fetch existing values when only one date is in the request
   const onlyStart = data.plannedStart !== undefined && data.plannedEnd === undefined;
   const onlyEnd   = data.plannedEnd   !== undefined && data.plannedStart === undefined;

@@ -140,6 +140,53 @@ export function analyzeRisks(result: ScheduleResult, phases: PhaseLite[]): Sched
   return risks;
 }
 
+/**
+ * Build narrative — when ANTHROPIC_API_KEY is set, calls the API for a
+ * richer summary; otherwise uses the deterministic generator below.
+ * The fallback is always safe: never throws, never blocks on network.
+ */
+export async function buildWeeklySummaryAsync(result: ScheduleResult, phases: PhaseLite[], risks: ScheduleRisk[]): Promise<{ text: string; source: "deterministic" | "llm" }> {
+  const deterministic = buildWeeklySummary(result, phases, risks);
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { text: deterministic, source: "deterministic" };
+
+  try {
+    const facts = {
+      asOf: new Date().toISOString().slice(0, 10),
+      phaseTotal: phases.length,
+      completed: phases.filter((p) => p.status === "COMPLETED").length,
+      inProgress: phases.filter((p) => p.status === "IN_PROGRESS").length,
+      blocked: phases.filter((p) => p.status === "BLOCKED").length,
+      criticalPathLength: result.criticalPath.length,
+      durationDays: result.durationDays,
+      projectFinish: result.projectFinish?.toISOString().slice(0, 10),
+      errorCount: result.errors.length,
+      criticalRisks: risks.filter((r) => r.severity === "CRITICAL").map((r) => r.message),
+      highRisks: risks.filter((r) => r.severity === "HIGH").map((r) => r.message),
+    };
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 400,
+        messages: [{
+          role: "user",
+          content: `You are a project status writer for a telecom store-rollout project manager. Write a 4-6 sentence weekly status update in plain prose (no bullets, no markdown). Reference the facts below precisely; cite numbers; mention risks by name when severity is CRITICAL or HIGH. Tone: factual, slightly urgent when behind, calm when on track.\n\nFACTS:\n${JSON.stringify(facts, null, 2)}`,
+        }],
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { text: deterministic, source: "deterministic" };
+    const data = await res.json();
+    const text = data?.content?.[0]?.text?.trim();
+    if (!text || typeof text !== "string") return { text: deterministic, source: "deterministic" };
+    return { text, source: "llm" };
+  } catch {
+    return { text: deterministic, source: "deterministic" };
+  }
+}
+
 export function buildWeeklySummary(result: ScheduleResult, phases: PhaseLite[], risks: ScheduleRisk[]): string {
   const today = new Date();
   const finish = result.projectFinish ? new Date(result.projectFinish) : null;

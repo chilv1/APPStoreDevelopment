@@ -6,6 +6,7 @@ type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 interface Risk { code: string; severity: Severity; taskId?: string; taskName?: string; message: string; suggestion?: string }
 interface Resp {
   summary: string;
+  summarySource?: "deterministic" | "llm";
   risks: Risk[];
   metrics: { criticalPathLength: number; durationDays: number; projectFinish: string; taskCount: number; depCount: number; engineMs: number };
 }
@@ -48,6 +49,16 @@ export default function AIPanel({ storeId, onClose, onSelectPhase }: Props) {
           {data && (
             <>
               <div style={{ background: "rgba(59,130,246,0.05)", borderLeft: "3px solid #3b82f6", padding: "12px 14px", borderRadius: 6, fontSize: 13, color: "var(--text-primary)", lineHeight: 1.55 }}>
+                <div style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span className="badge" style={{
+                    background: data.summarySource === "llm" ? "rgba(139,92,246,0.1)" : "rgba(15,23,42,0.05)",
+                    color:      data.summarySource === "llm" ? "#7c3aed" : "var(--text-muted)",
+                    borderColor: "transparent",
+                    fontSize: 9,
+                  }}>
+                    {data.summarySource === "llm" ? "✨ LLM" : "📐 Rule-based"}
+                  </span>
+                </div>
                 {data.summary}
               </div>
 
