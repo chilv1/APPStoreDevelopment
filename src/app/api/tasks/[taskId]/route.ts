@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { cascadeDependents } from "@/lib/phase-scheduler";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ taskId: string }> }) {
   const session = await auth();
@@ -110,6 +111,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
     }
     if (Object.keys(phaseUpdate).length > 0) {
       await prisma.phase.update({ where: { id: currentPhase.id }, data: phaseUpdate });
+      // If actuals were set/cleared, cascade to downstream phases so the
+      // Gantt right-side bars shift by the slip amount.
+      if (phaseUpdate.actualStart !== undefined || phaseUpdate.actualEnd !== undefined) {
+        await cascadeDependents(currentPhase.id, prisma as any);
+      }
     }
   }
 

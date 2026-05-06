@@ -167,6 +167,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
 
     let cascadedCount = 0;
     const datesChanged = data.plannedStart !== undefined || data.plannedEnd !== undefined;
+    const actualsChanged = data.actualStart !== undefined || data.actualEnd !== undefined;
     const depSchChanged = data.dependencyType !== undefined || data.lagDays !== undefined || data.dependsOnId !== undefined;
 
     if (depSchChanged) {
@@ -196,7 +197,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
         }
       }
       cascadedCount = await cascadeDependents(phaseId, prisma as any);
-    } else if (datesChanged) {
+    } else if (datesChanged || actualsChanged) {
+      // Cascade also on actualStart/actualEnd changes — slips on actuals
+      // push downstream phases by the same amount while preserving their
+      // planned durations.
       cascadedCount = await cascadeDependents(phaseId, prisma as any);
     }
 

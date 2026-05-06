@@ -121,6 +121,8 @@ export async function cascadeDependents(
       lagDays: true,
       plannedStart: true,
       plannedEnd: true,
+      actualStart: true,
+      actualEnd: true,
     },
   });
 
@@ -140,13 +142,25 @@ export async function cascadeDependents(
   const visited = new Set<string>();
   const queue: string[] = [changedPhaseId];
 
+  // Effective start/end: prefer ACTUAL when set; otherwise use planned.
+  // This way, when phase X's actualEnd slips beyond plannedEnd, downstream
+  // phases automatically push out by the same amount while preserving their
+  // planned durations.
+  const effStart = (p: { actualStart: Date | null; plannedStart: Date | null }): Date | null =>
+    p.actualStart ?? p.plannedStart;
+  const effEnd   = (p: { actualEnd:   Date | null; plannedEnd:   Date | null }): Date | null =>
+    p.actualEnd   ?? p.plannedEnd;
+
   while (queue.length > 0) {
     const currentId = queue.shift()!;
     if (visited.has(currentId)) continue;
     visited.add(currentId);
 
     const current = phaseById.get(currentId);
-    if (!current || !current.plannedStart || !current.plannedEnd) continue;
+    if (!current) continue;
+    const cStart = effStart(current);
+    const cEnd   = effEnd(current);
+    if (!cStart || !cEnd) continue;
 
     const deps = dependentsOf.get(currentId) ?? [];
     for (const dep of deps) {
@@ -154,7 +168,7 @@ export async function cascadeDependents(
 
       const lagMs = (dep.lagDays ?? 0) * DAY_MS;
 
-      // Preserve duration
+      // Preserve duration of the dependent (planned duration is the baseline)
       const oldDurMs =
         dep.plannedStart && dep.plannedEnd
           ? new Date(dep.plannedEnd).getTime() - new Date(dep.plannedStart).getTime()
@@ -162,23 +176,36 @@ export async function cascadeDependents(
 
       let newStartMs: number;
       if (dep.dependencyType === "SS") {
-        newStartMs = new Date(current.plannedStart).getTime() + lagMs;
+        newStartMs = cStart.getTime() + lagMs;
       } else if (dep.dependencyType === "FF") {
-        newStartMs = new Date(current.plannedEnd).getTime() + lagMs - oldDurMs;
+        newStartMs = cEnd.getTime() + lagMs - oldDurMs;
       } else if (dep.dependencyType === "SF") {
-        newStartMs = new Date(current.plannedStart).getTime() + lagMs - oldDurMs;
+        newStartMs = cStart.getTime() + lagMs - oldDurMs;
       } else {
         // FS (default)
-        newStartMs = new Date(current.plannedEnd).getTime() + lagMs;
+        newStartMs = cEnd.getTime() + lagMs;
       }
 
       const newStart = new Date(newStartMs);
       const newEnd = new Date(newStartMs + oldDurMs);
 
+      // Always update planned dates so the new plan reflects the slip end-to-end.
+      // Actuals (historical fact) are NOT touched — they still drive the bar
+      // position for completed/in-progress phases.
       updates.push({ id: dep.id, plannedStart: newStart, plannedEnd: newEnd });
 
-      // Update phaseById so downstream cascades use updated dates
-      phaseById.set(dep.id, { ...dep, plannedStart: newStart, plannedEnd: newEnd });
+      // For downstream cascade, walk using the NEWLY planned end as the
+      // basis — not the stale actualEnd. This way slips propagate forward
+      // even past phases that finished early in the original plan.
+      phaseById.set(dep.id, {
+        ...dep,
+        plannedStart: newStart,
+        plannedEnd: newEnd,
+        // Hide actuals for the downstream walk — keep DB row's actuals intact,
+        // but successors should align to the new plan, not the old reality.
+        actualStart: null,
+        actualEnd: null,
+      });
 
       queue.push(dep.id);
     }
