@@ -113,6 +113,11 @@ model Phase {
   // Soft target. Engine emits a DEADLINE_MISSED warning if finish exceeds it.
   deadline       DateTime?
 
+  // Stream 6 P1 — cost tracking. fixedCost is direct (not derived from
+  // resource assignments). Computed totalCost = fixedCost + Σ assignment.cost.
+  fixedCost          Float   @default(0)
+  fixedCostAccrual   String  @default("PRORATED") // START | END | PRORATED
+
   storeId String
   store   StoreProject @relation(fields: [storeId], references: [id], onDelete: Cascade)
   tasks   Task[]

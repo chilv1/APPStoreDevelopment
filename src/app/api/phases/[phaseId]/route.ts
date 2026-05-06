@@ -91,6 +91,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   }
   if (body.constraintDate !== undefined) data.constraintDate = parseDate(body.constraintDate);
   if (body.deadline       !== undefined) data.deadline       = parseDate(body.deadline);
+  if (body.fixedCost      !== undefined) data.fixedCost      = Math.max(0, Number(body.fixedCost) || 0);
+  if (body.fixedCostAccrual !== undefined && ["START", "END", "PRORATED"].includes(body.fixedCostAccrual)) {
+    data.fixedCostAccrual = body.fixedCostAccrual;
+  }
 
   // Cross-validate dates: fetch existing values when only one date is in the request
   const onlyStart = data.plannedStart !== undefined && data.plannedEnd === undefined;

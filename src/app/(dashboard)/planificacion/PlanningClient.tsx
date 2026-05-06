@@ -7,10 +7,13 @@ import GanttView from "@/components/planning/GanttView";
 import ResourcesView from "@/components/planning/ResourcesView";
 import CalendarView from "@/components/planning/CalendarView";
 import VarianceView from "@/components/planning/VarianceView";
+import CostView from "@/components/planning/CostView";
+import SnapshotsPanel from "@/components/planning/SnapshotsPanel";
+import AIPanel from "@/components/planning/AIPanel";
 import PhaseDrawer from "@/components/planning/PhaseDrawer";
 import type { PlanningStore, ScheduleResp, View } from "@/components/planning/types";
 
-const VIEWS: View[] = ["wbs", "gantt", "variance", "resources", "calendar"];
+const VIEWS: View[] = ["wbs", "gantt", "variance", "cost", "resources", "calendar"];
 
 export default function PlanningClient() {
   const t = useT();
@@ -22,6 +25,8 @@ export default function PlanningClient() {
   const [loading, setLoading] = useState(true);
   const [recomputing, setRecomputing] = useState(false);
   const [recomputedAt, setRecomputedAt] = useState<number | null>(null);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const refreshStores = () => {
     fetch("/api/planning?status=all&limit=200")
@@ -111,10 +116,11 @@ export default function PlanningClient() {
               wbs: t.planning.viewWBS,
               gantt: t.planning.viewGantt,
               variance: "Variance",
+              cost: "Cost",
               resources: t.planning.viewResources,
               calendar: t.planning.viewCalendar,
             };
-            const icons: Record<View, string> = { wbs: "🧱", gantt: "📊", variance: "📈", resources: "👥", calendar: "📅" };
+            const icons: Record<View, string> = { wbs: "🧱", gantt: "📊", variance: "📈", cost: "💰", resources: "👥", calendar: "📅" };
             const active = view === v;
             return (
               <button
@@ -149,6 +155,20 @@ export default function PlanningClient() {
             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               {t.planning.finishLabel}: <strong style={{ color: "var(--text-primary)" }}>{new Date(schedule.projectFinish).toLocaleDateString()}</strong>
             </span>
+            <button
+              onClick={() => setAiOpen(true)}
+              disabled={!storeId}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.05)", color: "#1d4ed8", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
+            >
+              🤖 AI risks
+            </button>
+            <button
+              onClick={() => setSnapshotsOpen(true)}
+              disabled={!storeId}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
+            >
+              📸 Snapshots
+            </button>
             <button
               className="gradient-btn"
               onClick={handleRecompute}
@@ -189,6 +209,9 @@ export default function PlanningClient() {
       {activeStore && view === "variance" && (
         <VarianceView storeId={activeStore.id} />
       )}
+      {activeStore && view === "cost" && (
+        <CostView storeId={activeStore.id} />
+      )}
       {activeStore && view === "resources" && (
         <ResourcesView storeId={activeStore.id} />
       )}
@@ -209,6 +232,16 @@ export default function PlanningClient() {
         onClose={() => setSelectedPhaseId(null)}
         onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
       />
+
+      {/* Snapshots panel */}
+      {snapshotsOpen && activeStore && (
+        <SnapshotsPanel storeId={activeStore.id} onClose={() => setSnapshotsOpen(false)} />
+      )}
+
+      {/* AI risks panel */}
+      {aiOpen && activeStore && (
+        <AIPanel storeId={activeStore.id} onClose={() => setAiOpen(false)} onSelectPhase={(id) => setSelectedPhaseId(id)} />
+      )}
     </div>
   );
 }
