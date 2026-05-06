@@ -8,6 +8,7 @@ interface PlanningAssignee { id: string; name: string; role: string }
 
 interface Props {
   stores: PlanningStore[];
+  users: { id: string; name: string; role: string }[];
   selectedPhaseId: string | null;
   onSelectPhase: (phaseId: string | null, storeId: string | null) => void;
   onMutate: () => void;
@@ -86,6 +87,7 @@ interface PhaseCoord {
 
 export default function MasterGanttView({
   stores,
+  users,
   selectedPhaseId,
   onSelectPhase,
   onMutate,
@@ -258,6 +260,18 @@ export default function MasterGanttView({
     const a = leftRef.current; const b = rightRef.current;
     if (!a || !b) return;
     if (a.scrollTop !== b.scrollTop) a.scrollTop = b.scrollTop;
+  };
+
+  // ── Phase-level resource assignment (bulk-update tasks) ──────────────────
+  const handleAssignPhase = async (phaseId: string, userId: string | null) => {
+    try {
+      const res = await fetch(`/api/phases/${phaseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeId: userId }),
+      });
+      if (res.ok) onMutate();
+    } catch {}
   };
 
   // ── Drag handling (PATCH /api/phases/:id) ────────────────────────────────
@@ -520,11 +534,31 @@ export default function MasterGanttView({
                 <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedStart)}</div>
                 <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedEnd)}</div>
                 <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtPredecessor(phase, store.phases)}</div>
-                <div
-                  style={cellStyle({ color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}
-                  title={resourceText}
-                >
-                  {resourceText}
+                <div style={cellStyle({ padding: "0 4px" })} onClick={(ev) => ev.stopPropagation()}>
+                  <select
+                    value={phase.assignees?.[0]?.id ?? ""}
+                    onChange={(ev) => handleAssignPhase(phase.id, ev.target.value || null)}
+                    onClick={(ev) => ev.stopPropagation()}
+                    title={phase.assignees && phase.assignees.length > 1 ? `Múltiples: ${resourceText}` : resourceText}
+                    style={{
+                      width: "100%",
+                      border: "1px solid transparent",
+                      background: "transparent",
+                      fontSize: 11,
+                      color: "var(--text-primary)",
+                      cursor: "pointer",
+                      padding: "2px 4px",
+                      borderRadius: 4,
+                      appearance: "none",
+                    }}
+                    onMouseEnter={(ev) => { ev.currentTarget.style.borderColor = "var(--border)"; ev.currentTarget.style.background = "rgba(15,23,42,0.03)"; }}
+                    onMouseLeave={(ev) => { ev.currentTarget.style.borderColor = "transparent"; ev.currentTarget.style.background = "transparent"; }}
+                  >
+                    <option value="">— Sin asignar —</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             );

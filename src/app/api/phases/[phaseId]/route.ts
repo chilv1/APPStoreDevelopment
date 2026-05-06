@@ -136,6 +136,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   }
 
   try {
+    // Bulk-assign all tasks of this phase to a user (or unassign with null).
+    // Phase has no assigneeId field of its own; we propagate to its tasks.
+    if (body.assigneeId !== undefined) {
+      const newAssigneeId: string | null =
+        body.assigneeId === null || body.assigneeId === "" ? null : String(body.assigneeId);
+      await prisma.task.updateMany({
+        where: { phaseId },
+        data:  { assigneeId: newAssigneeId },
+      });
+    }
+
     const phase = await prisma.phase.update({
       where: { id: phaseId },
       data,

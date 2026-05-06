@@ -22,6 +22,7 @@ export default function PlanningClient() {
   const { data: session } = useSession();
   const currentUserId = (session?.user as any)?.id ?? null;
   const [stores, setStores] = useState<PlanningStore[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [view, setView] = useState<View>("gantt");
   const [schedule, setSchedule] = useState<ScheduleResp | null>(null);
@@ -55,6 +56,10 @@ export default function PlanningClient() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+    fetch("/api/users")
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => { if (!cancelled && Array.isArray(d)) setUsers(d); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -246,6 +251,7 @@ export default function PlanningClient() {
       {view === "gantt" && !loading && stores.length > 0 && (
         <MasterGanttView
           stores={stores}
+          users={users}
           selectedPhaseId={selectedPhaseId}
           onSelectPhase={(pid, sid) => {
             setSelectedPhaseId(pid);
