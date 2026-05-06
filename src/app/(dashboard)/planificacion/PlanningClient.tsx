@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/lib/i18n/context";
 import WBSGrid from "@/components/planning/WBSGrid";
 import GanttView from "@/components/planning/GanttView";
+import ResourcesView from "@/components/planning/ResourcesView";
+import CalendarView from "@/components/planning/CalendarView";
 import PhaseDrawer from "@/components/planning/PhaseDrawer";
 import type { PlanningStore, ScheduleResp, View } from "@/components/planning/types";
 
@@ -20,6 +22,13 @@ export default function PlanningClient() {
   const [recomputing, setRecomputing] = useState(false);
   const [recomputedAt, setRecomputedAt] = useState<number | null>(null);
 
+  const refreshStores = () => {
+    fetch("/api/planning?status=all&limit=200")
+      .then((r) => r.json())
+      .then((d) => setStores(d.stores ?? []))
+      .catch(() => {});
+  };
+
   // Initial load.
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +44,7 @@ export default function PlanningClient() {
     return () => { cancelled = true; };
   }, []);
 
-  // Schedule fetch when store changes.
+  // Schedule fetch when store changes or after a mutation.
   useEffect(() => {
     if (!storeId) return;
     let cancelled = false;
@@ -163,6 +172,7 @@ export default function PlanningClient() {
           schedule={schedule}
           selectedPhaseId={selectedPhaseId}
           onSelectPhase={setSelectedPhaseId}
+          onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
         />
       )}
       {activeStore && view === "gantt" && (
@@ -171,17 +181,19 @@ export default function PlanningClient() {
           schedule={schedule}
           selectedPhaseId={selectedPhaseId}
           onSelectPhase={setSelectedPhaseId}
+          onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
         />
       )}
       {activeStore && view === "resources" && (
-        <div className="glass" style={{ borderRadius: 14, padding: 60, textAlign: "center", color: "var(--text-secondary)" }}>
-          👥 {t.planning.noResources}
-        </div>
+        <ResourcesView storeId={activeStore.id} />
       )}
       {activeStore && view === "calendar" && (
-        <div className="glass" style={{ borderRadius: 14, padding: 60, textAlign: "center", color: "var(--text-secondary)" }}>
-          📅 {t.planning.noCalendar}
-        </div>
+        <CalendarView
+          store={activeStore}
+          schedule={schedule}
+          selectedPhaseId={selectedPhaseId}
+          onSelectPhase={setSelectedPhaseId}
+        />
       )}
 
       {/* Phase detail drawer */}
@@ -190,7 +202,7 @@ export default function PlanningClient() {
         store={activeStore}
         schedule={schedule}
         onClose={() => setSelectedPhaseId(null)}
-        onMutate={() => setRecomputedAt(Date.now())}
+        onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
       />
     </div>
   );

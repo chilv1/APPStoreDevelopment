@@ -2,6 +2,8 @@
 
 export type View = "wbs" | "gantt" | "resources" | "calendar";
 
+export type ConstraintType = "ASAP" | "ALAP" | "MSO" | "MFO" | "SNET" | "SNLT" | "FNET" | "FNLT" | null;
+
 export interface PlanningPhase {
   id: string;
   order: number;
@@ -15,6 +17,9 @@ export interface PlanningPhase {
   dependencyType: string;
   dependsOnId: string | null;
   lagDays: number;
+  constraintType: ConstraintType;
+  constraintDate: string | null;
+  deadline: string | null;
   pct: number;
   progressPct: number;
   taskCount: number;

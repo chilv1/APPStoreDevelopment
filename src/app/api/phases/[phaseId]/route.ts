@@ -77,6 +77,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
   if (body.name            !== undefined) data.name            = body.name;
   if (body.progressPct     !== undefined) data.progressPct     = Math.min(100, Math.max(0, Number(body.progressPct) || 0));
 
+  // Constraint + deadline (MS-Project compat)
+  const VALID_CONSTRAINTS = new Set(["ASAP", "ALAP", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT"]);
+  if (body.constraintType !== undefined) {
+    if (body.constraintType === null || body.constraintType === "") {
+      data.constraintType = null;
+      data.constraintDate = null;
+    } else if (!VALID_CONSTRAINTS.has(body.constraintType)) {
+      return NextResponse.json({ error: `Invalid constraintType ${body.constraintType}` }, { status: 400 });
+    } else {
+      data.constraintType = body.constraintType;
+    }
+  }
+  if (body.constraintDate !== undefined) data.constraintDate = parseDate(body.constraintDate);
+  if (body.deadline       !== undefined) data.deadline       = parseDate(body.deadline);
+
   // Cross-validate dates: fetch existing values when only one date is in the request
   const onlyStart = data.plannedStart !== undefined && data.plannedEnd === undefined;
   const onlyEnd   = data.plannedEnd   !== undefined && data.plannedStart === undefined;

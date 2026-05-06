@@ -40,6 +40,7 @@ export async function loadStoreSchedule(prisma: PrismaClient, storeId: string): 
         plannedStart: true, plannedEnd: true,
         actualStart: true, actualEnd: true,
         dependsOnId: true, dependencyType: true, lagDays: true,
+        constraintType: true, constraintDate: true, deadline: true,
       },
     }),
     prisma.taskDependency.findMany({
@@ -64,6 +65,9 @@ export async function loadStoreSchedule(prisma: PrismaClient, storeId: string): 
     duration: diffDays(p.plannedStart, p.plannedEnd) || 14,
     actualStart: p.actualStart ?? undefined,
     actualFinish: p.actualEnd ?? undefined,
+    constraintType: p.constraintType ? (p.constraintType as TaskInput["constraintType"]) : undefined,
+    constraintDate: p.constraintDate ?? undefined,
+    deadline: p.deadline ?? undefined,
   }));
 
   // Build dependency list — prefer TaskDependency rows.

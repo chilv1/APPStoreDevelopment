@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/context";
-import type { DepRow, DepsResp, PlanningPhase, PlanningStore, ScheduleResp } from "./types";
+import type { ConstraintType, DepRow, DepsResp, PlanningPhase, PlanningStore, ScheduleResp } from "./types";
 
 interface Props {
   phase: PlanningPhase | null;
@@ -13,6 +13,21 @@ interface Props {
 }
 
 const DEP_TYPES = ["FS", "SS", "FF", "SF"] as const;
+const CONSTRAINTS: { value: Exclude<ConstraintType, null>; label: string }[] = [
+  { value: "ASAP", label: "ASAP — As Soon As Possible" },
+  { value: "ALAP", label: "ALAP — As Late As Possible" },
+  { value: "MSO",  label: "MSO — Must Start On" },
+  { value: "MFO",  label: "MFO — Must Finish On" },
+  { value: "SNET", label: "SNET — Start No Earlier Than" },
+  { value: "SNLT", label: "SNLT — Start No Later Than" },
+  { value: "FNET", label: "FNET — Finish No Earlier Than" },
+  { value: "FNLT", label: "FNLT — Finish No Later Than" },
+];
+
+function isoDate(d: string | null | undefined): string {
+  if (!d) return "";
+  return new Date(d).toISOString().slice(0, 10);
+}
 
 export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate }: Props) {
   const t = useT();
@@ -23,6 +38,11 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
   const [newType, setNewType] = useState<"FS" | "SS" | "FF" | "SF">("FS");
   const [newLag, setNewLag] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [savingPhase, setSavingPhase] = useState(false);
+
+  // Local copy so user can edit without each keystroke firing a PATCH.
+  const [draft, setDraft] = useState<PlanningPhase | null>(phase);
+  useEffect(() => { setDraft(phase); }, [phase?.id]);
 
   useEffect(() => {
     if (!phase) { setDeps(null); return; }
@@ -35,7 +55,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
       .finally(() => setLoading(false));
   }, [phase?.id]);
 
-  if (!phase || !store) return null;
+  if (!phase || !store || !draft) return null;
 
   const task = schedule?.tasks.find((tx) => tx.id === phase.id);
   const isCritical = schedule?.criticalPath.includes(phase.id) ?? false;
@@ -45,6 +65,44 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
     if (deps?.predecessors.some((d) => d.predecessorId === p.id)) return false;
     return true;
   });
+
+  const dirty = draft && phase && (
+    draft.name !== phase.name ||
+    draft.constraintType !== phase.constraintType ||
+    draft.constraintDate !== phase.constraintDate ||
+    draft.deadline !== phase.deadline ||
+    draft.actualStart !== phase.actualStart ||
+    draft.actualEnd !== phase.actualEnd
+  );
+
+  const savePhase = async () => {
+    if (!draft) return;
+    setSavingPhase(true);
+    setError(null);
+    try {
+      const body: any = {};
+      if (draft.name !== phase.name) body.name = draft.name;
+      if (draft.constraintType !== phase.constraintType) body.constraintType = draft.constraintType;
+      if (draft.constraintDate !== phase.constraintDate) body.constraintDate = draft.constraintDate;
+      if (draft.deadline !== phase.deadline) body.deadline = draft.deadline;
+      if (draft.actualStart !== phase.actualStart) body.actualStart = draft.actualStart;
+      if (draft.actualEnd !== phase.actualEnd) body.actualEnd = draft.actualEnd;
+      const res = await fetch(`/api/phases/${phase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => null);
+        throw new Error(e?.error ?? "Save failed");
+      }
+      onMutate();
+    } catch (e: any) {
+      setError(String(e.message ?? e));
+    } finally {
+      setSavingPhase(false);
+    }
+  };
 
   const handleAdd = async () => {
     if (!newPredId) return;
@@ -59,7 +117,6 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Error");
       setNewPredId(""); setNewLag(0); setNewType("FS");
-      // reload deps
       const r2 = await fetch(`/api/phases/${phase.id}/dependencies`);
       if (r2.ok) setDeps(await r2.json());
       onMutate();
@@ -83,7 +140,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
     }
   };
 
-  const handleUpdate = async (dep: DepRow, patch: Partial<DepRow>) => {
+  const handleUpdateDep = async (dep: DepRow, patch: Partial<DepRow>) => {
     try {
       const res = await fetch(`/api/dependencies/${dep.id}`, {
         method: "PATCH",
@@ -97,40 +154,34 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
     } catch {}
   };
 
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+      {children}
+    </h3>
+  );
+
   return (
     <>
-      {/* Overlay */}
-      <div
-        onClick={onClose}
-        style={{
-          position: "fixed", inset: 0,
-          background: "rgba(15,23,42,0.25)",
-          zIndex: 49,
-          backdropFilter: "blur(2px)",
-        }}
-      />
-      {/* Drawer */}
-      <aside
-        style={{
-          position: "fixed",
-          top: 0, right: 0, bottom: 0,
-          width: 460,
-          background: "#fff",
-          borderLeft: "1px solid var(--border)",
-          boxShadow: "-12px 0 32px rgba(15,23,42,0.12)",
-          zIndex: 50,
-          display: "flex",
-          flexDirection: "column",
-          animation: "fadeIn 0.2s ease",
-        }}
-      >
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.25)", zIndex: 49, backdropFilter: "blur(2px)" }} />
+      <aside style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, width: 480,
+        background: "#fff", borderLeft: "1px solid var(--border)",
+        boxShadow: "-12px 0 32px rgba(15,23,42,0.12)",
+        zIndex: 50, display: "flex", flexDirection: "column",
+        animation: "fadeIn 0.2s ease",
+      }}>
         {/* Header */}
         <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               F.{phase.phaseNumber} · {t.planning.detailTitle}
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{phase.name}</h2>
+            <input
+              className="input"
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              style={{ marginTop: 4, fontSize: 16, fontWeight: 700, color: "var(--text-primary)", padding: "6px 10px" }}
+            />
             {isCritical && (
               <span className="badge" style={{ marginTop: 6, background: "rgba(239,68,68,0.1)", color: "#dc2626", borderColor: "rgba(239,68,68,0.3)" }}>
                 {t.planning.criticalPathBadge}
@@ -144,9 +195,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
         <div style={{ flex: 1, overflow: "auto", padding: "18px 22px" }}>
           {/* Dates section */}
           <section style={{ marginBottom: 22 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-              {t.planning.detailDates}
-            </h3>
+            <SectionLabel>{t.planning.detailDates}</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13 }}>
               <div>
                 <div style={{ color: "var(--text-muted)", fontSize: 11 }}>{t.planning.colStart}</div>
@@ -168,14 +217,84 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
                   </div>
                 </>
               )}
+              <div>
+                <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Actual start</div>
+                <input
+                  type="date"
+                  className="input"
+                  value={isoDate(draft.actualStart)}
+                  onChange={(e) => setDraft({ ...draft, actualStart: e.target.value || null })}
+                  style={{ padding: "4px 8px", fontSize: 12 }}
+                />
+              </div>
+              <div>
+                <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Actual finish</div>
+                <input
+                  type="date"
+                  className="input"
+                  value={isoDate(draft.actualEnd)}
+                  onChange={(e) => setDraft({ ...draft, actualEnd: e.target.value || null })}
+                  style={{ padding: "4px 8px", fontSize: 12 }}
+                />
+              </div>
             </div>
           </section>
 
+          {/* Constraint + deadline */}
+          <section style={{ marginBottom: 22 }}>
+            <SectionLabel>Constraint · Deadline</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <select
+                  className="input"
+                  value={draft.constraintType ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value as Exclude<ConstraintType, null> | "";
+                    setDraft({ ...draft, constraintType: v === "" ? null : v });
+                  }}
+                  style={{ flex: 2, fontSize: 13 }}
+                >
+                  <option value="">— None (ASAP) —</option>
+                  {CONSTRAINTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+                <input
+                  type="date"
+                  className="input"
+                  value={isoDate(draft.constraintDate)}
+                  onChange={(e) => setDraft({ ...draft, constraintDate: e.target.value || null })}
+                  style={{ flex: 1, fontSize: 13 }}
+                  disabled={!draft.constraintType || draft.constraintType === "ASAP" || draft.constraintType === "ALAP"}
+                />
+              </div>
+              <div>
+                <div style={{ color: "var(--text-muted)", fontSize: 11, marginBottom: 4 }}>Deadline (soft)</div>
+                <input
+                  type="date"
+                  className="input"
+                  value={isoDate(draft.deadline)}
+                  onChange={(e) => setDraft({ ...draft, deadline: e.target.value || null })}
+                  style={{ fontSize: 13 }}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Save phase if dirty */}
+          {dirty && (
+            <div style={{ display: "flex", gap: 8, padding: "10px 14px", background: "rgba(59,130,246,0.06)", borderRadius: 8, border: "1px solid rgba(59,130,246,0.2)", marginBottom: 22 }}>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)", flex: 1 }}>{t.common.errorSave ? "Cambios sin guardar" : "Unsaved changes"}</span>
+              <button onClick={() => setDraft(phase)} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+                {t.common.cancel}
+              </button>
+              <button onClick={savePhase} disabled={savingPhase} className="gradient-btn" style={{ padding: "4px 14px", borderRadius: 6, border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: savingPhase ? "not-allowed" : "pointer", opacity: savingPhase ? 0.6 : 1 }}>
+                {savingPhase ? t.common.loading : t.common.save}
+              </button>
+            </div>
+          )}
+
           {/* Dependencies section */}
           <section>
-            <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-              {t.planning.detailDeps}
-            </h3>
+            <SectionLabel>{t.planning.detailDeps}</SectionLabel>
 
             {loading && <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t.common.loadingData}</div>}
 
@@ -194,7 +313,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
                       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
                         <select
                           value={d.type}
-                          onChange={(e) => handleUpdate(d, { type: e.target.value as "FS" | "SS" | "FF" | "SF" })}
+                          onChange={(e) => handleUpdateDep(d, { type: e.target.value as "FS" | "SS" | "FF" | "SF" })}
                           style={{ fontSize: 11, padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)", fontFamily: "monospace" }}
                         >
                           {DEP_TYPES.map((tt) => <option key={tt}>{tt}</option>)}
@@ -204,7 +323,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
                           defaultValue={d.lagDays}
                           onBlur={(e) => {
                             const n = Number(e.target.value);
-                            if (!Number.isNaN(n) && n !== d.lagDays) handleUpdate(d, { lagDays: n });
+                            if (!Number.isNaN(n) && n !== d.lagDays) handleUpdateDep(d, { lagDays: n });
                           }}
                           style={{ fontSize: 11, padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)", width: 64, fontVariantNumeric: "tabular-nums" }}
                           aria-label={t.planning.lagDays}
@@ -246,14 +365,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
                   <option value="FF">{t.planning.typeFF}</option>
                   <option value="SF">{t.planning.typeSF}</option>
                 </select>
-                <input
-                  type="number"
-                  className="input"
-                  value={newLag}
-                  onChange={(e) => setNewLag(Number(e.target.value))}
-                  style={{ width: 100, fontSize: 13 }}
-                  placeholder={t.planning.lagDays}
-                />
+                <input type="number" className="input" value={newLag} onChange={(e) => setNewLag(Number(e.target.value))} style={{ width: 100, fontSize: 13 }} placeholder={t.planning.lagDays} />
               </div>
               {error && <div style={{ fontSize: 12, color: "#dc2626" }}>⚠ {error}</div>}
               <button
