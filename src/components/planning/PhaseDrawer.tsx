@@ -4,6 +4,32 @@ import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/context";
 import type { ConstraintType, DepRow, DepsResp, PlanningPhase, PlanningStore, ScheduleResp } from "./types";
 
+interface PhaseTask {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  dueDate: string | null;
+  completedAt: string | null;
+  notes: string | null;
+  assigneeId: string | null;
+  assignee: { id: string; name: string; role: string } | null;
+}
+
+const TASK_STATUS_LABEL: Record<PhaseTask["status"], string> = {
+  TODO:        "Pendiente",
+  IN_PROGRESS: "En progreso",
+  DONE:        "Hecho",
+  BLOCKED:     "Bloqueado",
+};
+const TASK_STATUS_COLOR: Record<PhaseTask["status"], string> = {
+  TODO:        "#94a3b8",
+  IN_PROGRESS: "#3b82f6",
+  DONE:        "#10b981",
+  BLOCKED:     "#ef4444",
+};
+
 interface Props {
   phase: PlanningPhase | null;
   store: PlanningStore | null;
@@ -43,6 +69,41 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
   // Local copy so user can edit without each keystroke firing a PATCH.
   const [draft, setDraft] = useState<PlanningPhase | null>(phase);
   useEffect(() => { setDraft(phase); }, [phase?.id]);
+
+  // Task list for this phase (fetched on open).
+  const [tasks, setTasks] = useState<PhaseTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const refreshTasks = (id: string) => {
+    setTasksLoading(true);
+    fetch(`/api/phases/${id}/tasks`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => Array.isArray(d) && setTasks(d))
+      .catch(() => {})
+      .finally(() => setTasksLoading(false));
+  };
+  useEffect(() => {
+    if (!phase) { setTasks([]); return; }
+    refreshTasks(phase.id);
+  }, [phase?.id]);
+
+  const handleTaskStatus = async (taskId: string, newStatus: PhaseTask["status"]) => {
+    // Optimistic local update so UI reacts instantly.
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("update failed");
+      // Refetch tasks to pick up the auto-set completedAt and propagate to parent.
+      if (phase) refreshTasks(phase.id);
+      onMutate();
+    } catch {
+      // Revert on failure
+      if (phase) refreshTasks(phase.id);
+    }
+  };
 
   useEffect(() => {
     if (!phase) { setDeps(null); return; }
@@ -291,6 +352,58 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
               </button>
             </div>
           )}
+
+          {/* Tasks section — direct status update propagates to store progress everywhere */}
+          <section style={{ marginBottom: 22 }}>
+            <SectionLabel>Tareas {tasks.length > 0 && <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>· {tasks.filter(t => t.status === "DONE").length}/{tasks.length}</span>}</SectionLabel>
+            {tasksLoading && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t.common.loadingData}</div>}
+            {!tasksLoading && tasks.length === 0 && (
+              <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Sin tareas</div>
+            )}
+            {!tasksLoading && tasks.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {tasks.map((tk) => (
+                  <div key={tk.id} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "8px 10px",
+                    background: "rgba(15,23,42,0.02)",
+                    border: "1px solid rgba(15,23,42,0.06)",
+                    borderLeft: `3px solid ${TASK_STATUS_COLOR[tk.status]}`,
+                    borderRadius: 6,
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 12, fontWeight: 600,
+                        color: tk.status === "DONE" ? "var(--text-muted)" : "var(--text-primary)",
+                        textDecoration: tk.status === "DONE" ? "line-through" : "none",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }} title={tk.title}>{tk.title}</div>
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                        {tk.assignee?.name ?? "—"}
+                        {tk.dueDate && <> · {new Date(tk.dueDate).toLocaleDateString()}</>}
+                      </div>
+                    </div>
+                    <select
+                      value={tk.status}
+                      onChange={(e) => handleTaskStatus(tk.id, e.target.value as PhaseTask["status"])}
+                      onClick={(ev) => ev.stopPropagation()}
+                      style={{
+                        padding: "4px 6px", borderRadius: 4, border: `1px solid ${TASK_STATUS_COLOR[tk.status]}`,
+                        background: `${TASK_STATUS_COLOR[tk.status]}10`,
+                        color: TASK_STATUS_COLOR[tk.status],
+                        fontSize: 11, fontWeight: 600,
+                        cursor: "pointer", flexShrink: 0,
+                      }}
+                    >
+                      {(Object.keys(TASK_STATUS_LABEL) as PhaseTask["status"][]).map((s) => (
+                        <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* Dependencies section */}
           <section>

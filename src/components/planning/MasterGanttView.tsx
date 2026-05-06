@@ -53,13 +53,22 @@ function durationDays(start: string | null, end: string | null): string {
   return `${days}d`;
 }
 
-// Bar dates: prefer actual when both ends are recorded, else fall back to planned.
-// "Both or none" — avoids invalid mixed ranges (e.g. actualStart > plannedEnd).
+// Bar dates: actualStart/actualEnd take precedence when set; missing actuals
+// fall back per-axis to planned. So updating just actualFinish shifts the
+// bar's right edge immediately. Falls back to planned entirely if the resulting
+// range is invalid (end < start).
 function effectiveDates(phase: PlanningPhase): { start: string | null; end: string | null; fromActual: boolean } {
-  const hasActual = !!(phase.actualStart && phase.actualEnd);
-  return hasActual
-    ? { start: phase.actualStart, end: phase.actualEnd, fromActual: true }
-    : { start: phase.plannedStart, end: phase.plannedEnd, fromActual: false };
+  const start = phase.actualStart ?? phase.plannedStart;
+  const end   = phase.actualEnd   ?? phase.plannedEnd;
+  if (start && end) {
+    const sMs = new Date(start).getTime();
+    const eMs = new Date(end).getTime();
+    if (eMs < sMs) {
+      return { start: phase.plannedStart, end: phase.plannedEnd, fromActual: false };
+    }
+  }
+  const fromActual = !!(phase.actualStart || phase.actualEnd);
+  return { start, end, fromActual };
 }
 
 function fmtPredecessor(phase: PlanningPhase, storePhases: PlanningPhase[]): string {

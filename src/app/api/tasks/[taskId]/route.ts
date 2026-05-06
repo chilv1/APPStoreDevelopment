@@ -78,15 +78,38 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   );
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
-  // Auto-update phase status based on its tasks (don't override BLOCKED)
+  // Auto-update phase status + actualStart/actualEnd based on its tasks.
   const currentPhase = allPhases.find((p) => p.id === task.phaseId);
   if (currentPhase && currentPhase.status !== "BLOCKED") {
     const phaseTasks = currentPhase.tasks;
     const allDone = phaseTasks.length > 0 && phaseTasks.every((t) => t.status === "DONE");
     const anyStarted = phaseTasks.some((t) => t.status === "DONE" || t.status === "IN_PROGRESS");
     const newPhaseStatus = allDone ? "COMPLETED" : anyStarted ? "IN_PROGRESS" : "NOT_STARTED";
-    if (newPhaseStatus !== currentPhase.status) {
-      await prisma.phase.update({ where: { id: currentPhase.id }, data: { status: newPhaseStatus } });
+
+    const phaseUpdate: any = {};
+    if (newPhaseStatus !== currentPhase.status) phaseUpdate.status = newPhaseStatus;
+
+    // First time the phase actually starts → stamp actualStart so the Gantt
+    // bar can shift to reflect on-the-ground progress immediately.
+    if (newPhaseStatus !== "NOT_STARTED" && !currentPhase.actualStart) {
+      phaseUpdate.actualStart = new Date();
+    }
+    // All tasks DONE → stamp actualEnd from the latest completed task
+    // (or today if none) so the bar's right edge snaps to actual completion.
+    if (allDone && !currentPhase.actualEnd) {
+      const completedDates = phaseTasks
+        .map((t) => t.completedAt ? new Date(t.completedAt).getTime() : null)
+        .filter((x): x is number => x !== null);
+      const latestDone = completedDates.length > 0 ? new Date(Math.max(...completedDates)) : new Date();
+      phaseUpdate.actualEnd = latestDone;
+    }
+    // Phase became NOT_STARTED again (e.g. all tasks reverted) → clear actuals.
+    if (newPhaseStatus === "NOT_STARTED" && (currentPhase.actualStart || currentPhase.actualEnd)) {
+      phaseUpdate.actualStart = null;
+      phaseUpdate.actualEnd = null;
+    }
+    if (Object.keys(phaseUpdate).length > 0) {
+      await prisma.phase.update({ where: { id: currentPhase.id }, data: phaseUpdate });
     }
   }
 
