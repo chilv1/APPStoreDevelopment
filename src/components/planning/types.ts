@@ -25,6 +25,7 @@ export interface PlanningPhase {
   pct: number;
   progressPct: number;
   taskCount: number;
+  assignees: { id: string; name: string; role: string }[];
 }
 
 export interface PlanningStore {

@@ -37,7 +37,14 @@ export async function GET(request: Request) {
         orderBy: { order: "asc" },
         include: {
           _count: { select: { tasks: true } },
-          tasks: { select: { status: true }, take: 100 },
+          tasks: {
+            select: {
+              status: true,
+              assigneeId: true,
+              assignee: { select: { id: true, name: true, role: true } },
+            },
+            take: 100,
+          },
         },
       },
     },
@@ -65,6 +72,15 @@ export async function GET(request: Request) {
         : (ph as any).progressPct > 0 ? (ph as any).progressPct
         : ph.status === "IN_PROGRESS" ? 30
         : 0;
+      // Aggregate unique assignees from tasks
+      const seen = new Set<string>();
+      const assignees: { id: string; name: string; role: string }[] = [];
+      for (const t of ph.tasks) {
+        if (t.assignee && !seen.has(t.assignee.id)) {
+          seen.add(t.assignee.id);
+          assignees.push({ id: t.assignee.id, name: t.assignee.name ?? "", role: t.assignee.role ?? "" });
+        }
+      }
       return {
         id: ph.id,
         order: ph.order,
@@ -86,6 +102,7 @@ export async function GET(request: Request) {
         pct,
         progressPct: (ph as any).progressPct ?? 0,
         taskCount: total,
+        assignees,
       };
     }),
   }));

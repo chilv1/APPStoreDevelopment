@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useT } from "@/lib/i18n/context";
 import MasterGanttView from "@/components/planning/MasterGanttView";
 import ResourcesView from "@/components/planning/ResourcesView";
@@ -18,6 +19,8 @@ const VIEWS: View[] = ["gantt", "variance", "cost", "resources", "calendar"];
 
 export default function PlanningClient() {
   const t = useT();
+  const { data: session } = useSession();
+  const currentUserId = (session?.user as any)?.id ?? null;
   const [stores, setStores] = useState<PlanningStore[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [view, setView] = useState<View>("gantt");
@@ -252,6 +255,7 @@ export default function PlanningClient() {
           onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
           schedulesByStore={schedulesByStore}
           onRequestSchedule={requestSchedule}
+          currentUserId={currentUserId}
         />
       )}
 
