@@ -55,18 +55,38 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const phBCWS = total * scheduledFraction;
     const phBCWP = total * (progress / 100);
-    const actualWork = p.assignments.reduce((s, a) => s + (a.actualWork * (a.resource?.standardRate ?? 0)), 0);
-    const phACWP = actualWork; // fixedCost not yet accrued here; refined in Stream 6 P2
+    // Stream 5 P2 wired: ResourceAssignment.actualWork is now populated from
+    // approved TimeEntries. ACWP = Σ actualWork × rate. Plus fixedCost accrued
+    // proportionally to scheduledFraction (PRORATED) or fully if past finish.
+    const actualLabor = p.assignments.reduce((s, a) => s + (a.actualWork * (a.resource?.standardRate ?? 0)), 0);
+    const fixedAccrued =
+      p.fixedCostAccrual === "START"   ? (scheduledFraction > 0 ? p.fixedCost : 0) :
+      p.fixedCostAccrual === "END"     ? (scheduledFraction >= 1 ? p.fixedCost : 0) :
+      /* PRORATED */                     p.fixedCost * scheduledFraction;
+    const phACWP = actualLabor + fixedAccrued;
 
     totalFixed += fixed; totalWork += work; totalCost += total; totalActual += phACWP;
     bcws += phBCWS; bcwp += phBCWP; acwp += phACWP;
+
+    // Cost variance (CV) = BCWP - ACWP (positive = under budget)
+    // Schedule variance (SV) = BCWP - BCWS (positive = ahead of schedule)
+    // CPI = BCWP / ACWP, SPI = BCWP / BCWS
+    const cv = phBCWP - phACWP;
+    const sv = phBCWP - phBCWS;
+    const cpi = phACWP > 0 ? phBCWP / phACWP : null;
+    const spi = phBCWS > 0 ? phBCWP / phBCWS : null;
+    let phStatus: "ON_BUDGET" | "OVER_BUDGET" | "UNDER_BUDGET" | "NEUTRAL" = "NEUTRAL";
+    if (phACWP > 0 || phBCWP > 0) {
+      phStatus = cv > 0 ? "UNDER_BUDGET" : cv < 0 ? "OVER_BUDGET" : "ON_BUDGET";
+    }
 
     return {
       id: p.id, phaseNumber: p.phaseNumber, name: p.name, status: p.status, progressPct: progress,
       fixedCost: fixed, workCost: work, totalCost: total, actualCost: phACWP,
       bcws: phBCWS, bcwp: phBCWP, acwp: phACWP,
+      cv, sv, cpi, spi, varianceStatus: phStatus,
       assignments: p.assignments.map((a) => ({
-        id: a.id, resourceName: a.resource?.name ?? "—", units: a.units, workHours: a.workHours, cost: a.cost,
+        id: a.id, resourceName: a.resource?.name ?? "—", units: a.units, workHours: a.workHours, actualWork: a.actualWork, cost: a.cost,
       })),
     };
   });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { syncApprovedTimeToActualWork } from "@/lib/cost/sync";
 
 async function resolveSelf(user: any) {
   return prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true, role: true } });
@@ -32,7 +33,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         approverId: me.id,
       },
     });
-    return NextResponse.json({ entry: updated });
+    let synced: any = null;
+    if (body.action === "approve") {
+      try { synced = await syncApprovedTimeToActualWork(prisma, id); }
+      catch (e) { console.error("sync failed", e); }
+    }
+    return NextResponse.json({ entry: updated, synced });
   }
 
   // Editing fields — only when entry is DRAFT and owner.

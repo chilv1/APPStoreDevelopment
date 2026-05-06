@@ -6,8 +6,10 @@
  * endpoint needed; this is a "view mode" that switches the rest of the
  * Planning tabs into a portfolio-wide aggregate.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { PlanningStore } from "./types";
+
+const MS_PER_DAY = 86_400_000;
 
 interface Props {
   stores: PlanningStore[];
@@ -172,6 +174,9 @@ export default function PortfolioOverview({ stores, onPickStore }: Props) {
         </div>
       </div>
 
+      {/* Cross-store mini-Gantt — Stream 8 P2 */}
+      <PortfolioGantt stores={stores} onPickStore={onPickStore} />
+
       {/* All stores list — clickable to focus that project in Planning */}
       <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }}>
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
@@ -210,6 +215,126 @@ export default function PortfolioOverview({ stores, onPickStore }: Props) {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Portfolio Gantt — cross-store timeline lane ───────────────────────────
+// Each row is one store; each phase becomes a colored segment. Hover/click
+// jumps the user into Planning detail for that store.
+
+function PortfolioGantt({ stores, onPickStore }: { stores: PlanningStore[]; onPickStore: (id: string) => void }) {
+  const [zoom, setZoom] = useState<"month" | "quarter">("month");
+  const pxPerDay = zoom === "month" ? 4 : 1.6;
+  const ROW_H = 30;
+  const NAME_W = 200;
+
+  const { rangeStart, totalDays, rows } = useMemo(() => {
+    let minMs = Infinity, maxMs = -Infinity;
+    const decorated = stores.map((s) => {
+      const phases = s.phases.filter((p) => p.plannedStart && p.plannedEnd);
+      const sStart = phases.reduce<number>((acc, p) => Math.min(acc, new Date(p.plannedStart!).getTime()), Infinity);
+      const sEnd   = phases.reduce<number>((acc, p) => Math.max(acc, new Date(p.plannedEnd!).getTime()),   -Infinity);
+      if (Number.isFinite(sStart) && sStart < minMs) minMs = sStart;
+      if (Number.isFinite(sEnd)   && sEnd   > maxMs) maxMs = sEnd;
+      return { store: s, sStart, sEnd, phases };
+    });
+    if (!Number.isFinite(minMs)) minMs = Date.now();
+    if (!Number.isFinite(maxMs)) maxMs = minMs + 90 * MS_PER_DAY;
+    const start = new Date(Date.UTC(new Date(minMs).getUTCFullYear(), new Date(minMs).getUTCMonth(), 1));
+    const end   = new Date(maxMs + 30 * MS_PER_DAY);
+    const days  = Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY);
+    return { rangeStart: start, totalDays: days, rows: decorated };
+  }, [stores]);
+
+  const W = totalDays * pxPerDay;
+  const todayX = ((Date.now() - rangeStart.getTime()) / MS_PER_DAY) * pxPerDay;
+
+  // Month tick labels.
+  const ticks: { x: number; label: string }[] = [];
+  let cursor = new Date(rangeStart);
+  while (cursor.getTime() < rangeStart.getTime() + totalDays * MS_PER_DAY) {
+    const x = ((cursor.getTime() - rangeStart.getTime()) / MS_PER_DAY) * pxPerDay;
+    ticks.push({ x, label: cursor.toLocaleDateString(undefined, { month: "short", year: "2-digit" }) });
+    cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
+  }
+
+  return (
+    <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", flex: 1 }}>📊 Cross-store Gantt</h2>
+        <div style={{ display: "flex", gap: 2, padding: 2, background: "rgba(15,23,42,0.04)", borderRadius: 6 }}>
+          {(["month", "quarter"] as const).map((z) => (
+            <button key={z} onClick={() => setZoom(z)} style={{
+              padding: "4px 10px", borderRadius: 4, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
+              background: zoom === z ? "var(--gradient-brand)" : "transparent",
+              color: zoom === z ? "#fff" : "var(--text-secondary)",
+            }}>{z}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", maxHeight: 480 }}>
+        <div style={{ width: NAME_W, borderRight: "1px solid var(--border)", flexShrink: 0, overflow: "hidden", background: "var(--bg-card)" }}>
+          <div style={{ height: 32, padding: "0 12px", display: "flex", alignItems: "center", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>
+            Store
+          </div>
+          {rows.map(({ store }) => (
+            <div key={store.id} onClick={() => onPickStore(store.id)} style={{ height: ROW_H, padding: "0 12px", display: "flex", alignItems: "center", fontSize: 12, cursor: "pointer", borderBottom: "1px solid rgba(15,23,42,0.04)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{store.code}</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{store.region ?? "—"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <div style={{ width: W, position: "relative" }}>
+            {/* Header */}
+            <div style={{ height: 32, position: "sticky", top: 0, background: "var(--bg-card)", borderBottom: "1px solid var(--border)", zIndex: 2 }}>
+              {ticks.map((tk, i) => (
+                <div key={i} style={{ position: "absolute", left: tk.x, top: 0, height: 32, borderLeft: "1px solid var(--border-hover)", paddingLeft: 4, fontSize: 10, color: "var(--text-secondary)", display: "flex", alignItems: "flex-end", paddingBottom: 6, fontWeight: 600 }}>{tk.label}</div>
+              ))}
+            </div>
+            {/* Today line */}
+            {todayX >= 0 && todayX <= W && (
+              <div style={{ position: "absolute", left: todayX, top: 32, bottom: 0, width: 1, background: "#ef4444", zIndex: 1, pointerEvents: "none" }} />
+            )}
+            {/* Rows */}
+            {rows.map(({ store, phases }, ri) => {
+              const top = 32 + ri * ROW_H;
+              return (
+                <div key={store.id}>
+                  <div style={{ position: "absolute", left: 0, right: 0, top, height: ROW_H, borderBottom: "1px solid rgba(15,23,42,0.04)" }} />
+                  {phases.map((p) => {
+                    const sx = ((new Date(p.plannedStart!).getTime() - rangeStart.getTime()) / MS_PER_DAY) * pxPerDay;
+                    const ex = ((new Date(p.plannedEnd!).getTime() - rangeStart.getTime()) / MS_PER_DAY) * pxPerDay;
+                    const w = Math.max(2, ex - sx);
+                    const color =
+                      p.status === "COMPLETED"   ? "#10b981" :
+                      p.status === "IN_PROGRESS" ? "#3b82f6" :
+                      p.status === "BLOCKED"     ? "#f59e0b" :
+                      p.status === "NOT_STARTED" ? "#94a3b8" : "#6b7280";
+                    return (
+                      <div
+                        key={p.id}
+                        title={`${store.code} · F.${p.phaseNumber} ${p.name} · ${p.plannedStart?.slice(0, 10)} → ${p.plannedEnd?.slice(0, 10)}`}
+                        onClick={() => onPickStore(store.id)}
+                        style={{
+                          position: "absolute",
+                          left: sx, top: top + 5, width: w, height: ROW_H - 10,
+                          background: color, borderRadius: 3, opacity: 0.9, cursor: "pointer",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
+            <div style={{ height: 32 + rows.length * ROW_H }} />
+          </div>
+        </div>
       </div>
     </div>
   );

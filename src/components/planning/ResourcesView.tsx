@@ -14,6 +14,8 @@ interface Resource {
   storeId: string | null;
   user: { id: string; name: string; role: string; region: string | null } | null;
   _count: { assignments: number };
+  peakUnits: number;
+  overAllocated: boolean;
 }
 
 interface Props { storeId: string }
@@ -119,6 +121,7 @@ export default function ResourcesView({ storeId }: Props) {
                 <th>Resource</th>
                 <th style={{ width: 100 }}>Kind</th>
                 <th style={{ width: 90 }}>Max %</th>
+                <th style={{ width: 110 }}>Peak load</th>
                 <th style={{ width: 110 }}>Rate / hr</th>
                 <th style={{ width: 130 }}>Group</th>
                 <th style={{ width: 110 }}>Assignments</th>
@@ -128,14 +131,26 @@ export default function ResourcesView({ storeId }: Props) {
             <tbody>
               {list.map((r) => {
                 const m = KIND_META[r.kind];
+                const ratio = r.maxUnits > 0 ? r.peakUnits / r.maxUnits : 0;
+                const peakColor = r.overAllocated ? "#dc2626" : ratio > 0.8 ? "#f59e0b" : ratio > 0 ? "#10b981" : "var(--text-muted)";
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={{ borderLeft: r.overAllocated ? "3px solid #ef4444" : "3px solid transparent" }}>
                     <td>
                       <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{r.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.user ? `${r.user.name} (${r.user.role})` : r.email ?? "—"}</div>
                     </td>
                     <td><span className="badge" style={{ background: m.bg, color: m.color, borderColor: "transparent" }}>{m.label}</span></td>
                     <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.maxUnits}%</td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", color: peakColor, minWidth: 40 }}>{r.peakUnits}%</span>
+                        {r.overAllocated && (
+                          <span className="badge" title="Peak demand exceeds capacity" style={{ background: "rgba(239,68,68,0.1)", color: "#dc2626", borderColor: "transparent", fontSize: 10 }}>
+                            ⚠ OVER
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>{r.standardRate.toLocaleString()}</td>
                     <td style={{ fontSize: 12 }}>{r.group ?? "—"}</td>
                     <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{r._count.assignments}</td>

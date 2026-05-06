@@ -18,11 +18,62 @@ export async function GET(req: Request) {
     where,
     include: {
       user: { select: { id: true, name: true, role: true, region: true } },
-      _count: { select: { assignments: true } },
+      assignments: {
+        include: { phase: { select: { id: true, plannedStart: true, plannedEnd: true } } },
+      },
     },
     orderBy: { name: "asc" },
   });
-  return NextResponse.json(resources);
+
+  // Stream 4 P3 — Over-allocation detection.
+  // Walk each pair of overlapping assignments; if the sum of `units`
+  // across phases that intersect on any single day exceeds maxUnits,
+  // mark the resource over-allocated. Heuristic: sweep events.
+  const decorated = resources.map((r) => {
+    const peakUnits = peakOverlappingUnits(
+      r.assignments
+        .filter((a) => a.phase.plannedStart && a.phase.plannedEnd)
+        .map((a) => ({
+          start: a.phase.plannedStart!.getTime(),
+          end:   a.phase.plannedEnd!.getTime(),
+          units: a.units,
+        }))
+    );
+    const overAllocated = peakUnits > r.maxUnits;
+    return {
+      ...r,
+      assignmentCount: r.assignments.length,
+      peakUnits,
+      overAllocated,
+      // Hide raw assignments to keep payload small.
+      assignments: undefined,
+      _count: { assignments: r.assignments.length },
+    };
+  });
+
+  return NextResponse.json(decorated);
+}
+
+/**
+ * Sweep-line: returns the maximum sum of `units` across any single moment
+ * where assignments overlap. O(n log n).
+ */
+function peakOverlappingUnits(intervals: { start: number; end: number; units: number }[]): number {
+  if (intervals.length === 0) return 0;
+  type Event = { t: number; delta: number };
+  const events: Event[] = [];
+  for (const i of intervals) {
+    if (i.end <= i.start) continue;
+    events.push({ t: i.start, delta: +i.units });
+    events.push({ t: i.end,   delta: -i.units });
+  }
+  events.sort((a, b) => a.t - b.t || a.delta - b.delta); // process ends before starts at same t
+  let cur = 0, peak = 0;
+  for (const e of events) {
+    cur += e.delta;
+    if (cur > peak) peak = cur;
+  }
+  return peak;
 }
 
 export async function POST(req: Request) {
