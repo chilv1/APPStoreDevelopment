@@ -53,3 +53,4 @@ next-env.d.ts
 
 # Local DB backup snapshots — large binaries, never commit
 /backups/
+dev.db.bak.*
