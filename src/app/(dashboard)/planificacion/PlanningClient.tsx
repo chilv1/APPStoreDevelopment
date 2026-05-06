@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/lib/i18n/context";
-import GanttView from "@/components/planning/GanttView";
+import MasterGanttView from "@/components/planning/MasterGanttView";
 import ResourcesView from "@/components/planning/ResourcesView";
 import CalendarView from "@/components/planning/CalendarView";
 import VarianceView from "@/components/planning/VarianceView";
@@ -22,7 +22,9 @@ export default function PlanningClient() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [view, setView] = useState<View>("gantt");
   const [schedule, setSchedule] = useState<ScheduleResp | null>(null);
+  const [schedulesByStore, setSchedulesByStore] = useState<Map<string, ScheduleResp>>(new Map());
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  const [selectedStoreIdForPhase, setSelectedStoreIdForPhase] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [recomputing, setRecomputing] = useState(false);
   const [recomputedAt, setRecomputedAt] = useState<number | null>(null);
@@ -53,22 +55,51 @@ export default function PlanningClient() {
     return () => { cancelled = true; };
   }, []);
 
-  // Schedule fetch when store changes or after a mutation.
+  // Schedule fetch for active store (used by single-store tabs + critical-path summary header).
   useEffect(() => {
     if (!storeId) return;
     let cancelled = false;
     fetch(`/api/stores/${storeId}/schedule`)
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (!cancelled && d) setSchedule(d); })
+      .then((d) => {
+        if (cancelled || !d) return;
+        setSchedule(d);
+        setSchedulesByStore((prev) => {
+          const next = new Map(prev);
+          next.set(storeId, d);
+          return next;
+        });
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [storeId, recomputedAt]);
 
+  const requestSchedule = (sid: string) => {
+    if (schedulesByStore.has(sid)) return;
+    fetch(`/api/stores/${sid}/schedule`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (!d) return;
+        setSchedulesByStore((prev) => {
+          const next = new Map(prev);
+          next.set(sid, d);
+          return next;
+        });
+      })
+      .catch(() => {});
+  };
+
   const activeStore = useMemo(() => stores.find((s) => s.id === storeId) ?? null, [stores, storeId]);
-  const selectedPhase = useMemo(() => {
-    if (!selectedPhaseId || !activeStore) return null;
-    return activeStore.phases.find((p) => p.id === selectedPhaseId) ?? null;
-  }, [activeStore, selectedPhaseId]);
+
+  // Phase → store lookup spans ALL stores (for master Gantt selection).
+  const selectedPhaseInfo = useMemo(() => {
+    if (!selectedPhaseId) return { phase: null, store: null, schedule: null };
+    const sid = selectedStoreIdForPhase;
+    const store = sid ? stores.find((s) => s.id === sid) : stores.find((s) => s.phases.some((p) => p.id === selectedPhaseId));
+    const phase = store?.phases.find((p) => p.id === selectedPhaseId) ?? null;
+    const sched = store ? schedulesByStore.get(store.id) ?? null : null;
+    return { phase, store: store ?? null, schedule: sched };
+  }, [selectedPhaseId, selectedStoreIdForPhase, stores, schedulesByStore]);
 
   const handleRecompute = async () => {
     if (!storeId) return;
@@ -80,6 +111,8 @@ export default function PlanningClient() {
       setRecomputing(false);
     }
   };
+
+  const isMasterView = view === "gantt";
 
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1600, margin: "0 auto" }}>
@@ -93,24 +126,33 @@ export default function PlanningClient() {
 
       {/* Controls row: project picker + view tabs + recompute */}
       <div className="glass" style={{ borderRadius: 14, padding: 16, marginBottom: 16, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            {t.planning.pickProject}
-          </label>
-          <select
-            className="input"
-            style={{ minWidth: 320 }}
-            value={storeId ?? ""}
-            onChange={(e) => { setStoreId(e.target.value || null); setSelectedPhaseId(null); }}
-            disabled={loading}
-          >
-            {loading && <option>{t.common.loadingData}</option>}
-            {!loading && stores.length === 0 && <option>{t.planning.noProject}</option>}
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
-            ))}
-          </select>
-        </div>
+        {/* Tienda dropdown is hidden in master Gantt (shows all). Visible for variance/cost/recursos/calendario. */}
+        {!isMasterView && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {t.planning.pickProject}
+            </label>
+            <select
+              className="input"
+              style={{ minWidth: 320 }}
+              value={storeId ?? ""}
+              onChange={(e) => { setStoreId(e.target.value || null); setSelectedPhaseId(null); }}
+              disabled={loading}
+            >
+              {loading && <option>{t.common.loadingData}</option>}
+              {!loading && stores.length === 0 && <option>{t.planning.noProject}</option>}
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {isMasterView && !loading && (
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>Master Gantt</span>
+            <span>· {stores.length} tiendas</span>
+          </div>
+        )}
 
         {/* View tabs */}
         <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(15,23,42,0.04)", borderRadius: 10, border: "1px solid var(--border)" }}>
@@ -146,43 +188,45 @@ export default function PlanningClient() {
           })}
         </div>
 
-        {/* Right: critical path summary + recompute */}
-        {schedule && (
-          <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
-            {schedule.criticalPath.length > 0 && (
-              <span className="badge" style={{ background: "rgba(239,68,68,0.1)", color: "#dc2626", borderColor: "rgba(239,68,68,0.3)" }}>
-                {t.planning.criticalPathBadge} · {schedule.criticalPath.length} {t.planning.phases}
-              </span>
-            )}
+        {/* Right: action buttons. Critical-path badge only relevant in single-store views. */}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
+          {!isMasterView && schedule && schedule.criticalPath.length > 0 && (
+            <span className="badge" style={{ background: "rgba(239,68,68,0.1)", color: "#dc2626", borderColor: "rgba(239,68,68,0.3)" }}>
+              {t.planning.criticalPathBadge} · {schedule.criticalPath.length} {t.planning.phases}
+            </span>
+          )}
+          {!isMasterView && schedule && (
             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               {t.planning.finishLabel}: <strong style={{ color: "var(--text-primary)" }}>{new Date(schedule.projectFinish).toLocaleDateString()}</strong>
             </span>
-            <button
-              onClick={() => setApprovalsOpen(true)}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.05)", color: "#92400e", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              📥 Approvals
-            </button>
-            <button
-              onClick={() => setReportsOpen(true)}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              📧 Reports
-            </button>
-            <button
-              onClick={() => setAiOpen(true)}
-              disabled={!storeId}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.05)", color: "#1d4ed8", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
-            >
-              🤖 AI risks
-            </button>
-            <button
-              onClick={() => setSnapshotsOpen(true)}
-              disabled={!storeId}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
-            >
-              📸 Snapshots
-            </button>
+          )}
+          <button
+            onClick={() => setApprovalsOpen(true)}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.05)", color: "#92400e", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            📥 Approvals
+          </button>
+          <button
+            onClick={() => setReportsOpen(true)}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            📧 Reports
+          </button>
+          <button
+            onClick={() => setAiOpen(true)}
+            disabled={!storeId}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.05)", color: "#1d4ed8", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
+          >
+            🤖 AI risks
+          </button>
+          <button
+            onClick={() => setSnapshotsOpen(true)}
+            disabled={!storeId}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: storeId ? "pointer" : "not-allowed" }}
+          >
+            📸 Snapshots
+          </button>
+          {!isMasterView && (
             <button
               className="gradient-btn"
               onClick={handleRecompute}
@@ -191,26 +235,33 @@ export default function PlanningClient() {
             >
               {recomputing ? t.common.loading : `🔄 ${t.planning.recompute}`}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Main content */}
-      {!activeStore && !loading && (
+      {/* Master Gantt: shows all stores at once. */}
+      {view === "gantt" && !loading && stores.length > 0 && (
+        <MasterGanttView
+          stores={stores}
+          selectedPhaseId={selectedPhaseId}
+          onSelectPhase={(pid, sid) => {
+            setSelectedPhaseId(pid);
+            setSelectedStoreIdForPhase(sid);
+            if (sid && sid !== storeId) setStoreId(sid);
+          }}
+          onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
+          schedulesByStore={schedulesByStore}
+          onRequestSchedule={requestSchedule}
+        />
+      )}
+
+      {/* Single-store views need an active store. */}
+      {!isMasterView && !activeStore && !loading && (
         <div className="glass" style={{ borderRadius: 14, padding: 60, textAlign: "center", color: "var(--text-secondary)" }}>
           {t.planning.noProject}
         </div>
       )}
 
-      {activeStore && view === "gantt" && (
-        <GanttView
-          store={activeStore}
-          schedule={schedule}
-          selectedPhaseId={selectedPhaseId}
-          onSelectPhase={setSelectedPhaseId}
-          onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
-        />
-      )}
       {activeStore && view === "variance" && (
         <VarianceView storeId={activeStore.id} />
       )}
@@ -231,10 +282,10 @@ export default function PlanningClient() {
 
       {/* Phase detail drawer */}
       <PhaseDrawer
-        phase={selectedPhase}
-        store={activeStore}
-        schedule={schedule}
-        onClose={() => setSelectedPhaseId(null)}
+        phase={selectedPhaseInfo.phase}
+        store={selectedPhaseInfo.store}
+        schedule={selectedPhaseInfo.schedule}
+        onClose={() => { setSelectedPhaseId(null); setSelectedStoreIdForPhase(null); }}
         onMutate={() => { setRecomputedAt(Date.now()); refreshStores(); }}
       />
 
