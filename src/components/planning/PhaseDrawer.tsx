@@ -378,8 +378,130 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
               </button>
             </div>
           </section>
+
+          {/* Time log section */}
+          <section style={{ marginTop: 22 }}>
+            <SectionLabel>⏱️ Time log</SectionLabel>
+            <PhaseTimeLog phaseId={phase.id} />
+          </section>
         </div>
       </aside>
     </>
+  );
+}
+
+// ── Per-phase time log ────────────────────────────────────────────────────
+// Lightweight inline component — fetches the user's entries for THIS phase
+// (this week) and lets them log new hours. Status workflow lives on the
+// timesheet endpoint; we reuse it without a separate page.
+
+interface TimeRow {
+  id: string;
+  date: string;
+  hours: number;
+  notes: string | null;
+  status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  user?: { id: string; name: string };
+}
+
+function PhaseTimeLog({ phaseId }: { phaseId: string }) {
+  const [list, setList] = useState<TimeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [hours, setHours] = useState<number>(2);
+  const [notes, setNotes] = useState<string>("");
+  const [adding, setAdding] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/timesheets?phaseId=${phaseId}`);
+      if (r.ok) {
+        const d = await r.json();
+        const all: TimeRow[] = (d.entries ?? []).filter((e: any) => e.phaseId === phaseId);
+        setList(all);
+      }
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [phaseId]);
+
+  const total = list.reduce((s, e) => s + e.hours, 0);
+
+  const log = async () => {
+    if (hours <= 0) return;
+    setAdding(true); setErr(null);
+    try {
+      const r = await fetch("/api/timesheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phaseId, date, hours, notes }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e?.error ?? "Save failed");
+      }
+      setNotes(""); setHours(2);
+      await load();
+    } catch (e: any) { setErr(String(e.message ?? e)); }
+    finally { setAdding(false); }
+  };
+
+  const submit = async (id: string) => { await fetch(`/api/timesheets/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "submit" }) }); load(); };
+  const remove = async (id: string) => { await fetch(`/api/timesheets/${id}`, { method: "DELETE" }); load(); };
+
+  const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
+    DRAFT:     { color: "var(--text-muted)", bg: "rgba(15,23,42,0.05)",  label: "Draft" },
+    SUBMITTED: { color: "#92400e",            bg: "rgba(245,158,11,0.1)", label: "Submitted" },
+    APPROVED:  { color: "#047857",            bg: "rgba(16,185,129,0.1)", label: "Approved" },
+    REJECTED:  { color: "#dc2626",            bg: "rgba(239,68,68,0.1)",  label: "Rejected" },
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Total + log form */}
+      <div className="task-item" style={{ flexDirection: "column", padding: 10, gap: 8, alignItems: "stretch" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Logged total</span>
+          <strong style={{ fontSize: 16, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{total.toFixed(1)}h</strong>
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 10, color: "var(--text-muted)" }}>Date</label>
+            <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} style={{ fontSize: 12, padding: "4px 6px" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 10, color: "var(--text-muted)" }}>Hours</label>
+            <input type="number" min={0} step={0.25} className="input" value={hours} onChange={(e) => setHours(Number(e.target.value))} style={{ fontSize: 12, padding: "4px 6px", width: 70 }} />
+          </div>
+        </div>
+        <input className="input" placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ fontSize: 12, padding: "4px 8px" }} />
+        {err && <div style={{ fontSize: 11, color: "#dc2626" }}>⚠ {err}</div>}
+        <button onClick={log} disabled={adding || hours <= 0} className="gradient-btn" style={{ padding: "6px 10px", borderRadius: 4, border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: adding ? "not-allowed" : "pointer" }}>
+          {adding ? "..." : "Log time"}
+        </button>
+      </div>
+
+      {/* Recent entries */}
+      {loading && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Loading…</div>}
+      {!loading && list.length === 0 && <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>No time logged for this phase yet.</div>}
+      {list.slice(0, 8).map((e) => {
+        const m = STATUS_META[e.status];
+        return (
+          <div key={e.id} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+            <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-muted)", width: 80 }}>{new Date(e.date).toLocaleDateString()}</span>
+            <strong style={{ fontVariantNumeric: "tabular-nums" }}>{e.hours.toFixed(1)}h</strong>
+            <span className="badge" style={{ background: m.bg, color: m.color, borderColor: "transparent" }}>{m.label}</span>
+            <span style={{ flex: 1, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.notes ?? ""}</span>
+            {e.status === "DRAFT" && (
+              <>
+                <button onClick={() => submit(e.id)} title="Submit" style={{ background: "transparent", border: "none", color: "#1d4ed8", cursor: "pointer", fontSize: 14, padding: 0 }}>↑</button>
+                <button onClick={() => remove(e.id)} title="Delete" style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, padding: 0 }}>×</button>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

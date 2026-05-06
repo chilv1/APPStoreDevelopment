@@ -31,13 +31,31 @@ export async function GET(req: Request) {
   if (!me) return NextResponse.json({ error: "User missing" }, { status: 401 });
 
   const url = new URL(req.url);
+  const phaseId = url.searchParams.get("phaseId");
+  const isPriv = ["ADMIN", "AREA_MANAGER"].includes(me.role);
+
+  // ── Phase-scoped query (used by the in-drawer time log) ──
+  if (phaseId) {
+    const where: any = { phaseId };
+    if (!isPriv) where.userId = me.id;
+    const entries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        phase: { select: { id: true, name: true, phaseNumber: true, store: { select: { id: true, code: true, name: true } } } },
+        user:  { select: { id: true, name: true } },
+      },
+      orderBy: { date: "desc" },
+      take: 50,
+    });
+    return NextResponse.json({ phaseId, entries });
+  }
+
+  // ── Week-scoped query (legacy for the standalone Timesheet page) ──
   const weekStartParam = url.searchParams.get("weekStart");
   const requestedUserId = url.searchParams.get("userId");
-  const targetUserId = requestedUserId && ["ADMIN", "AREA_MANAGER"].includes(me.role) ? requestedUserId : me.id;
-
+  const targetUserId = requestedUserId && isPriv ? requestedUserId : me.id;
   const weekStart = weekStartParam ? utcMidnight(weekStartParam) : utcMidnight(new Date());
   const weekEnd = new Date(weekStart.getTime() + 7 * MS_PER_DAY);
-
   const entries = await prisma.timeEntry.findMany({
     where: { userId: targetUserId, date: { gte: weekStart, lt: weekEnd } },
     include: {

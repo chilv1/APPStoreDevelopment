@@ -8,12 +8,13 @@ import ResourcesView from "@/components/planning/ResourcesView";
 import CalendarView from "@/components/planning/CalendarView";
 import VarianceView from "@/components/planning/VarianceView";
 import CostView from "@/components/planning/CostView";
+import PortfolioOverview from "@/components/planning/PortfolioOverview";
 import SnapshotsPanel from "@/components/planning/SnapshotsPanel";
 import AIPanel from "@/components/planning/AIPanel";
 import PhaseDrawer from "@/components/planning/PhaseDrawer";
 import type { PlanningStore, ScheduleResp, View } from "@/components/planning/types";
 
-const VIEWS: View[] = ["wbs", "gantt", "variance", "cost", "resources", "calendar"];
+const VIEWS: View[] = ["portfolio", "wbs", "gantt", "variance", "cost", "resources", "calendar"];
 
 export default function PlanningClient() {
   const t = useT();
@@ -113,6 +114,7 @@ export default function PlanningClient() {
         <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(15,23,42,0.04)", borderRadius: 10, border: "1px solid var(--border)" }}>
           {VIEWS.map((v) => {
             const labels: Record<View, string> = {
+              portfolio: "Portfolio",
               wbs: t.planning.viewWBS,
               gantt: t.planning.viewGantt,
               variance: "Variance",
@@ -120,7 +122,7 @@ export default function PlanningClient() {
               resources: t.planning.viewResources,
               calendar: t.planning.viewCalendar,
             };
-            const icons: Record<View, string> = { wbs: "🧱", gantt: "📊", variance: "📈", cost: "💰", resources: "👥", calendar: "📅" };
+            const icons: Record<View, string> = { portfolio: "📊", wbs: "🧱", gantt: "📊", variance: "📈", cost: "💰", resources: "👥", calendar: "📅" };
             const active = view === v;
             return (
               <button
@@ -181,8 +183,16 @@ export default function PlanningClient() {
         )}
       </div>
 
+      {/* Portfolio view doesn't need a store; rest do. */}
+      {view === "portfolio" && !loading && (
+        <PortfolioOverview
+          stores={stores}
+          onPickStore={(id) => { setStoreId(id); setView("wbs"); setSelectedPhaseId(null); }}
+        />
+      )}
+
       {/* Main content */}
-      {!activeStore && !loading && (
+      {view !== "portfolio" && !activeStore && !loading && (
         <div className="glass" style={{ borderRadius: 14, padding: 60, textAlign: "center", color: "var(--text-secondary)" }}>
           {t.planning.noProject}
         </div>
