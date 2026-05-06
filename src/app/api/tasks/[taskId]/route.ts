@@ -10,6 +10,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   const body = await request.json();
   const user = session.user as any;
 
+  // completedAt logic:
+  // - If client sent explicit completedAt, honor it (parsed as date, or null to clear)
+  // - Else if status transitions TO DONE, auto-set to now
+  // - Else if status transitions AWAY FROM DONE, clear to null
+  let completedAtPatch: { completedAt?: Date | null } = {};
+  if (body.completedAt !== undefined) {
+    completedAtPatch.completedAt = body.completedAt ? new Date(body.completedAt) : null;
+  } else if (body.status === "DONE") {
+    completedAtPatch.completedAt = new Date();
+  } else if (body.status && body.status !== "DONE") {
+    completedAtPatch.completedAt = null;
+  }
+
   const task = await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -18,14 +31,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.assigneeId !== undefined && { assigneeId: body.assigneeId }),
       ...(body.dueDate !== undefined && { dueDate: body.dueDate ? new Date(body.dueDate) : null }),
-      ...(body.status === "DONE" && { completedAt: new Date() }),
-      ...(body.status !== "DONE" && body.status && { completedAt: null }),
+      ...completedAtPatch,
     },
     include: {
       phase: { include: { store: true } },
       assignee: { select: { id: true, name: true } },
     },
   });
+
+  // Sync with Planificación: if task dueDate now exceeds the phase's plannedEnd,
+  // extend the phase so the Gantt bar reflects the new latest finish.
+  if (task.dueDate && task.phase) {
+    const phaseEnd = task.phase.plannedEnd ? new Date(task.phase.plannedEnd).getTime() : null;
+    const due = new Date(task.dueDate).getTime();
+    if (phaseEnd === null || due > phaseEnd) {
+      await prisma.phase.update({
+        where: { id: task.phaseId },
+        data: { plannedEnd: task.dueDate },
+      });
+    }
+  }
 
   // Log activity (non-critical — ignore FK errors from stale sessions)
   const dbUser = await prisma.user.findFirst({ where: { OR: [{ email: user.email }, { id: user.id }] }, select: { id: true } });

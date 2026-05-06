@@ -249,7 +249,7 @@ export default function StoreDetailPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {selectedPhase.tasks?.map((task: any) => (
                   <div key={task.id} className="task-item"
-                    onClick={() => setSelectedTask(task)}
+                    onClick={() => setSelectedTask({ ...task, phase: { id: selectedPhase.id, plannedStart: selectedPhase.plannedStart, plannedEnd: selectedPhase.plannedEnd, name: selectedPhase.name } })}
                     style={{ cursor: "pointer" }}>
                     {/* Checkbox */}
                     <div style={{
