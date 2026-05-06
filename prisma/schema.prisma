@@ -52,6 +52,7 @@ model User {
   issues         Issue[]        @relation("IssueReporter")
   phaseNotes     PhaseNote[]    @relation("PhaseNoteAuthor")
   baselines      PhaseBaseline[] @relation("BaselineCreator")
+  createdDeps    TaskDependency[] @relation("DepCreator")
 }
 
 model StoreProject {
@@ -93,10 +94,13 @@ model Phase {
   actualEnd   DateTime?
   order       Int
 
-  // Dependency tracking (FS | SS | FF | SF)
+  // ─── Legacy single-predecessor (deprecated, will be removed in P1.b) ───
+  // Kept temporarily so existing code paths keep working while we migrate
+  // callers to the new TaskDependency table. See prisma/migrations/.../README.
   dependencyType String  @default("FS")
   dependsOnId    String?
   lagDays        Int     @default(0)
+  // ─────────────────────────────────────────────────────────────────────
   progressPct    Int     @default(0)
 
   storeId String
@@ -106,6 +110,45 @@ model Phase {
 
   dependsOn  Phase?  @relation("PhaseDep", fields: [dependsOnId], references: [id], onDelete: SetNull)
   dependents Phase[] @relation("PhaseDep")
+
+  // New multi-predecessor edges. Either side may be empty — Phases without
+  // any incoming edge are project starts; without outgoing are leaves.
+  predecessorLinks TaskDependency[] @relation("DepSucc")
+  successorLinks   TaskDependency[] @relation("DepPred")
+}
+
+// Multi-predecessor dependency edge (Phase ↔ Phase).
+//
+// Replaces Phase.dependsOnId/dependencyType/lagDays with a proper join
+// table that supports N predecessors per phase, each with its own type
+// and lag. Backfilled on migration from the legacy single-pred fields;
+// new code should write here.
+//
+// `lagPercent` (0-100) overrides `lagDays` when non-null; engine uses
+// lagPercent × predecessor.duration to derive working-day lag.
+//
+// `hard` distinguishes constraint kinds: hard edges block scheduling
+// when violated (engine emits an error), soft edges only emit warnings.
+model TaskDependency {
+  id            String  @id @default(cuid())
+  predecessorId String
+  successorId   String
+  type          String  @default("FS") // "FS" | "SS" | "FF" | "SF"
+  lagDays       Int     @default(0)
+  lagPercent    Int?
+  hard          Boolean @default(true)
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  creator   User?    @relation("DepCreator", fields: [createdBy], references: [id])
+
+  predecessor Phase @relation("DepPred", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor   Phase @relation("DepSucc", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorId, successorId])
+  @@index([successorId])
 }
 
 // Quick text notes attached to a specific phase (for daily logging like
