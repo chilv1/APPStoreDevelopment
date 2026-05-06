@@ -224,18 +224,59 @@ export default function MasterGanttView({
 
   const todayOffset = dayOffset(new Date());
 
+  // Track the most recently opened store so we can auto-scroll to it after render.
+  const lastExpandedRef = useRef<Set<string>>(new Set());
+  const pendingScrollRef = useRef<string | null>(null);
+
   const toggleStore = (storeId: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(storeId)) {
         next.delete(storeId);
+        pendingScrollRef.current = null;
       } else {
         next.add(storeId);
         if (!schedulesByStore.has(storeId)) onRequestSchedule(storeId);
+        pendingScrollRef.current = storeId;
       }
       return next;
     });
   };
+
+  // After render, if a store was just expanded, scroll right col to center its bars.
+  useEffect(() => {
+    const sid = pendingScrollRef.current;
+    if (!sid) return;
+    if (!expanded.has(sid)) { pendingScrollRef.current = null; return; }
+    const right = rightRef.current;
+    const store = stores.find((s) => s.id === sid);
+    if (!right || !store) return;
+    pendingScrollRef.current = null;
+    let smin = Infinity, smax = -Infinity;
+    for (const p of store.phases) {
+      const ps = p.plannedStart ? new Date(p.plannedStart).getTime() : null;
+      const pe = p.plannedEnd ? new Date(p.plannedEnd).getTime() : null;
+      if (ps && ps < smin) smin = ps;
+      if (pe && pe > smax) smax = pe;
+    }
+    let targetLeft = right.scrollLeft;
+    if (Number.isFinite(smin) && Number.isFinite(smax)) {
+      const lx = dayOffset(new Date(smin)) ?? 0;
+      const rx = dayOffset(new Date(smax)) ?? 0;
+      const center = (lx + rx) / 2;
+      targetLeft = Math.max(0, Math.min(timelineWidth - right.clientWidth, center - right.clientWidth / 2));
+    }
+    // Vertical: place this store's group header just below sticky timeline header.
+    let yPos = HEADER_HEIGHT;
+    for (const s of stores) {
+      if (s.id === sid) break;
+      yPos += GROUP_HEIGHT;
+      if (lastExpandedRef.current.has(s.id)) yPos += s.phases.length * ROW_HEIGHT;
+    }
+    const targetTop = Math.max(0, yPos - HEADER_HEIGHT);
+    right.scrollTo({ left: targetLeft, top: targetTop, behavior: "auto" });
+    lastExpandedRef.current = new Set(expanded);
+  }, [expanded, stores, timelineWidth]);
 
   const expandAll = () => {
     const all = new Set(stores.map((s) => s.id));
