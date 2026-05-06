@@ -41,12 +41,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const phases = await prisma.phase.findMany({
     where: { storeId: id },
     orderBy: { order: "asc" },
-    select: { id: true, phaseNumber: true, name: true, status: true, plannedStart: true, plannedEnd: true, actualStart: true, actualEnd: true },
+    select: {
+      id: true, phaseNumber: true, name: true, status: true,
+      plannedStart: true, plannedEnd: true, actualStart: true, actualEnd: true,
+      fixedCost: true, progressPct: true,
+      assignments: { select: { workHours: true, cost: true, actualWork: true, resource: { select: { standardRate: true } } } },
+    },
   });
 
   const baselineByPhase = new Map(baseline.snapshots.map((s) => [s.phaseNumber, s]));
   let lateCount = 0, earlyCount = 0, onTrackCount = 0, unknownCount = 0;
   let maxLate = 0, maxEarly = 0, sumFinishDelta = 0, deltaSamples = 0;
+  let totCostBase = 0, totCostNow = 0, totWorkBase = 0, totWorkNow = 0;
   const rows = phases.map((p) => {
     const base = baselineByPhase.get(p.phaseNumber);
     const startDelta  = diffDays(base?.plannedStart ?? null, p.plannedStart ?? null);
@@ -63,12 +69,29 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (status === "UNKNOWN")  unknownCount++;
     if (typeof finishDelta === "number") { sumFinishDelta += finishDelta; deltaSamples++; }
 
+    // Time-phased baseline columns (Stream 3 P3)
+    const currentWork = p.assignments.reduce((s, a) => s + a.workHours, 0);
+    const currentCost = p.fixedCost + p.assignments.reduce((s, a) => s + a.cost, 0);
+    const baselineCost = (base as any)?.totalCost  ?? 0;
+    const baselineWork = (base as any)?.workHours  ?? 0;
+    const baselineProgress = (base as any)?.progressPct ?? 0;
+    const costDelta  = currentCost - baselineCost;
+    const workDelta  = currentWork - baselineWork;
+    const progressDelta = p.progressPct - baselineProgress;
+
+    totCostBase += baselineCost; totCostNow += currentCost;
+    totWorkBase += baselineWork; totWorkNow += currentWork;
+
     return {
       id: p.id, phaseNumber: p.phaseNumber, name: p.name, status: p.status,
       currentStart:  p.plannedStart, currentEnd:  p.plannedEnd,
       baselineStart: base?.plannedStart ?? null, baselineEnd: base?.plannedEnd ?? null,
       actualStart:   p.actualStart, actualEnd:    p.actualEnd,
       startDelta, finishDelta, varianceStatus: status,
+      // Time-phased
+      currentCost, baselineCost, costDelta,
+      currentWork, baselineWork, workDelta,
+      progressPct: p.progressPct, baselineProgress, progressDelta,
     };
   });
 
@@ -79,6 +102,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       avgFinishDelta: deltaSamples > 0 ? Math.round(sumFinishDelta / deltaSamples) : 0,
       maxLate, maxEarly, lateCount, earlyCount, onTrackCount, unknownCount,
       totalPhases: phases.length,
+      // Time-phased totals
+      totalCostBaseline: totCostBase,
+      totalCostCurrent:  totCostNow,
+      totalCostDelta:    totCostNow - totCostBase,
+      totalWorkBaseline: totWorkBase,
+      totalWorkCurrent:  totWorkNow,
+      totalWorkDelta:    totWorkNow - totWorkBase,
     },
   });
 }

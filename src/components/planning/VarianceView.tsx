@@ -10,12 +10,20 @@ interface VarianceRow {
   actualStart: string | null;   actualEnd: string | null;
   startDelta: number | null; finishDelta: number | null;
   varianceStatus: "ON_TRACK" | "EARLY" | "LATE" | "UNKNOWN";
+  currentCost: number; baselineCost: number; costDelta: number;
+  currentWork: number; baselineWork: number; workDelta: number;
+  progressPct: number; baselineProgress: number; progressDelta: number;
 }
 
 interface VarianceResp {
   baseline: { id: string; name: string; createdAt: string; creator: { name: string } | null } | null;
   rows: VarianceRow[];
-  summary: { avgFinishDelta: number; maxLate: number; maxEarly: number; lateCount: number; earlyCount: number; onTrackCount: number; unknownCount: number; totalPhases: number } | null;
+  summary: {
+    avgFinishDelta: number; maxLate: number; maxEarly: number;
+    lateCount: number; earlyCount: number; onTrackCount: number; unknownCount: number; totalPhases: number;
+    totalCostBaseline: number; totalCostCurrent: number; totalCostDelta: number;
+    totalWorkBaseline: number; totalWorkCurrent: number; totalWorkDelta: number;
+  } | null;
 }
 
 interface Props { storeId: string }
@@ -97,21 +105,36 @@ export default function VarianceView({ storeId }: Props) {
               {s.lateCount}<span style={{ fontSize: 14, color: "var(--text-muted)" }}>/{s.totalPhases}</span>
             </div>
           </div>
+          <div className="stat-card">
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Cost Δ</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.totalCostDelta > 0 ? "#dc2626" : s.totalCostDelta < 0 ? "#10b981" : "var(--text-primary)" }}>
+              {s.totalCostDelta > 0 ? "+" : ""}{s.totalCostDelta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{s.totalCostBaseline.toLocaleString(undefined, { maximumFractionDigits: 0 })} → {s.totalCostCurrent.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          </div>
+          <div className="stat-card">
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Work Δ</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.totalWorkDelta > 0 ? "#dc2626" : s.totalWorkDelta < 0 ? "#10b981" : "var(--text-primary)" }}>
+              {s.totalWorkDelta > 0 ? "+" : ""}{s.totalWorkDelta.toFixed(0)}h
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{s.totalWorkBaseline.toFixed(0)}h → {s.totalWorkCurrent.toFixed(0)}h</div>
+          </div>
         </div>
       </div>
 
       {/* Per-phase table */}
-      <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }}>
+      <div className="glass" style={{ borderRadius: 14, overflow: "auto" }}>
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ width: 50 }}>#</th>
+              <th style={{ width: 40 }}>#</th>
               <th>Phase</th>
-              <th style={{ width: 110 }}>Status</th>
-              <th style={{ width: 110 }}>Baseline finish</th>
-              <th style={{ width: 110 }}>Current finish</th>
-              <th style={{ width: 90 }}>Start Δ</th>
-              <th style={{ width: 90 }}>Finish Δ</th>
+              <th style={{ width: 90 }}>Status</th>
+              <th style={{ width: 90, textAlign: "right" }}>Start Δ</th>
+              <th style={{ width: 90, textAlign: "right" }}>Finish Δ</th>
+              <th style={{ width: 110, textAlign: "right" }}>Cost Δ</th>
+              <th style={{ width: 90, textAlign: "right" }}>Work Δ</th>
+              <th style={{ width: 90, textAlign: "right" }}>Progress Δ</th>
             </tr>
           </thead>
           <tbody>
@@ -119,15 +142,25 @@ export default function VarianceView({ storeId }: Props) {
               const m = STATUS_META[r.varianceStatus];
               const sd = deltaLabel(r.startDelta);
               const fd = deltaLabel(r.finishDelta);
+              const cdColor = r.costDelta > 0 ? "#dc2626" : r.costDelta < 0 ? "#10b981" : "var(--text-muted)";
+              const wdColor = r.workDelta > 0 ? "#dc2626" : r.workDelta < 0 ? "#10b981" : "var(--text-muted)";
+              const pdColor = r.progressDelta > 0 ? "#10b981" : r.progressDelta < 0 ? "#dc2626" : "var(--text-muted)";
               return (
                 <tr key={r.id}>
                   <td style={{ fontFamily: "monospace", color: "var(--text-secondary)", fontWeight: 600 }}>{r.phaseNumber}</td>
                   <td><div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{r.name}</div></td>
                   <td><span className="badge" style={{ background: m.bg, color: m.color, borderColor: "transparent" }}>{m.label}</span></td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.baselineEnd)}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(r.currentEnd)}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums", color: sd.color, fontWeight: 600 }}>{sd.text}</td>
-                  <td style={{ fontVariantNumeric: "tabular-nums", color: fd.color, fontWeight: 700 }}>{fd.text}</td>
+                  <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: sd.color, fontWeight: 600 }}>{sd.text}</td>
+                  <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: fd.color, fontWeight: 700 }}>{fd.text}</td>
+                  <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: cdColor, fontWeight: 600 }}>
+                    {r.costDelta === 0 ? "—" : (r.costDelta > 0 ? "+" : "") + r.costDelta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
+                  <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: wdColor, fontWeight: 600 }}>
+                    {r.workDelta === 0 ? "—" : (r.workDelta > 0 ? "+" : "") + r.workDelta.toFixed(0) + "h"}
+                  </td>
+                  <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: pdColor, fontWeight: 600 }}>
+                    {r.progressDelta === 0 ? "—" : (r.progressDelta > 0 ? "+" : "") + r.progressDelta + "pp"}
+                  </td>
                 </tr>
               );
             })}

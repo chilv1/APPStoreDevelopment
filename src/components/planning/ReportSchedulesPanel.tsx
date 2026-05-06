@@ -72,6 +72,17 @@ export default function ReportSchedulesPanel({ onClose }: Props) {
     load();
   };
 
+  const [preview, setPreview] = useState<{ subject: string; bodyMarkdown: string; recipients: string[] } | null>(null);
+  const [previewing, setPreviewing] = useState<string | null>(null);
+  const runPreview = async (id: string) => {
+    setPreviewing(id);
+    try {
+      const r = await fetch(`/api/report-schedules/${id}/run`, { method: "POST" });
+      if (r.ok) setPreview(await r.json());
+      load();
+    } finally { setPreviewing(null); }
+  };
+
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.25)", zIndex: 49, backdropFilter: "blur(2px)" }} />
@@ -107,6 +118,16 @@ export default function ReportSchedulesPanel({ onClose }: Props) {
 
           {loading && <div style={{ color: "var(--text-secondary)" }}>Loading…</div>}
           {!loading && list.length === 0 && <div style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 13 }}>No schedules yet.</div>}
+          {preview && (
+            <div className="task-item" style={{ flexDirection: "column", padding: 12, gap: 8, alignItems: "stretch", borderLeft: "3px solid #3b82f6" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <strong style={{ fontSize: 12, flex: 1 }}>📨 Preview · {preview.subject}</strong>
+                <button onClick={() => setPreview(null)} style={{ background: "transparent", border: "none", fontSize: 16, color: "var(--text-muted)", cursor: "pointer" }}>×</button>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>To: {preview.recipients.length === 0 ? "(no recipients configured)" : preview.recipients.join(", ")}</div>
+              <pre style={{ background: "rgba(15,23,42,0.04)", padding: 10, borderRadius: 6, fontSize: 11, lineHeight: 1.5, overflow: "auto", maxHeight: 240, whiteSpace: "pre-wrap" }}>{preview.bodyMarkdown}</pre>
+            </div>
+          )}
           {list.map((s) => {
             let recipients: string[] = [];
             try { recipients = JSON.parse(s.recipients) as string[]; } catch {}
@@ -120,6 +141,9 @@ export default function ReportSchedulesPanel({ onClose }: Props) {
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>cron: {s.cron}</div>
                 <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>To: {recipients.join(", ") || "—"}</div>
                 <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => runPreview(s.id)} disabled={previewing === s.id} className="gradient-btn" style={{ padding: "4px 12px", borderRadius: 4, border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: previewing === s.id ? "not-allowed" : "pointer" }}>
+                    {previewing === s.id ? "..." : "▶ Preview"}
+                  </button>
                   <button onClick={() => toggle(s)} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid var(--border)", background: "transparent", fontSize: 11, color: "var(--text-secondary)", cursor: "pointer" }}>
                     {s.enabled ? "Disable" : "Enable"}
                   </button>

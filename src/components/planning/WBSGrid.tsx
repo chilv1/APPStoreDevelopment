@@ -4,6 +4,15 @@ import { useState } from "react";
 import { useT } from "@/lib/i18n/context";
 import type { PlanningStore, ScheduleResp } from "./types";
 
+interface NLSuggestion {
+  name: string;
+  durationDays: number;
+  dependsOnPhaseNumber?: number;
+  depType?: "FS" | "SS" | "FF" | "SF";
+  lagDays?: number;
+  deadline?: string;
+}
+
 interface Props {
   store: PlanningStore;
   schedule: ScheduleResp | null;
@@ -71,6 +80,8 @@ export default function WBSGrid({ store, schedule, selectedPhaseId, onSelectPhas
 
   return (
     <div className="glass" style={{ borderRadius: 14, overflow: "hidden" }}>
+      {/* NL task creation strip */}
+      <NLAddTaskStrip store={store} onMutate={() => onMutate?.()} />
       <table className="data-table">
         <thead>
           <tr>
@@ -172,6 +183,115 @@ export default function WBSGrid({ store, schedule, selectedPhaseId, onSelectPhas
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ── NL task creation strip (Stream 9 P3) ──────────────────────────────────
+
+function NLAddTaskStrip({ store, onMutate }: { store: PlanningStore; onMutate: () => void }) {
+  const [text, setText] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [suggestion, setSuggestion] = useState<NLSuggestion | null>(null);
+  const [source, setSource] = useState<"llm" | "regex" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const parse = async () => {
+    if (!text.trim()) return;
+    setParsing(true); setError(null); setSuggestion(null);
+    try {
+      const r = await fetch("/api/ai/parse-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, storeId: store.id }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error ?? "Parse failed");
+      setSuggestion(data.suggestion);
+      setSource(data.source);
+    } catch (e: any) { setError(String(e.message ?? e)); }
+    finally { setParsing(false); }
+  };
+
+  const create = async () => {
+    if (!suggestion) return;
+    setCreating(true); setError(null);
+    try {
+      const dependsOnId = suggestion.dependsOnPhaseNumber
+        ? store.phases.find((p) => p.phaseNumber === suggestion.dependsOnPhaseNumber)?.id
+        : undefined;
+      const r = await fetch(`/api/stores/${store.id}/phases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: suggestion.name,
+          durationDays: suggestion.durationDays,
+          dependsOnId,
+          dependencyType: suggestion.depType ?? "FS",
+          lagDays: suggestion.lagDays ?? 0,
+        }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e?.error ?? "Create failed");
+      }
+      // If deadline supplied, PATCH it after creation.
+      if (suggestion.deadline) {
+        const created = await r.json();
+        const newId = created?.phase?.id ?? created?.id;
+        if (newId) {
+          await fetch(`/api/phases/${newId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deadline: suggestion.deadline }),
+          });
+        }
+      }
+      setText(""); setSuggestion(null); setSource(null);
+      onMutate();
+    } catch (e: any) { setError(String(e.message ?? e)); }
+    finally { setCreating(false); }
+  };
+
+  return (
+    <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8, background: "rgba(59,130,246,0.02)" }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>✨ Add task in plain language</span>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          className="input"
+          placeholder='e.g. "Civil works, 14 days, after F.3 with 2-day lag, deadline 2026-12-15"'
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") parse(); }}
+          style={{ fontSize: 13 }}
+        />
+        <button onClick={parse} disabled={parsing || !text.trim()} className="gradient-btn" style={{ padding: "8px 14px", borderRadius: 6, border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: parsing ? "not-allowed" : "pointer" }}>
+          {parsing ? "..." : "Parse"}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 12, color: "#dc2626" }}>⚠ {error}</div>}
+      {suggestion && (
+        <div className="task-item" style={{ padding: 10, gap: 10, alignItems: "center" }}>
+          <span className="badge" style={{
+            background: source === "llm" ? "rgba(139,92,246,0.1)" : "rgba(15,23,42,0.05)",
+            color:      source === "llm" ? "#7c3aed" : "var(--text-muted)",
+            borderColor: "transparent", fontSize: 9,
+          }}>{source === "llm" ? "✨ LLM" : "📐 Regex"}</span>
+          <div style={{ flex: 1, fontSize: 12 }}>
+            <strong>{suggestion.name}</strong> · {suggestion.durationDays}d
+            {suggestion.dependsOnPhaseNumber && <> · after F.{suggestion.dependsOnPhaseNumber} ({suggestion.depType ?? "FS"})</>}
+            {suggestion.lagDays ? <> · lag {suggestion.lagDays}d</> : null}
+            {suggestion.deadline && <> · ⏰ {suggestion.deadline}</>}
+          </div>
+          <button onClick={() => { setSuggestion(null); setSource(null); }} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "var(--text-secondary)", cursor: "pointer" }}>Cancel</button>
+          <button onClick={create} disabled={creating} className="gradient-btn" style={{ padding: "4px 12px", borderRadius: 4, border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: creating ? "not-allowed" : "pointer" }}>
+            {creating ? "..." : "+ Add task"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { applyScheduleToStore, scheduleStore } from "@/lib/scheduler/db-bridge";
+import { levelSchedule } from "@/lib/scheduler/leveling";
 
 async function userCanReadStore(user: any, storeId: string): Promise<boolean> {
   if (["ADMIN", "AREA_MANAGER"].includes(user.role)) return true;
@@ -39,7 +40,7 @@ async function userCanEditStore(user: any, storeId: string): Promise<boolean> {
   return false;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
@@ -48,6 +49,31 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const result = await scheduleStore(prisma, id);
+
+  // Stream 2 P3 / P4-B — optional resource leveling pass.
+  const url = new URL(req.url);
+  if (url.searchParams.get("level") === "true") {
+    const assignments = await prisma.resourceAssignment.findMany({
+      where: { phase: { storeId: id } },
+      select: { phaseId: true, resourceId: true, units: true,
+        resource: { select: { maxUnits: true } } },
+    });
+    const allowSlippage = url.searchParams.get("allowSlip") === "true";
+    const leveled = levelSchedule({
+      tasks: result.tasks,
+      assignments: assignments.map((a) => ({
+        taskId: a.phaseId, resourceId: a.resourceId,
+        units: a.units, maxUnits: a.resource.maxUnits, priority: 0,
+      })),
+      allowSlippage,
+    });
+    return NextResponse.json({
+      ...result,
+      tasks: leveled.tasks,
+      leveling: { moves: leveled.moves, iterations: leveled.iterations, resolved: leveled.resolved },
+    });
+  }
+
   return NextResponse.json(result);
 }
 
