@@ -18,7 +18,7 @@ export type Dict = {
   planning: {
     title: string; subtitle: string;
     pickProject: string; noProject: string;
-    viewWBS: string; viewGantt: string; viewResources: string; viewCalendar: string;
+    viewGantt: string; viewResources: string; viewCalendar: string;
     colWBS: string; colName: string; colDur: string; colStart: string; colFinish: string;
     colPredecessors: string; colProgress: string; colCritical: string;
     days: string; criticalPath: string; criticalPathBadge: string;

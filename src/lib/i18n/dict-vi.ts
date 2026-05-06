@@ -27,7 +27,6 @@ const dict: Dict = {
     subtitle: "Quản lý tiến độ + phụ thuộc cho từng cửa hàng (giống MS Project)",
     pickProject: "Chọn cửa hàng",
     noProject: "Chưa chọn cửa hàng",
-    viewWBS: "Cấu trúc",
     viewGantt: "Cronograma",
     viewResources: "Nguồn lực",
     viewCalendar: "Lịch",

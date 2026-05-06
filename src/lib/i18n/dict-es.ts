@@ -27,7 +27,6 @@ const dict: Dict = {
     subtitle: "Cronograma + dependencias por tienda (estilo MS Project)",
     pickProject: "Elegir tienda",
     noProject: "Sin tienda seleccionada",
-    viewWBS: "Estructura",
     viewGantt: "Cronograma",
     viewResources: "Recursos",
     viewCalendar: "Calendario",
