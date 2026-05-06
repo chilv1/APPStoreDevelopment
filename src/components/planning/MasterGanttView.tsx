@@ -53,6 +53,15 @@ function durationDays(start: string | null, end: string | null): string {
   return `${days}d`;
 }
 
+// Bar dates: prefer actual when both ends are recorded, else fall back to planned.
+// "Both or none" — avoids invalid mixed ranges (e.g. actualStart > plannedEnd).
+function effectiveDates(phase: PlanningPhase): { start: string | null; end: string | null; fromActual: boolean } {
+  const hasActual = !!(phase.actualStart && phase.actualEnd);
+  return hasActual
+    ? { start: phase.actualStart, end: phase.actualEnd, fromActual: true }
+    : { start: phase.plannedStart, end: phase.plannedEnd, fromActual: false };
+}
+
 function fmtPredecessor(phase: PlanningPhase, storePhases: PlanningPhase[]): string {
   if (!phase.dependsOnId) return "";
   const pred = storePhases.find((p) => p.id === phase.dependsOnId);
@@ -117,13 +126,14 @@ export default function MasterGanttView({
     return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [stores]);
 
-  // Global timeline range across ALL phases.
+  // Global timeline range across ALL phases (using effective bar dates).
   const { rangeStart, totalDays } = useMemo(() => {
     let minMs = Infinity, maxMs = -Infinity;
     for (const s of stores) {
       for (const p of s.phases) {
-        const ps = p.plannedStart ? new Date(p.plannedStart).getTime() : null;
-        const pe = p.plannedEnd ? new Date(p.plannedEnd).getTime() : null;
+        const eff = effectiveDates(p);
+        const ps = eff.start ? new Date(eff.start).getTime() : null;
+        const pe = eff.end ? new Date(eff.end).getTime() : null;
         if (ps && ps < minMs) minMs = ps;
         if (pe && pe > maxMs) maxMs = pe;
       }
@@ -227,8 +237,9 @@ export default function MasterGanttView({
     pendingScrollRef.current = null;
     let smin = Infinity, smax = -Infinity;
     for (const p of store.phases) {
-      const ps = p.plannedStart ? new Date(p.plannedStart).getTime() : null;
-      const pe = p.plannedEnd ? new Date(p.plannedEnd).getTime() : null;
+      const eff = effectiveDates(p);
+      const ps = eff.start ? new Date(eff.start).getTime() : null;
+      const pe = eff.end ? new Date(eff.end).getTime() : null;
       if (ps && ps < smin) smin = ps;
       if (pe && pe > smax) smax = pe;
     }
@@ -331,18 +342,21 @@ export default function MasterGanttView({
       } else {
         const store = stores.find((s) => s.id === row.storeId);
         const phase = store?.phases[row.phaseIdx];
-        if (phase && phase.plannedStart && phase.plannedEnd) {
-          const x = dayOffset(phase.plannedStart);
-          const e = dayOffset(phase.plannedEnd);
-          if (x !== null && e !== null) {
-            const top = yCursor + 5;
-            const barH = ROW_HEIGHT - 12;
-            phaseCoords.set(phase.id, {
-              left: x,
-              right: e,
-              top,
-              midY: top + barH / 2,
-            });
+        if (phase) {
+          const eff = effectiveDates(phase);
+          if (eff.start && eff.end) {
+            const x = dayOffset(eff.start);
+            const e = dayOffset(eff.end);
+            if (x !== null && e !== null) {
+              const top = yCursor + 5;
+              const barH = ROW_HEIGHT - 12;
+              phaseCoords.set(phase.id, {
+                left: x,
+                right: e,
+                top,
+                midY: top + barH / 2,
+              });
+            }
           }
         }
         yCursor += ROW_HEIGHT;
@@ -630,8 +644,9 @@ export default function MasterGanttView({
                   const s = row.store;
                   let smin = Infinity, smax = -Infinity;
                   for (const p of s.phases) {
-                    const ps = p.plannedStart ? new Date(p.plannedStart).getTime() : null;
-                    const pe = p.plannedEnd ? new Date(p.plannedEnd).getTime() : null;
+                    const eff = effectiveDates(p);
+                    const ps = eff.start ? new Date(eff.start).getTime() : null;
+                    const pe = eff.end ? new Date(eff.end).getTime() : null;
                     if (ps && ps < smin) smin = ps;
                     if (pe && pe > smax) smax = pe;
                   }
@@ -668,8 +683,9 @@ export default function MasterGanttView({
                   const isSelected = selectedPhaseId === phase.id;
                   const isCompleted = phase.status === "COMPLETED";
                   const matches = phaseMatchesFilter(phase.assignees ?? []);
-                  const x = dayOffset(phase.plannedStart);
-                  const e = dayOffset(phase.plannedEnd);
+                  const eff = effectiveDates(phase);
+                  const x = dayOffset(eff.start);
+                  const e = dayOffset(eff.end);
                   if (x === null || e === null) { yCursor += ROW_HEIGHT; continue; }
                   const isDragging = drag?.phaseId === phase.id;
                   const dx = isDragging && drag.mode === "move" ? drag.deltaDays * pxPerDay : 0;
@@ -681,29 +697,41 @@ export default function MasterGanttView({
                   const top = yCursor + 5;
                   const barColor = isCompleted ? "#10b981" : isCritical ? "#ef4444" : phase.status === "BLOCKED" ? "#f59e0b" : "#3b82f6";
                   const resourceText = fmtResources(phase.assignees);
+                  // When the bar represents actual dates, dragging would still write to plannedStart/End → bar wouldn't move visually after save. Disable drag-resize in that case.
+                  const dragHandler = eff.fromActual ? undefined : onPointerDown(row.storeId, phase.id, "move");
+                  const titleText =
+                    `${phase.name} · ${eff.start?.slice(0, 10)} → ${eff.end?.slice(0, 10)}` +
+                    (eff.fromActual ? "  (actual)" : "  (planeado)") +
+                    (phase.assignees?.length ? `\n${resourceText}` : "");
                   elements.push(
                     <div key={phase.id} style={{ opacity: matches ? 1 : 0.3, transition: "opacity 0.15s ease" }}>
                       <div
                         onClick={() => onSelectPhase(phase.id, row.storeId)}
-                        onPointerDown={onPointerDown(row.storeId, phase.id, "move")}
-                        title={`${phase.name} · ${phase.plannedStart?.slice(0, 10)} → ${phase.plannedEnd?.slice(0, 10)}${phase.assignees?.length ? `\n${resourceText}` : ""}`}
+                        onPointerDown={dragHandler}
+                        title={titleText}
                         style={{
                           position: "absolute",
                           left, top, width: w, height: ROW_HEIGHT - 12,
                           background: barColor, borderRadius: 4,
-                          cursor: drag ? "grabbing" : "grab",
+                          cursor: eff.fromActual ? "default" : (drag ? "grabbing" : "grab"),
                           boxShadow: isSelected ? "0 0 0 2px rgba(59,130,246,0.4)" : "none",
                           display: "flex", alignItems: "center", padding: "0 6px",
                           overflow: "hidden", fontSize: 10, fontWeight: 600, color: "#fff",
                           whiteSpace: "nowrap", textOverflow: "ellipsis",
                           userSelect: "none", touchAction: "none",
                           zIndex: 1,
+                          // Subtle visual cue that the bar is locked to actual dates
+                          outline: eff.fromActual ? "1px solid rgba(255,255,255,0.5)" : "none",
                         }}
                       >
                         {phase.pct > 0 && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${phase.pct}%`, background: "rgba(0,0,0,0.18)" }} />}
                         <span style={{ position: "relative", zIndex: 1 }}>{w > 50 ? phase.name : ""}</span>
-                        <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-start")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
-                        <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-end")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
+                        {!eff.fromActual && (
+                          <>
+                            <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-start")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
+                            <div onPointerDown={onPointerDown(row.storeId, phase.id, "resize-end")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 4, cursor: "ew-resize" }} onClick={(ev) => ev.stopPropagation()} />
+                          </>
+                        )}
                       </div>
                       {/* Resource label next to bar (MS Project style) */}
                       {phase.assignees && phase.assignees.length > 0 && w > 0 && (
