@@ -11,9 +11,25 @@ export const LOCALE_INFO: Record<Locale, { flag: string; name: string; short: st
 
 export type Dict = {
   sidebar: {
-    overview: string; stores: string; portfolioGantt: string; branches: string;
-    map: string; reports: string; users: string; phaseTemplates: string;
-    logout: string; mainMenu: string; admin: string;
+    overview: string; stores: string; portfolioGantt: string; planning: string;
+    branches: string; map: string; reports: string; users: string;
+    phaseTemplates: string; logout: string; mainMenu: string; admin: string;
+  };
+  planning: {
+    title: string; subtitle: string;
+    pickProject: string; noProject: string;
+    viewWBS: string; viewGantt: string; viewResources: string; viewCalendar: string;
+    colWBS: string; colName: string; colDur: string; colStart: string; colFinish: string;
+    colPredecessors: string; colProgress: string; colCritical: string;
+    days: string; criticalPath: string; criticalPathBadge: string;
+    addPredecessor: string; predecessorType: string; lag: string; lagDays: string;
+    typeFS: string; typeSS: string; typeFF: string; typeSF: string;
+    deleteEdge: string; saveEdge: string; cycleError: string;
+    recompute: string; recomputed: string;
+    detailTitle: string; detailDates: string; detailDeps: string; detailNotes: string;
+    noDeps: string; noResources: string; noCalendar: string;
+    summary: string; milestone: string; task: string;
+    project: string; phases: string; durationLabel: string; floatLabel: string; finishLabel: string;
   };
   common: {
     save: string; cancel: string; delete: string; edit: string; create: string;
