@@ -186,10 +186,22 @@ export async function cascadeDependents(
         newStartMs = cEnd.getTime() + lagMs;
       }
 
+      // Only push FORWARD — never pull dependents backward when a predecessor
+      // finishes earlier than planned. MS-Project semantics: an early actual
+      // doesn't auto-reschedule downstream phases earlier (that needs manual
+      // re-leveling). Pulling backward would cause successors to start before
+      // their predecessor's planned position, visually overlapping the bars.
+      const currentStartMs = dep.plannedStart ? new Date(dep.plannedStart).getTime() : -Infinity;
+      if (newStartMs <= currentStartMs) {
+        // No forward push needed for this dep, and therefore no propagation
+        // to its own dependents either (the change didn't reach this branch).
+        continue;
+      }
+
       const newStart = new Date(newStartMs);
       const newEnd = new Date(newStartMs + oldDurMs);
 
-      // Always update planned dates so the new plan reflects the slip end-to-end.
+      // Update planned dates so the new plan reflects the slip end-to-end.
       // Actuals (historical fact) are NOT touched — they still drive the bar
       // position for completed/in-progress phases.
       updates.push({ id: dep.id, plannedStart: newStart, plannedEnd: newEnd });
