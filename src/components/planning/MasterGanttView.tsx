@@ -24,16 +24,16 @@ const GROUP_HEIGHT = 44;
 const HEADER_HEIGHT = 50;
 const MS_PER_DAY = 86_400_000;
 
-// Left-panel column widths (MS-Project style table)
-const COL_NUM_W = 30;
-const COL_DUR_W = 54;
-const COL_START_W = 80;
-const COL_FINISH_W = 80;
-const COL_PRED_W = 70;
-const COL_RES_W = 170;
-const COL_NAME_MIN_W = 180;
-const NAME_COL_WIDTH = COL_NUM_W + COL_NAME_MIN_W + COL_DUR_W + COL_START_W + COL_FINISH_W + COL_PRED_W + COL_RES_W;
-const GRID_TEMPLATE = `${COL_NUM_W}px minmax(${COL_NAME_MIN_W}px, 1fr) ${COL_DUR_W}px ${COL_START_W}px ${COL_FINISH_W}px ${COL_PRED_W}px ${COL_RES_W}px`;
+// Left-panel column widths (MS-Project style table). Defaults; user can resize
+// via header drag handles, persisted in localStorage.
+const COL_KEYS = ["num", "name", "dur", "start", "finish", "pred", "res"] as const;
+type ColKey = typeof COL_KEYS[number];
+const HEADERS = ["#", "Tarea", "Dur", "Inicio", "Fin", "Pred", "Recursos"];
+const DEFAULT_COL_WIDTHS: Record<ColKey, number> = {
+  num: 30, name: 240, dur: 54, start: 90, finish: 90, pred: 70, res: 170,
+};
+const COL_WIDTHS_KEY = "gantt-master-col-widths-v1";
+const MIN_COL_WIDTH = 30;
 
 type Zoom = "day" | "week" | "month";
 const PX_PER_DAY: Record<Zoom, number> = { day: 26, week: 14, month: 4 };
@@ -116,8 +116,43 @@ export default function MasterGanttView({
   const [drag, setDrag] = useState<DragState | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const [taskFilter, setTaskFilter] = useState<string>("");
+
+  // Column widths — load from localStorage, persist on change
+  const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
+    if (typeof window === "undefined") return DEFAULT_COL_WIDTHS;
+    try {
+      const raw = localStorage.getItem(COL_WIDTHS_KEY);
+      if (raw) return { ...DEFAULT_COL_WIDTHS, ...JSON.parse(raw) };
+    } catch { /* ignore */ }
+    return DEFAULT_COL_WIDTHS;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(COL_WIDTHS_KEY, JSON.stringify(colWidths)); } catch { /* ignore */ }
+  }, [colWidths]);
+  const NAME_COL_WIDTH = COL_KEYS.reduce((s, k) => s + colWidths[k], 0);
+  const GRID_TEMPLATE = COL_KEYS.map((k) => `${colWidths[k]}px`).join(" ");
+
+  // Column resize drag state
+  const [colResize, setColResize] = useState<{ key: ColKey; startX: number; startW: number } | null>(null);
+  useEffect(() => {
+    if (!colResize) return;
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - colResize.startX;
+      const newW = Math.max(MIN_COL_WIDTH, colResize.startW + dx);
+      setColWidths((prev) => ({ ...prev, [colResize.key]: newW }));
+    };
+    const onUp = () => setColResize(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [colResize]);
 
   const effectiveFilterUserId = assigneeFilter === "me" ? currentUserId : assigneeFilter;
+  const taskFilterLower = taskFilter.trim().toLowerCase();
 
   const allAssignees = useMemo<PlanningAssignee[]>(() => {
     const seen = new Map<string, PlanningAssignee>();
@@ -215,21 +250,30 @@ export default function MasterGanttView({
   type Row =
     | { kind: "store"; store: PlanningStore }
     | { kind: "phase"; storeId: string; phaseIdx: number };
+  // Filter check: phase must match BOTH assignee filter AND task name filter
+  // (when both active). Non-matching phases are HIDDEN entirely (not dimmed).
+  const phaseMatchesFilters = (p: PlanningPhase): boolean => {
+    if (effectiveFilterUserId) {
+      const has = (p.assignees ?? []).some((u) => u.id === effectiveFilterUserId);
+      if (!has) return false;
+    }
+    if (taskFilterLower && !p.name.toLowerCase().includes(taskFilterLower)) return false;
+    return true;
+  };
+
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
     for (const s of stores) {
       out.push({ kind: "store", store: s });
       if (expanded.has(s.id)) {
-        for (let i = 0; i < s.phases.length; i++) out.push({ kind: "phase", storeId: s.id, phaseIdx: i });
+        for (let i = 0; i < s.phases.length; i++) {
+          if (!phaseMatchesFilters(s.phases[i])) continue;
+          out.push({ kind: "phase", storeId: s.id, phaseIdx: i });
+        }
       }
     }
     return out;
-  }, [stores, expanded]);
-
-  const phaseMatchesFilter = (assignees: PlanningAssignee[]): boolean => {
-    if (!effectiveFilterUserId) return true;
-    return assignees.some((u) => u.id === effectiveFilterUserId);
-  };
+  }, [stores, expanded, effectiveFilterUserId, taskFilterLower]);
 
   // Auto-scroll to expanded store
   useEffect(() => {
@@ -484,6 +528,18 @@ export default function MasterGanttView({
           </select>
         </div>
 
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>🔍</span>
+          <input
+            type="text"
+            className="input"
+            placeholder="Buscar tarea..."
+            style={{ padding: "4px 8px", fontSize: 11, minWidth: 140 }}
+            value={taskFilter}
+            onChange={(e) => setTaskFilter(e.target.value)}
+          />
+        </div>
+
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
           {stores.length} tiendas · {expanded.size} expanded
         </span>
@@ -525,9 +581,36 @@ export default function MasterGanttView({
             textTransform: "uppercase",
             letterSpacing: "0.06em",
           }}>
-            {["#", "Tarea", "Dur", "Inicio", "Fin", "Pred", "Recursos"].map((h, i) => (
-              <div key={i} style={{ padding: "0 8px 8px 8px", borderRight: i < 6 ? "1px solid rgba(15,23,42,0.06)" : "none" }}>{h}</div>
-            ))}
+            {HEADERS.map((h, i) => {
+              const key = COL_KEYS[i];
+              const isLast = i === HEADERS.length - 1;
+              return (
+                <div key={i} style={{ position: "relative", padding: "0 8px 8px 8px", borderRight: !isLast ? "1px solid rgba(15,23,42,0.06)" : "none" }}>
+                  {h}
+                  <div
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setColResize({ key, startX: e.clientX, startW: colWidths[key] });
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: isLast ? -4 : -3,
+                      top: 0, bottom: 0,
+                      width: isLast ? 8 : 6,
+                      cursor: "col-resize",
+                      zIndex: 10,
+                      background: colResize?.key === key ? "rgba(59,130,246,0.5)" : (isLast ? "rgba(59,130,246,0.05)" : "transparent"),
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(ev) => { (ev.currentTarget as HTMLDivElement).style.background = "rgba(59,130,246,0.4)"; }}
+                    onMouseLeave={(ev) => {
+                      const el = ev.currentTarget as HTMLDivElement;
+                      el.style.background = colResize?.key === key ? "rgba(59,130,246,0.5)" : (isLast ? "rgba(59,130,246,0.05)" : "transparent");
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {rows.map((row) => {
@@ -569,7 +652,6 @@ export default function MasterGanttView({
             const criticalSet = new Set(schedule?.criticalPath ?? []);
             const isCritical = criticalSet.has(phase.id);
             const isSelected = selectedPhaseId === phase.id;
-            const matches = phaseMatchesFilter(phase.assignees ?? []);
             const resourceText = fmtResources(phase.assignees);
             return (
               <div
@@ -583,14 +665,12 @@ export default function MasterGanttView({
                   cursor: "pointer",
                   background: isSelected ? "rgba(59,130,246,0.08)" : "transparent",
                   borderLeft: isCritical ? "3px solid #ef4444" : "3px solid transparent",
-                  opacity: matches ? 1 : 0.3,
-                  transition: "opacity 0.15s ease",
                   alignItems: "center",
                 }}
               >
                 <div style={cellStyle({ color: "var(--text-muted)", fontFamily: "monospace", fontSize: 10, justifyContent: "center" })}>{phase.phaseNumber}</div>
-                <div style={cellStyle({ overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" })}>
-                  <span style={{ color: "var(--text-primary)", fontWeight: isSelected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={phase.name}>{phase.name}</span>
+                <div style={cellStyle({ overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start" })}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: isSelected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%", display: "block" }} title={phase.name}>{phase.name}</span>
                   <div style={{ width: "100%", height: 3, background: "rgba(15,23,42,0.06)", borderRadius: 2, marginTop: 3 }}>
                     <div style={{ width: `${Math.max(0, Math.min(100, phase.pct))}%`, height: "100%", background: phase.pct >= 100 ? "#10b981" : "#3b82f6", borderRadius: 2 }} />
                   </div>
@@ -733,7 +813,6 @@ export default function MasterGanttView({
                   const isCritical = criticalSet.has(phase.id);
                   const isSelected = selectedPhaseId === phase.id;
                   const isCompleted = phase.status === "COMPLETED";
-                  const matches = phaseMatchesFilter(phase.assignees ?? []);
                   const eff = effectiveDates(phase);
                   const x = dayOffset(eff.start);
                   const e = dayOffset(eff.end);
@@ -755,7 +834,7 @@ export default function MasterGanttView({
                     (eff.fromActual ? "  (actual)" : "  (planeado)") +
                     (phase.assignees?.length ? `\n${resourceText}` : "");
                   elements.push(
-                    <div key={phase.id} style={{ opacity: matches ? 1 : 0.3, transition: "opacity 0.15s ease" }}>
+                    <div key={phase.id}>
                       <div
                         onClick={() => onSelectPhase(phase.id, row.storeId)}
                         onPointerDown={dragHandler}

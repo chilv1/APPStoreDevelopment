@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Master Gantt v2 — Mockup (canh trái + filter + resize cột)</title>
+<style>
+  :root {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --border: rgba(15, 23, 42, 0.1);
+    --border-hover: rgba(15, 23, 42, 0.18);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-red: #ef4444;
+    --accent-green: #10b981;
+    --gradient-brand: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    padding: 16px;
+    min-height: 100vh;
+    font-size: 13px;
+  }
+  .header {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;
+  }
+  .header h1 { font-size: 20px; font-weight: 800; }
+  .header p { color: var(--text-secondary); font-size: 12px; }
+  .demo-banner {
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .demo-banner strong { color: var(--accent-blue); }
+
+  .glass {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  /* ─ TOOLBAR ─ */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .toolbar-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .zoom-group {
+    display: flex; gap: 2px; padding: 2px;
+    background: rgba(15,23,42,0.04);
+    border-radius: 6px;
+  }
+  .zoom-btn {
+    padding: 4px 10px; border-radius: 4px; border: none;
+    cursor: pointer; font-size: 11px; font-weight: 600;
+    background: transparent; color: var(--text-secondary);
+  }
+  .zoom-btn.active {
+    background: var(--gradient-brand); color: #fff;
+  }
+  .btn-base {
+    padding: 4px 8px; border-radius: 4px;
+    border: 1px solid var(--border); background: transparent;
+    font-size: 11px; font-weight: 600;
+    color: var(--text-secondary); cursor: pointer;
+  }
+  .input {
+    padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 11px; min-width: 140px;
+    color: var(--text-primary); background: #fff;
+    outline: none;
+  }
+  .input:focus { border-color: var(--accent-blue); }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-group .icon { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+  .stats {
+    font-size: 11px; color: var(--text-muted);
+  }
+
+  /* ─ BODY ─ */
+  .body {
+    display: flex;
+    max-height: 720px;
+  }
+  .left-panel {
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+    flex-shrink: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .left-panel::-webkit-scrollbar { width: 0; }
+
+  /* ─ TABLE HEADER ─ */
+  .table-header {
+    position: sticky; top: 0; z-index: 3;
+    height: 50px;
+    display: grid;
+    align-items: end;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    font-size: 10px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .header-cell {
+    position: relative;
+    padding: 0 8px 8px 8px;
+    border-right: 1px solid rgba(15,23,42,0.06);
+  }
+  .header-cell:last-child { border-right: none; }
+  .resize-handle {
+    position: absolute;
+    right: -3px; top: 0; bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background 0.15s;
+  }
+  .resize-handle:hover { background: rgba(59,130,246,0.4); }
+  .resize-handle.active { background: rgba(59,130,246,0.6); }
+  /* Last handle (right edge of Recursos = left-panel boundary) — slightly
+     wider so it's easier to grab. Extends into the timeline area. */
+  .resize-handle-last {
+    width: 8px;
+    right: -4px;
+    background: rgba(59,130,246,0.05);
+  }
+  .resize-handle-last:hover { background: rgba(59,130,246,0.5); }
+
+  /* ─ STORE ROW ─ */
+  .store-row {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; cursor: pointer;
+    background: rgba(99,102,241,0.04);
+    font-weight: 700;
+  }
+  .store-row .chevron {
+    font-size: 10px; color: var(--text-muted); width: 10px;
+  }
+  .store-row .code {
+    color: var(--text-muted); font-family: monospace; font-size: 11px; margin-right: 6px;
+  }
+  .store-row .progress {
+    width: 100%; height: 3px; background: rgba(15,23,42,0.06); border-radius: 2px; margin-top: 3px;
+  }
+  .store-row .progress-fill {
+    height: 100%; background: var(--accent-blue); border-radius: 2px;
+  }
+  .store-row .name-wrap { flex: 1; min-width: 0; }
+  .store-row .name-line { display: flex; align-items: center; gap: 6px; }
+  .store-row .name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+    color: var(--text-primary);
+  }
+  .store-row .count {
+    font-size: 10px; color: var(--text-muted); font-weight: 600;
+  }
+
+  /* ─ PHASE ROW ─ */
+  .phase-row {
+    display: grid;
+    height: 36px;
+    border-bottom: 1px solid rgba(15,23,42,0.05);
+    font-size: 11px;
+    cursor: pointer;
+    background: transparent;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+    align-items: center;
+  }
+  .phase-row:hover { background: rgba(15,23,42,0.02); }
+  .phase-row.selected { background: rgba(59,130,246,0.08); }
+  .phase-row.critical { border-left-color: var(--accent-red); }
+  .cell {
+    height: 100%;
+    padding: 0 8px;
+    border-right: 1px solid rgba(15,23,42,0.04);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+  .cell-num { color: var(--text-muted); font-family: monospace; font-size: 10px; justify-content: center; }
+  /* ★ Issue 1 fix: TAREA cell left-aligned */
+  .cell-tarea {
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;       /* ← LEFT ALIGN (fix bug) */
+    overflow: hidden;
+  }
+  .cell-tarea .name {
+    color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    width: 100%;
+    font-weight: 400;
+    text-align: left;
+  }
+  .phase-row.selected .cell-tarea .name { font-weight: 600; }
+  .cell-tarea .progress { width: 100%; height: 3px; background: rgba(15,23,42,0.06); border-radius: 2px; margin-top: 3px; }
+  .cell-tarea .progress-fill { height: 100%; background: var(--accent-blue); border-radius: 2px; }
+  .cell-mono { color: var(--text-secondary); font-family: monospace; justify-content: center; }
+  .cell-res {
+    padding: 0 4px;
+    color: var(--text-primary);
+  }
+
+  /* ─ TIMELINE PLACEHOLDER ─ */
+  .timeline {
+    flex: 1;
+    overflow: auto;
+    background: linear-gradient(to right, transparent 0, transparent 80px, rgba(15,23,42,0.02) 81px, transparent 82px);
+    background-size: 80px 100%;
+    position: relative;
+  }
+  .timeline-header {
+    height: 50px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: sticky; top: 0;
+    display: flex; align-items: center;
+    padding: 0 12px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .bar {
+    position: absolute;
+    height: 24px;
+    border-radius: 4px;
+    color: #fff; font-size: 10px; font-weight: 600;
+    padding: 0 6px;
+    display: flex; align-items: center;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .bar-blue { background: var(--accent-blue); }
+  .bar-red { background: var(--accent-red); }
+  .bar-green { background: var(--accent-green); }
+
+  /* ─ LEGEND ─ */
+  .legend {
+    margin-left: auto;
+    display: flex; gap: 14px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-swatch {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  /* ─ EMPTY STATE ─ */
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  .reset-btn {
+    padding: 4px 10px;
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #dc2626;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ─ Resize visual feedback ─ */
+  body.resizing { cursor: col-resize !important; user-select: none; }
+  body.resizing * { cursor: col-resize !important; user-select: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📁 Planificación</h1>
+  <p>Mockup v2 — canh trái TAREA, filter task, resize cột</p>
+</div>
+
+<div class="demo-banner">
+  <strong>📋 Mockup demo</strong> — Test 3 tính năng mới: <br>
+  &nbsp;&nbsp;<strong>1.</strong> Cột TAREA giờ canh trái (text bắt đầu từ mép trái cell, ellipsis ở mép phải khi tên dài) <br>
+  &nbsp;&nbsp;<strong>2.</strong> Ô search "Buscar tarea..." (gõ "legal", "negocia", "construc" để filter — phase không match bị ẨN HOÀN TOÀN) <br>
+  &nbsp;&nbsp;<strong>3.</strong> Drag mép phải header cột (đường mỏng giữa "Tarea" và "Dur" v.v.) — cursor sẽ đổi thành ↔ khi hover. Cột "Recursos" cũng có handle ở mép phải = biên panel trái (drag để mở rộng/thu hẹp toàn bộ panel trái).<br>
+  &nbsp;&nbsp;Width đã chỉnh được lưu vào localStorage. Reload để verify. Click <button class="reset-btn" onclick="resetWidths()">Reset widths</button> để khôi phục default.
+</div>
+
+<div class="glass" id="gantt-root">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-label">Zoom:</span>
+    <div class="zoom-group">
+      <button class="zoom-btn" data-zoom="day">day</button>
+      <button class="zoom-btn active" data-zoom="week">week</button>
+      <button class="zoom-btn" data-zoom="month">month</button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <button class="btn-base">▼ Expand all</button>
+      <button class="btn-base">▶ Collapse all</button>
+    </div>
+
+    <!-- Existing recursos filter -->
+    <div class="filter-group">
+      <span class="icon">👥</span>
+      <select class="input" id="filter-recursos">
+        <option value="">— Todos —</option>
+        <option value="director">Director</option>
+        <option value="abogado">Abogado</option>
+        <option value="asistente-canal-fijo">Asistente Canal Fijo</option>
+        <option value="jefe-finanzas">Jefe Finanzas</option>
+        <option value="sub-director">Sub Director</option>
+        <option value="asistente-administracion">Asistente Administracion</option>
+        <option value="asistente-trainning">Asistente Trainning</option>
+      </select>
+    </div>
+
+    <!-- ★ NEW: Task name filter -->
+    <div class="filter-group">
+      <span class="icon">🔍</span>
+      <input type="text" class="input" id="filter-task" placeholder="Buscar tarea...">
+    </div>
+
+    <span class="stats" id="stats">2 tiendas · 1 expanded</span>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch" style="background: var(--accent-blue);"></span> Normal</span>
+      <span class="legend-item"><span class="legend-swatch" style="background: var(--accent-red);"></span> Ruta crítica</span>
+      <span class="legend-item"><span class="legend-swatch" style="background: var(--accent-green);"></span> Completada</span>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <!-- Left panel -->
+    <div class="left-panel" id="left-panel">
+      <div class="table-header" id="table-header"></div>
+      <div id="row-list"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="timeline-header">
+        <span style="margin-right: 50px;">13/4</span>
+        <span style="margin-right: 50px;">20/4</span>
+        <span style="margin-right: 50px;">27/4</span>
+        <span style="margin-right: 50px;">1/5</span>
+        <span style="margin-right: 50px;">11/5</span>
+        <span style="margin-right: 50px;">18/5</span>
+        <span style="margin-right: 50px;">25/5</span>
+      </div>
+      <div id="timeline-bars" style="position: relative; height: 600px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────────────────────────────
+// Each phase carries its bar position (left/width) and color so the timeline
+// stays in sync with the left panel filter.
+const PHASES = [
+  { n: 1, name: "Ubicación encontrada y aprobada por DPTO SALES", dur: "1d", inicio: "15/04/2026", fin: "16/04/2026", pred: "", recurso: "Director", critical: false, status: "completed", progress: 100, barLeft: 30, barWidth: 50, barColor: "green" },
+  { n: 2, name: "Diseño, construcción, carta fianza, límite, plan financiero", dur: "2d", inicio: "17/04/2026", fin: "19/04/2026", pred: "1", recurso: "Asistente Canal Fijo", critical: false, status: "completed", progress: 100, barLeft: 80, barWidth: 70, barColor: "green" },
+  { n: 3, name: "Legal aprueba el contrato", dur: "6d", inicio: "19/04/2026", fin: "25/04/2026", pred: "2", recurso: "Abogado", critical: false, status: "completed", progress: 100, barLeft: 150, barWidth: 110, barColor: "green" },
+  { n: 4, name: "Firma del contrato y legalización notarial", dur: "4d", inicio: "27/04/2026", fin: "01/05/2026", pred: "3", recurso: "Asistente Administracion", critical: false, status: "completed", progress: 100, barLeft: 260, barWidth: 80, barColor: "green" },
+  { n: 5, name: "Creación del código de canal", dur: "2d", inicio: "09/05/2026", fin: "11/05/2026", pred: "4", recurso: "Asistente Canal Fijo", critical: false, status: "in-progress", progress: 50, barLeft: 340, barWidth: 50, barColor: "blue" },
+  { n: 6, name: "Pago de la garantía de alquiler", dur: "8d", inicio: "11/05/2026", fin: "19/05/2026", pred: "5", recurso: "Jefe Finanzas", critical: true, status: "pendiente", progress: 0, barLeft: 390, barWidth: 130, barColor: "red" },
+  { n: 7, name: "El proveedor realiza la inspección y cotización", dur: "13d", inicio: "11/05/2026", fin: "24/05/2026", pred: "6 SS", recurso: "Sub Director", critical: true, status: "pendiente", progress: 0, barLeft: 390, barWidth: 180, barColor: "red" },
+  { n: 8, name: "Construcción y remodelación", dur: "6d", inicio: "14/05/2026", fin: "20/05/2026", pred: "7", recurso: "Jefe Finanzas", critical: true, status: "pendiente", progress: 0, barLeft: 570, barWidth: 110, barColor: "red" },
+  { n: 9, name: "Reclutamiento y capacitación del personal", dur: "3d", inicio: "20/05/2026", fin: "23/05/2026", pred: "8", recurso: "Asistente Trainning", critical: true, status: "pendiente", progress: 0, barLeft: 680, barWidth: 60, barColor: "red" },
+  { n: 10, name: "TR realiza la recepción/conformidad", dur: "2d", inicio: "23/05/2026", fin: "25/05/2026", pred: "9", recurso: "Jefe Finanzas", critical: true, status: "pendiente", progress: 0, barLeft: 740, barWidth: 40, barColor: "blue" },
+  { n: 11, name: "Emisión del comprobante de pago (SUNAT)", dur: "1d", inicio: "25/05/2026", fin: "26/05/2026", pred: "10", recurso: "Jefe Finanzas", critical: true, status: "pendiente", progress: 0, barLeft: 780, barWidth: 30, barColor: "blue" },
+];
+
+// Y-offset constants so timeline bars align with rows in left panel
+const TIMELINE_HEADER_H = 0;   // timeline-header has its own height; bars start in the bars container
+const STORE_ROW_H = 44;
+const PHASE_ROW_H = 36;
+const BAR_OFFSET_Y = 6;        // bar vertical offset within a row
+
+// ─────────────────────────────────────────────────────────────────────
+// COLUMN WIDTHS (with localStorage persistence)
+// ─────────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "gantt-mockup-col-widths-v1";
+const COL_KEYS = ["num", "name", "dur", "start", "finish", "pred", "res"];
+const HEADERS  = ["#", "Tarea", "Dur", "Inicio", "Fin", "Pred", "Recursos"];
+const DEFAULTS = { num: 30, name: 240, dur: 54, start: 90, finish: 90, pred: 70, res: 170 };
+
+function loadWidths() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+  } catch {}
+  return { ...DEFAULTS };
+}
+function saveWidths() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(colWidths)); } catch {}
+}
+function resetWidths() {
+  colWidths = { ...DEFAULTS };
+  saveWidths();
+  applyWidths();
+}
+
+let colWidths = loadWidths();
+
+function totalWidth() {
+  return COL_KEYS.reduce((sum, k) => sum + colWidths[k], 0);
+}
+function applyWidths() {
+  const tpl = COL_KEYS.map(k => `${colWidths[k]}px`).join(" ");
+  document.getElementById("table-header").style.gridTemplateColumns = tpl;
+  document.getElementById("left-panel").style.width = totalWidth() + "px";
+  document.querySelectorAll(".phase-row").forEach(r => {
+    r.style.gridTemplateColumns = tpl;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────
+let storeExpanded = true;
+let selectedPhase = null;
+
+function render() {
+  const filterRecursos = document.getElementById("filter-recursos").value;
+  const filterTask = document.getElementById("filter-task").value.trim().toLowerCase();
+
+  // Header
+  const header = document.getElementById("table-header");
+  header.innerHTML = "";
+  header.style.gridTemplateColumns = COL_KEYS.map(k => `${colWidths[k]}px`).join(" ");
+  HEADERS.forEach((h, i) => {
+    const cell = document.createElement("div");
+    cell.className = "header-cell";
+    cell.textContent = h;
+    // All 7 columns get resize handle (including Recursos — its right edge
+    // doubles as the left-panel boundary, so dragging it resizes both the
+    // Recursos column AND the left panel as a whole).
+    const handle = document.createElement("div");
+    handle.className = "resize-handle";
+    if (i === HEADERS.length - 1) handle.classList.add("resize-handle-last");
+    handle.dataset.col = COL_KEYS[i];
+    handle.addEventListener("mousedown", startResize);
+    cell.appendChild(handle);
+    header.appendChild(cell);
+  });
+
+  // Rows
+  const list = document.getElementById("row-list");
+  list.innerHTML = "";
+
+  // Filter phases
+  const filteredPhases = PHASES.filter(p => {
+    if (filterTask && !p.name.toLowerCase().includes(filterTask)) return false;
+    if (filterRecursos) {
+      const recKey = p.recurso.toLowerCase().replace(/\s/g, "-");
+      if (recKey !== filterRecursos) return false;
+    }
+    return true;
+  });
+
+  // Store header
+  const storeRow = document.createElement("div");
+  storeRow.className = "store-row";
+  const completed = filteredPhases.filter(p => p.status === "completed").length;
+  const pct = filteredPhases.length > 0 ? Math.round((completed / filteredPhases.length) * 100) : 0;
+  storeRow.innerHTML = `
+    <span class="chevron">${storeExpanded ? "▼" : "▶"}</span>
+    <div class="name-wrap">
+      <div class="name-line">
+        <span class="name"><span class="code">PE_S_LIM_01</span>Tienda Lima Centro</span>
+        <span class="count">${completed}/${filteredPhases.length}</span>
+      </div>
+      <div class="progress"><div class="progress-fill" style="width: ${pct}%; background: ${pct === 100 ? '#10b981' : '#3b82f6'};"></div></div>
+    </div>
+  `;
+  storeRow.addEventListener("click", () => { storeExpanded = !storeExpanded; render(); });
+  list.appendChild(storeRow);
+
+  if (storeExpanded) {
+    if (filteredPhases.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = filterTask ? `No hay tareas que coincidan con "${filterTask}"` : "Sin tareas";
+      list.appendChild(empty);
+    } else {
+      filteredPhases.forEach(p => {
+        const row = document.createElement("div");
+        row.className = "phase-row" + (p.critical ? " critical" : "") + (selectedPhase === p.n ? " selected" : "");
+        row.style.gridTemplateColumns = COL_KEYS.map(k => `${colWidths[k]}px`).join(" ");
+        row.innerHTML = `
+          <div class="cell cell-num">${p.n}</div>
+          <div class="cell cell-tarea">
+            <span class="name" title="${p.name}">${p.name}</span>
+            <div class="progress"><div class="progress-fill" style="width: ${p.progress}%; background: ${p.progress >= 100 ? '#10b981' : '#3b82f6'};"></div></div>
+          </div>
+          <div class="cell cell-mono">${p.dur}</div>
+          <div class="cell cell-mono">${p.inicio}</div>
+          <div class="cell cell-mono">${p.fin}</div>
+          <div class="cell cell-mono">${p.pred}</div>
+          <div class="cell cell-res">${p.recurso}</div>
+        `;
+        row.addEventListener("click", () => {
+          selectedPhase = selectedPhase === p.n ? null : p.n;
+          render();
+        });
+        list.appendChild(row);
+      });
+    }
+  }
+
+  // Update stats
+  document.getElementById("stats").textContent = `${filteredPhases.length} de ${PHASES.length} tareas · 1 expanded`;
+
+  // Render timeline bars — only for filtered phases, aligned with left panel rows
+  renderBars(filteredPhases);
+}
+
+function renderBars(filteredPhases) {
+  const container = document.getElementById("timeline-bars");
+  container.innerHTML = "";
+
+  if (!storeExpanded) return;
+
+  // Each filtered phase gets a bar at row-aligned Y position
+  // First row of phases is below the store header (which is at top of bars area)
+  filteredPhases.forEach((p, idx) => {
+    const bar = document.createElement("div");
+    bar.className = `bar bar-${p.barColor}`;
+    bar.style.left = `${p.barLeft}px`;
+    bar.style.top = `${STORE_ROW_H + idx * PHASE_ROW_H + BAR_OFFSET_Y}px`;
+    bar.style.width = `${p.barWidth}px`;
+    bar.textContent = p.name.length > 25 ? p.name.slice(0, 24) + "…" : p.name;
+    bar.title = `${p.name}\n${p.inicio} → ${p.fin}`;
+    container.appendChild(bar);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// RESIZE INTERACTION
+// ─────────────────────────────────────────────────────────────────────
+let resizing = null;
+
+function startResize(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const handle = e.currentTarget;
+  resizing = {
+    key: handle.dataset.col,
+    startX: e.clientX,
+    startW: colWidths[handle.dataset.col],
+    handle: handle,
+  };
+  handle.classList.add("active");
+  document.body.classList.add("resizing");
+  window.addEventListener("mousemove", onResizeMove);
+  window.addEventListener("mouseup", endResize);
+}
+
+function onResizeMove(e) {
+  if (!resizing) return;
+  const dx = e.clientX - resizing.startX;
+  const newW = Math.max(30, resizing.startW + dx);
+  colWidths[resizing.key] = newW;
+  applyWidths();
+}
+
+function endResize() {
+  if (!resizing) return;
+  resizing.handle.classList.remove("active");
+  resizing = null;
+  document.body.classList.remove("resizing");
+  saveWidths();
+  window.removeEventListener("mousemove", onResizeMove);
+  window.removeEventListener("mouseup", endResize);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// EVENT WIRING
+// ─────────────────────────────────────────────────────────────────────
+document.getElementById("filter-task").addEventListener("input", render);
+document.getElementById("filter-recursos").addEventListener("change", render);
+
+document.querySelectorAll(".zoom-btn").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".zoom-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+  });
+});
+
+// Initial render
+render();
+applyWidths();
+</script>
+
+</body>
+</html>
