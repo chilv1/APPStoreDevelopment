@@ -291,6 +291,46 @@ export default function MasterGanttView({
   };
 
   // ── Drag handling (PATCH /api/phases/:id) ────────────────────────────────
+  // Clamp deltaDays so drag/resize doesn't move the phase before its predecessor's
+  // constraint edge — FS: pred.end + lag, SS: pred.start + lag, FF/SF on the end.
+  const clampDeltaDaysAgainstPredecessor = (drag: DragState, days: number): number => {
+    const store = stores.find((s) => s.id === drag.storeId);
+    const phase = store?.phases.find((p) => p.id === drag.phaseId);
+    if (!phase || !phase.dependsOnId) return days;
+    const pred = store?.phases.find((p) => p.id === phase.dependsOnId);
+    if (!pred) return days;
+    const predStart = pred.plannedStart ? new Date(pred.plannedStart).getTime() : null;
+    const predEnd   = pred.plannedEnd   ? new Date(pred.plannedEnd).getTime()   : null;
+    const lagMs = (phase.lagDays ?? 0) * MS_PER_DAY;
+    const dt = (phase.dependencyType ?? "FS").toUpperCase();
+
+    let minStartMs: number | null = null;
+    let minEndMs:   number | null = null;
+    if      (dt === "FS" && predEnd   !== null) minStartMs = predEnd   + lagMs;
+    else if (dt === "SS" && predStart !== null) minStartMs = predStart + lagMs;
+    else if (dt === "FF" && predEnd   !== null) minEndMs   = predEnd   + lagMs;
+    else if (dt === "SF" && predStart !== null) minEndMs   = predStart + lagMs;
+
+    let clamped = days;
+    if (drag.mode === "move" || drag.mode === "resize-start") {
+      if (minStartMs !== null) {
+        const newStart = drag.origStart + clamped * MS_PER_DAY;
+        if (newStart < minStartMs) {
+          clamped = Math.ceil((minStartMs - drag.origStart) / MS_PER_DAY);
+        }
+      }
+    }
+    if (drag.mode === "move" || drag.mode === "resize-end") {
+      if (minEndMs !== null) {
+        const newEnd = drag.origEnd + clamped * MS_PER_DAY;
+        if (newEnd < minEndMs) {
+          clamped = Math.ceil((minEndMs - drag.origEnd) / MS_PER_DAY);
+        }
+      }
+    }
+    return clamped;
+  };
+
   const onPointerDown = (storeId: string, phaseId: string, mode: DragState["mode"]) => (e: React.PointerEvent) => {
     e.stopPropagation();
     const store = stores.find((s) => s.id === storeId);
@@ -311,13 +351,16 @@ export default function MasterGanttView({
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
     const dxPx = e.clientX - drag.originX;
-    const days = Math.round(dxPx / pxPerDay);
+    const rawDays = Math.round(dxPx / pxPerDay);
+    const days = clampDeltaDaysAgainstPredecessor(drag, rawDays);
     if (days !== drag.deltaDays) setDrag({ ...drag, deltaDays: days });
   };
 
   const onPointerUp = async () => {
     if (!drag) return;
-    const { phaseId, mode, origStart, origEnd, deltaDays } = drag;
+    const { phaseId, mode, origStart, origEnd } = drag;
+    // Re-clamp on save in case state was set without going through onPointerMove
+    const deltaDays = clampDeltaDaysAgainstPredecessor(drag, drag.deltaDays);
     setDrag(null);
     if (deltaDays === 0) return;
     let newStart = origStart, newEnd = origEnd;
