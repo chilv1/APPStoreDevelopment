@@ -293,14 +293,17 @@ export default function MasterGanttView({
   // ── Drag handling (PATCH /api/phases/:id) ────────────────────────────────
   // Clamp deltaDays so drag/resize doesn't move the phase before its predecessor's
   // constraint edge — FS: pred.end + lag, SS: pred.start + lag, FF/SF on the end.
+  // Uses pred's EFFECTIVE dates (actual ?? planned) so the clamp matches the bar's
+  // visual end — if F5 finished late (actualEnd > plannedEnd), F6 must respect that.
   const clampDeltaDaysAgainstPredecessor = (drag: DragState, days: number): number => {
     const store = stores.find((s) => s.id === drag.storeId);
     const phase = store?.phases.find((p) => p.id === drag.phaseId);
     if (!phase || !phase.dependsOnId) return days;
     const pred = store?.phases.find((p) => p.id === phase.dependsOnId);
     if (!pred) return days;
-    const predStart = pred.plannedStart ? new Date(pred.plannedStart).getTime() : null;
-    const predEnd   = pred.plannedEnd   ? new Date(pred.plannedEnd).getTime()   : null;
+    const predEff = effectiveDates(pred);
+    const predStart = predEff.start ? new Date(predEff.start).getTime() : null;
+    const predEnd   = predEff.end   ? new Date(predEff.end).getTime()   : null;
     const lagMs = (phase.lagDays ?? 0) * MS_PER_DAY;
     const dt = (phase.dependencyType ?? "FS").toUpperCase();
 
