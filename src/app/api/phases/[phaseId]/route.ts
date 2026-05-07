@@ -135,6 +135,62 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ph
     return NextResponse.json({ error: "Ngày thực tế kết thúc phải sau ngày thực tế bắt đầu" }, { status: 400 });
   }
 
+  // Validate actual dates against predecessor dependency rule:
+  //   FS: this.actualStart >= pred.effectiveEnd
+  //   SS: this.actualStart >= pred.effectiveStart
+  //   FF: this.actualEnd   >= pred.effectiveEnd
+  //   SF: this.actualEnd   >= pred.effectiveStart
+  // Where pred.effectiveEnd = actualEnd ?? plannedEnd (similar for start).
+  if (data.actualStart !== undefined || data.actualEnd !== undefined) {
+    const me = await prisma.phase.findUnique({
+      where: { id: phaseId },
+      select: {
+        actualStart: true, actualEnd: true,
+        dependsOnId: true, dependencyType: true, lagDays: true,
+        order: true,
+      },
+    });
+    const effActStart = data.actualStart !== undefined ? data.actualStart : me?.actualStart ?? null;
+    const effActEnd   = data.actualEnd   !== undefined ? data.actualEnd   : me?.actualEnd ?? null;
+    const predId = me?.dependsOnId;
+    if (predId) {
+      const pred = await prisma.phase.findUnique({
+        where: { id: predId },
+        select: { actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true, name: true, order: true },
+      });
+      if (pred) {
+        const predEffStart = pred.actualStart ?? pred.plannedStart;
+        const predEffEnd   = pred.actualEnd   ?? pred.plannedEnd;
+        const lagMs = (me.lagDays ?? 0) * 86_400_000;
+        const dt = me.dependencyType ?? "FS";
+        const fmt = (d: any) => d ? new Date(d).toLocaleDateString("es-ES") : "—";
+        const errFor = (label: string, mine: Date | null, predDate: Date | null) =>
+          `Actual ${label} (${fmt(mine)}) no puede ser anterior a F.${pred.order} ${pred.name} ${label === "start" ? "actual finish" : "actual start"} (${fmt(predDate)}) — dependencia ${dt}.`;
+        if (dt === "FS" && effActStart && predEffEnd) {
+          const minMs = new Date(predEffEnd).getTime() + lagMs;
+          if (new Date(effActStart).getTime() < minMs) {
+            return NextResponse.json({ error: errFor("start", new Date(effActStart), new Date(minMs)) }, { status: 400 });
+          }
+        } else if (dt === "SS" && effActStart && predEffStart) {
+          const minMs = new Date(predEffStart).getTime() + lagMs;
+          if (new Date(effActStart).getTime() < minMs) {
+            return NextResponse.json({ error: errFor("start", new Date(effActStart), new Date(minMs)) }, { status: 400 });
+          }
+        } else if (dt === "FF" && effActEnd && predEffEnd) {
+          const minMs = new Date(predEffEnd).getTime() + lagMs;
+          if (new Date(effActEnd).getTime() < minMs) {
+            return NextResponse.json({ error: errFor("finish", new Date(effActEnd), new Date(minMs)) }, { status: 400 });
+          }
+        } else if (dt === "SF" && effActEnd && predEffStart) {
+          const minMs = new Date(predEffStart).getTime() + lagMs;
+          if (new Date(effActEnd).getTime() < minMs) {
+            return NextResponse.json({ error: errFor("finish", new Date(effActEnd), new Date(minMs)) }, { status: 400 });
+          }
+        }
+      }
+    }
+  }
+
   try {
     // Bulk-assign all tasks of this phase to a user (or unassign with null).
     // Phase has no assigneeId field of its own; we propagate to its tasks.

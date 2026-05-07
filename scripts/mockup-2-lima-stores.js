@@ -70,36 +70,47 @@ function computeSchedule(templates, projectStart) {
   return sorted.map((tpl) => map.get(tpl.order));
 }
 
+// Build sequential actuals so each completed phase's actualStart >= previous
+// phase's actualEnd (FS dependency rule). Treats every phase as FS; this is
+// fine because the seed always wires phases in chain order.
 function buildPhaseTimelines(storeStatus, progress, plannedDates, N) {
   const out = [];
   if (storeStatus === "PLANNING") {
     for (let i = 0; i < N; i++) out.push({ status: "NOT_STARTED", actualStart: null, actualEnd: null });
     return out;
   }
-  if (storeStatus === "COMPLETED") {
-    for (let i = 0; i < N; i++) {
-      out.push({
-        status: "COMPLETED",
-        actualStart: clampAfterCutoff(addDays(plannedDates[i].start, rand(-2, 2))),
-        actualEnd:   clampAfterCutoff(addDays(plannedDates[i].end,   rand(-2, 4))),
-      });
-    }
-    return out;
-  }
-  const K = Math.max(0, Math.min(N - 1, Math.floor((progress / 100) * N)));
+  const completedCount = storeStatus === "COMPLETED"
+    ? N
+    : Math.max(0, Math.min(N - 1, Math.floor((progress / 100) * N)));
+
+  let prevActualEndMs = null;
   for (let i = 0; i < N; i++) {
-    if (i < K) {
+    if (i < completedCount) {
+      const plannedStartMs = new Date(plannedDates[i].start).getTime();
+      const plannedDurMs   = new Date(plannedDates[i].end).getTime() - plannedStartMs;
+      // actualStart: at least previous actualEnd, plus tiny jitter (0..2 days).
+      const lowerBound = prevActualEndMs ?? plannedStartMs;
+      const aStartMs = Math.max(lowerBound + rand(0, 2) * DAY_MS, CUTOFF.getTime());
+      // Duration: planned ± slight jitter, never negative.
+      const aDurMs = Math.max(DAY_MS, plannedDurMs + rand(-1, 4) * DAY_MS);
+      const aEndMs = aStartMs + aDurMs;
       out.push({
         status: "COMPLETED",
-        actualStart: clampAfterCutoff(addDays(plannedDates[i].start, rand(-2, 2))),
-        actualEnd:   clampAfterCutoff(addDays(plannedDates[i].end,   rand(-2, 4))),
+        actualStart: new Date(aStartMs),
+        actualEnd:   new Date(aEndMs),
       });
-    } else if (i === K) {
+      prevActualEndMs = aEndMs;
+    } else if (i === completedCount && storeStatus !== "COMPLETED") {
+      // Currently in progress: actualStart >= prev actualEnd, no actualEnd yet.
+      const plannedStartMs = new Date(plannedDates[i].start).getTime();
+      const lowerBound = prevActualEndMs ?? plannedStartMs;
+      const aStartMs = Math.max(lowerBound + rand(0, 2) * DAY_MS, CUTOFF.getTime());
       out.push({
         status: "IN_PROGRESS",
-        actualStart: clampAfterCutoff(addDays(plannedDates[i].start, rand(-1, 1))),
+        actualStart: new Date(aStartMs),
         actualEnd: null,
       });
+      prevActualEndMs = null; // no end yet, downstream phases stay NOT_STARTED
     } else {
       out.push({ status: "NOT_STARTED", actualStart: null, actualEnd: null });
     }
