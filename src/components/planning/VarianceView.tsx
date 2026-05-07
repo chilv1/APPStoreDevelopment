@@ -28,7 +28,7 @@ interface VarianceResp {
 
 interface Props { storeId: string }
 
-function fmt(d: string | null) { return d ? new Date(d).toLocaleDateString() : "—"; }
+function fmt(d: string | null) { return d ? new Date(d).toLocaleDateString(undefined, { timeZone: "UTC" }) : "—"; }
 function deltaLabel(d: number | null): { text: string; color: string } {
   if (d === null) return { text: "—", color: "var(--text-muted)" };
   if (d === 0)    return { text: "0d", color: "var(--text-secondary)" };

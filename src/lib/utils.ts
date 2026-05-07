@@ -20,6 +20,20 @@ export function formatDate(date: Date | string | null | undefined, intlCode: str
   });
 }
 
+// For date-only fields stored as UTC midnight (Phase planned/actual dates,
+// Task.dueDate, StoreProject.targetOpenDate, deadlines). Renders the calendar
+// day as written in DB, ignoring browser timezone offset. Use this for any
+// field that represents a "day" rather than a "moment in time".
+export function formatDateUTC(date: Date | string | null | undefined, intlCode: string = "es-PE"): string {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString(intlCode, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // PEN (Soles): Peru convention "S/ 1.234.567" — period thousand separator.
 // Uses Intl.NumberFormat with 'es-PE' for proper grouping regardless of UI locale.
 export function formatCurrency(amount: number | null | undefined, _intlCode?: string): string {

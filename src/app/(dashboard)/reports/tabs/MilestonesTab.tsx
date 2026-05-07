@@ -65,7 +65,7 @@ const PHASE_QUESTIONS: Record<number, string> = {
 function fmtDate(s: string | null): string {
   if (!s) return "—";
   try {
-    return new Date(s).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return new Date(s).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
   } catch { return "—"; }
 }
 

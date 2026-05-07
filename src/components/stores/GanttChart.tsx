@@ -106,12 +106,19 @@ function getProgress(phase: any): number {
   return Math.round((done / tasks.length) * 100);
 }
 
+// Phase/contract/target dates are stored as UTC midnight in DB. Use UTC formatting
+// so the calendar day shown matches what was entered, regardless of browser timezone.
 function fmtDate(d: Date | string, intlCode = "es-PE"): string {
-  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 
 function fmtDateShort(d: Date | string, intlCode = "es-PE"): string {
-  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit" });
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+}
+
+// For "today" pill — uses local timezone since it represents the user's current day.
+function fmtTodayShort(d: Date, intlCode = "es-PE"): string {
+  return d.toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit" });
 }
 
 function toDateInput(d: Date | string | null | undefined): string {
@@ -1105,7 +1112,7 @@ export default function GanttChart({ storeId, phases, targetDate, onUpdated, cur
                 fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
                 whiteSpace: "nowrap", zIndex: 5,
               }}>
-                {t.gantt.todayPill.replace("{date}", fmtDateShort(now, intlCode))}
+                {t.gantt.todayPill.replace("{date}", fmtTodayShort(now, intlCode))}
               </div>
             )}
           </div>

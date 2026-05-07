@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { formatDate, formatCurrency, getStatusLabel, getPriorityLabel, STATUS_COLORS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
+import { formatDate, formatDateUTC, formatCurrency, getStatusLabel, getPriorityLabel, STATUS_COLORS, PRIORITY_COLORS, PHASE_ICONS } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useT, useLocale } from "@/lib/i18n/context";
 import { usePollingInterval } from "@/lib/hooks/usePollingInterval";
@@ -108,7 +108,7 @@ export default function StoreDetailPage() {
               }
               {store.pm && <span>👤 {t.storeDetail.pm}: <strong style={{ color: "var(--text-primary)" }}>{store.pm.name}</strong></span>}
               {store.budget && <span>💰 {formatCurrency(store.budget)}</span>}
-              {store.targetOpenDate && <span>🎯 {t.storeDetail.targetOpenLabel}: <strong style={{ color: "var(--text-primary)" }}>{formatDate(store.targetOpenDate, intlCode)}</strong></span>}
+              {store.targetOpenDate && <span>🎯 {t.storeDetail.targetOpenLabel}: <strong style={{ color: "var(--text-primary)" }}>{formatDateUTC(store.targetOpenDate, intlCode)}</strong></span>}
               {store.latitude != null && store.longitude != null && (
                 <a href={`https://www.google.com/maps?q=${store.latitude},${store.longitude}`} target="_blank" rel="noopener noreferrer"
                   style={{ color: "var(--accent-blue)", textDecoration: "none", fontSize: 13 }}>
@@ -276,7 +276,7 @@ export default function StoreDetailPage() {
                         )}
                         {task.dueDate && (
                           <span style={{ fontSize: 11, color: new Date(task.dueDate) < new Date() && task.status !== "DONE" ? "#f87171" : "var(--text-muted)" }}>
-                            📅 {formatDate(task.dueDate, intlCode)}
+                            📅 {formatDateUTC(task.dueDate, intlCode)}
                           </span>
                         )}
                       </div>

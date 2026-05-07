@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useT } from "@/lib/i18n/context";
+import { useT, useLocale } from "@/lib/i18n/context";
+import { formatDateUTC } from "@/lib/utils";
 import type { ConstraintType, DepRow, DepsResp, PlanningPhase, PlanningStore, ScheduleResp } from "./types";
 
 interface PhaseTask {
@@ -57,6 +58,7 @@ function isoDate(d: string | null | undefined): string {
 
 export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate }: Props) {
   const t = useT();
+  const { intlCode } = useLocale();
   const [deps, setDeps] = useState<DepsResp | null>(null);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -260,11 +262,11 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13 }}>
               <div>
                 <div style={{ color: "var(--text-muted)", fontSize: 11 }}>{t.planning.colStart}</div>
-                <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{phase.plannedStart ? new Date(phase.plannedStart).toLocaleDateString() : "—"}</div>
+                <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{formatDateUTC(phase.plannedStart, intlCode)}</div>
               </div>
               <div>
                 <div style={{ color: "var(--text-muted)", fontSize: 11 }}>{t.planning.colFinish}</div>
-                <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{phase.plannedEnd ? new Date(phase.plannedEnd).toLocaleDateString() : "—"}</div>
+                <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{formatDateUTC(phase.plannedEnd, intlCode)}</div>
               </div>
               {task && (
                 <>
@@ -380,7 +382,7 @@ export default function PhaseDrawer({ phase, store, schedule, onClose, onMutate 
                       }} title={tk.title}>{tk.title}</div>
                       <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
                         {tk.assignee?.name ?? "—"}
-                        {tk.dueDate && <> · {new Date(tk.dueDate).toLocaleDateString()}</>}
+                        {tk.dueDate && <> · {formatDateUTC(tk.dueDate, intlCode)}</>}
                       </div>
                     </div>
                     <select
@@ -666,7 +668,7 @@ function PhaseTimeLog({ phaseId }: { phaseId: string }) {
         const m = STATUS_META[e.status];
         return (
           <div key={e.id} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-            <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-muted)", width: 80 }}>{new Date(e.date).toLocaleDateString()}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-muted)", width: 80 }}>{formatDateUTC(e.date)}</span>
             <strong style={{ fontVariantNumeric: "tabular-nums" }}>{e.hours.toFixed(1)}h</strong>
             <span className="badge" style={{ background: m.bg, color: m.color, borderColor: "transparent" }}>{m.label}</span>
             <span style={{ flex: 1, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.notes ?? ""}</span>

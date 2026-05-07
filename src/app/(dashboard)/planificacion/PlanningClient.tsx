@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useT } from "@/lib/i18n/context";
+import { formatDateUTC } from "@/lib/utils";
 import MasterGanttView from "@/components/planning/MasterGanttView";
 import ResourcesView from "@/components/planning/ResourcesView";
 import CalendarView from "@/components/planning/CalendarView";
@@ -205,7 +206,7 @@ export default function PlanningClient() {
           )}
           {!isMasterView && schedule && (
             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-              {t.planning.finishLabel}: <strong style={{ color: "var(--text-primary)" }}>{new Date(schedule.projectFinish).toLocaleDateString()}</strong>
+              {t.planning.finishLabel}: <strong style={{ color: "var(--text-primary)" }}>{formatDateUTC(schedule.projectFinish)}</strong>
             </span>
           )}
           <button

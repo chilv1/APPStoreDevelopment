@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useT } from "@/lib/i18n/context";
+import { useT, useLocale } from "@/lib/i18n/context";
+import { formatDateUTC } from "@/lib/utils";
 import type { PlanningStore, PlanningPhase, ScheduleResp } from "./types";
 
 interface PlanningAssignee { id: string; name: string; role: string }
@@ -39,12 +40,6 @@ const PX_PER_DAY: Record<Zoom, number> = { day: 26, week: 14, month: 4 };
 
 function startOfDay(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-}
-
-function fmtDate(d: string | null): string {
-  if (!d) return "";
-  const dd = new Date(d);
-  return `${dd.getUTCDate()}/${dd.getUTCMonth() + 1}/${String(dd.getUTCFullYear()).slice(-2)}`;
 }
 
 function durationDays(start: string | null, end: string | null): string {
@@ -114,6 +109,7 @@ export default function MasterGanttView({
   currentUserId,
 }: Props) {
   const t = useT();
+  const { intlCode } = useLocale();
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Zoom>("week");
@@ -554,8 +550,8 @@ export default function MasterGanttView({
                   </div>
                 </div>
                 <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{durationDays(phase.plannedStart, phase.plannedEnd)}</div>
-                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedStart)}</div>
-                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtDate(phase.plannedEnd)}</div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{formatDateUTC(phase.plannedStart, intlCode)}</div>
+                <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{formatDateUTC(phase.plannedEnd, intlCode)}</div>
                 <div style={cellStyle({ color: "var(--text-secondary)", fontFamily: "monospace", justifyContent: "center" })}>{fmtPredecessor(phase, store.phases)}</div>
                 <div style={cellStyle({ padding: "0 4px" })} onClick={(ev) => ev.stopPropagation()}>
                   <select

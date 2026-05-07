@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateUTC } from "@/lib/utils";
 
 type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 interface Risk { code: string; severity: Severity; taskId?: string; taskName?: string; message: string; suggestion?: string }
@@ -73,7 +74,7 @@ export default function AIPanel({ storeId, onClose, onSelectPhase }: Props) {
                 </div>
                 <div className="stat-card" style={{ padding: 10 }}>
                   <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Finish</div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{data.metrics.projectFinish ? new Date(data.metrics.projectFinish).toLocaleDateString() : "—"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{formatDateUTC(data.metrics.projectFinish)}</div>
                 </div>
                 <div className="stat-card" style={{ padding: 10 }}>
                   <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Engine</div>

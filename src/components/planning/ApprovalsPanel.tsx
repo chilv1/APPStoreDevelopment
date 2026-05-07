@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateUTC } from "@/lib/utils";
 
 interface PendingEntry {
   id: string;
@@ -86,7 +87,7 @@ export default function ApprovalsPanel({ onClose }: Props) {
                           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{e.phase.store.code} · F.{e.phase.phaseNumber} {e.phase.name}</div>
                           {e.notes && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>"{e.notes}"</div>}
                           <div style={{ display: "flex", gap: 8, marginTop: 4, fontSize: 11, color: "var(--text-muted)" }}>
-                            <span>📅 {new Date(e.date).toLocaleDateString()}</span>
+                            <span>📅 {formatDateUTC(e.date)}</span>
                             <span>⏱ {e.hours}h</span>
                             {e.submittedAt && <span>↑ {new Date(e.submittedAt).toLocaleDateString()}</span>}
                           </div>

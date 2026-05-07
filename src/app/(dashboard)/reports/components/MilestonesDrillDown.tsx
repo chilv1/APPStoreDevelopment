@@ -46,7 +46,7 @@ const CHIPS: { key: FilterKey; label: string; bg: string; color: string }[] = [
 function fmtDate(s: string | null): string {
   if (!s) return "—";
   try {
-    return new Date(s).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    return new Date(s).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "UTC" });
   } catch { return "—"; }
 }
 

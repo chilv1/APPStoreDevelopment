@@ -23,6 +23,12 @@ function fmtDateShort(d: Date | string, intlCode = "es-PE"): string {
   return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit" });
 }
 
+// For date-only fields stored as UTC midnight (phase planned dates,
+// targetOpenDate). Renders the calendar day as written in DB.
+function fmtDateShortUTC(d: Date | string, intlCode = "es-PE"): string {
+  return new Date(d).toLocaleDateString(intlCode, { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+}
+
 export default function PortfolioGanttPage() {
   const t = useT();
   const { locale, intlCode } = useLocale();
@@ -322,7 +328,7 @@ export default function PortfolioGanttPage() {
                         : 0.35;
                       return (
                         <div key={phase.id}
-                          title={`${t.storesList.phaseAbbrev}${phase.phaseNumber}: ${phase.name}\n${fmtDateShort(phase.plannedStart, intlCode)} → ${fmtDateShort(phase.plannedEnd, intlCode)}`}
+                          title={`${t.storesList.phaseAbbrev}${phase.phaseNumber}: ${phase.name}\n${fmtDateShortUTC(phase.plannedStart, intlCode)} → ${fmtDateShortUTC(phase.plannedEnd, intlCode)}`}
                           style={{
                             position: "absolute",
                             left: `${left}%`, width: `${width}%`,
@@ -336,7 +342,7 @@ export default function PortfolioGanttPage() {
 
                     {/* Target opening diamond */}
                     {targetPct !== null && targetPct >= 0 && targetPct <= 100 && (
-                      <div title={t.portfolio.openingTooltip.replace("{date}", fmtDateShort(store.targetOpenDate, intlCode))} style={{
+                      <div title={t.portfolio.openingTooltip.replace("{date}", fmtDateShortUTC(store.targetOpenDate, intlCode))} style={{
                         position: "absolute", left: `${targetPct}%`,
                         top: 8, transform: "translateX(-50%)",
                       }}>

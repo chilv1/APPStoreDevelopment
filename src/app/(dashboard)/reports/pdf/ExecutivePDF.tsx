@@ -207,7 +207,7 @@ export function ExecutivePDF(props: ExecutivePDFProps) {
                 <Text style={[styles.td, { flex: 1 }]}>{o.code}</Text>
                 <Text style={[styles.td, { flex: 3 }]}>{o.name}</Text>
                 <Text style={[styles.td, { flex: 2 }]}>{o.branch}</Text>
-                <Text style={[styles.td, { flex: 1.5 }]}>{new Date(o.targetOpenDate).toLocaleDateString("es-PE")}</Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>{new Date(o.targetOpenDate).toLocaleDateString("es-PE", { timeZone: "UTC" })}</Text>
                 <Text style={[styles.td, { flex: 1 }]}>{o.daysToOpen ?? "-"}d</Text>
               </View>
             ))}
