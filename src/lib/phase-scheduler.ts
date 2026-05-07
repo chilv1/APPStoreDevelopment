@@ -123,6 +123,7 @@ export async function cascadeDependents(
       plannedEnd: true,
       actualStart: true,
       actualEnd: true,
+      status: true,
     },
   });
 
@@ -142,14 +143,27 @@ export async function cascadeDependents(
   const visited = new Set<string>();
   const queue: string[] = [changedPhaseId];
 
-  // Effective start/end: prefer ACTUAL when set; otherwise use planned.
-  // This way, when phase X's actualEnd slips beyond plannedEnd, downstream
-  // phases automatically push out by the same amount while preserving their
-  // planned durations.
-  const effStart = (p: { actualStart: Date | null; plannedStart: Date | null }): Date | null =>
-    p.actualStart ?? p.plannedStart;
-  const effEnd   = (p: { actualEnd:   Date | null; plannedEnd:   Date | null }): Date | null =>
-    p.actualEnd   ?? p.plannedEnd;
+  // Stable start/end: bounded BELOW by planned. If actual is later than planned
+  // (slip), use actual to push downstream out. If actual is earlier than planned
+  // (finished early), DON'T pull downstream back past pred's plannedEnd — that
+  // would cause dep to visually overtake pred's planned position. Falls back to
+  // planned when actual is null.
+  const stableStart = (p: { actualStart: Date | null; plannedStart: Date | null }): number | null => {
+    const planned = p.plannedStart ? new Date(p.plannedStart).getTime() : null;
+    const actual  = p.actualStart  ? new Date(p.actualStart).getTime()  : null;
+    if (planned === null && actual === null) return null;
+    if (planned === null) return actual;
+    if (actual  === null) return planned;
+    return Math.max(planned, actual);
+  };
+  const stableEnd = (p: { actualEnd: Date | null; plannedEnd: Date | null }): number | null => {
+    const planned = p.plannedEnd ? new Date(p.plannedEnd).getTime() : null;
+    const actual  = p.actualEnd  ? new Date(p.actualEnd).getTime()  : null;
+    if (planned === null && actual === null) return null;
+    if (planned === null) return actual;
+    if (actual  === null) return planned;
+    return Math.max(planned, actual);
+  };
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
@@ -158,13 +172,22 @@ export async function cascadeDependents(
 
     const current = phaseById.get(currentId);
     if (!current) continue;
-    const cStart = effStart(current);
-    const cEnd   = effEnd(current);
-    if (!cStart || !cEnd) continue;
+    const cStartMs = stableStart(current);
+    const cEndMs   = stableEnd(current);
+    if (cStartMs === null || cEndMs === null) continue;
 
     const deps = dependentsOf.get(currentId) ?? [];
     for (const dep of deps) {
       if (visited.has(dep.id)) continue;
+
+      // Skip update for COMPLETED dependents — their plan is historical fact
+      // and shouldn't move. Still propagate to THEIR dependents (using their
+      // actual dates as anchor) in case downstream non-completed phases need
+      // to align with the completed phase's actuals.
+      if ((dep as any).status === "COMPLETED") {
+        queue.push(dep.id);
+        continue;
+      }
 
       const lagMs = (dep.lagDays ?? 0) * DAY_MS;
 
@@ -176,25 +199,22 @@ export async function cascadeDependents(
 
       let newStartMs: number;
       if (dep.dependencyType === "SS") {
-        newStartMs = cStart.getTime() + lagMs;
+        newStartMs = cStartMs + lagMs;
       } else if (dep.dependencyType === "FF") {
-        newStartMs = cEnd.getTime() + lagMs - oldDurMs;
+        newStartMs = cEndMs + lagMs - oldDurMs;
       } else if (dep.dependencyType === "SF") {
-        newStartMs = cStart.getTime() + lagMs - oldDurMs;
+        newStartMs = cStartMs + lagMs - oldDurMs;
       } else {
         // FS (default)
-        newStartMs = cEnd.getTime() + lagMs;
+        newStartMs = cEndMs + lagMs;
       }
 
-      // Only push FORWARD — never pull dependents backward when a predecessor
-      // finishes earlier than planned. MS-Project semantics: an early actual
-      // doesn't auto-reschedule downstream phases earlier (that needs manual
-      // re-leveling). Pulling backward would cause successors to start before
-      // their predecessor's planned position, visually overlapping the bars.
-      const currentStartMs = dep.plannedStart ? new Date(dep.plannedStart).getTime() : -Infinity;
-      if (newStartMs <= currentStartMs) {
-        // No forward push needed for this dep, and therefore no propagation
-        // to its own dependents either (the change didn't reach this branch).
+      // Snap dep to the dependency anchor (forward OR backward to tighten
+      // gaps), bounded by stable anchor of pred. If dep is already at the
+      // exact anchor, nothing to write — but still propagate downstream.
+      const currentStartMs = dep.plannedStart ? new Date(dep.plannedStart).getTime() : null;
+      if (currentStartMs !== null && currentStartMs === newStartMs) {
+        queue.push(dep.id);
         continue;
       }
 
